@@ -7,6 +7,8 @@ authors = ["Horace Williams <horace.d.williams@gmail.com>"]
 clap = "2.31.2"
 regex = "1.0.0"
 lazy_static = "1.0.1"
+geo = "0.9.1"
+wkt = "0.0.6"
 
 [dev-dependencies]
 assert_cli = "0.6"

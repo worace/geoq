@@ -17,3 +17,15 @@ pizza
         .contains("LatLon\nGeohash\nGeoJSON\nWKT\nUnknown")
         .unwrap();
 }
+
+#[test]
+#[ignore]
+fn it_outputs_wkt() {
+    let input = "12,34";
+    Assert::main_binary()
+        .with_args(&["wkt"])
+        .stdin(input)
+        .stdout()
+        .contains("POINT (34 12)")
+        .unwrap();
+}

@@ -1,12 +1,21 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate clap;
+extern crate geo;
 extern crate regex;
-use clap::{App, Arg, ArgMatches, SubCommand};
+
+use clap::{App, ArgMatches, SubCommand};
+use geo::{Geometry, Point};
 use regex::Regex;
 use std::io;
 use std::io::prelude::*;
 use std::process;
+
+// Types to geom:
+// lat/lon: split on comma -> parse to double -> geo::Point
+// Geohash: strip whitespace -> geohash::decode()
+// WKT: wkt::Wkt::from_str
+// GeoJSON: geojson_str.parse::<GeoJson>()
 
 #[derive(Debug)]
 enum InputType {
@@ -17,16 +26,36 @@ enum InputType {
     Unknown,
 }
 
-struct Input {
+pub struct Input {
     raw: String,
     input_type: InputType,
+}
+
+pub fn get_geom(input: &Input) -> Geometry<f64> {
+    Geometry::Point(Point::new(0., 0.))
+}
+
+#[test]
+fn getting_geometries() {
+    println!("*******************");
+    println!("*******************");
+    println!("*******************");
+    let i = Input {
+        raw: "12,34".to_string(),
+        input_type: InputType::LatLon,
+    };
+    let g: Geometry<f64> = get_geom(&i);
+    println!("{:?}", g);
+    assert!(true);
 }
 
 lazy_static! {
     static ref LATLON: Regex = Regex::new(r"^-?\d+\.?\d*,-?\d+\.?\d*$").unwrap();
     static ref GH: Regex = Regex::new(r"(?i)^[0-9a-z--a--i--l--o]+$").unwrap();
     static ref JSON: Regex = Regex::new(r"\{").unwrap();
-    static ref WKT: Regex = Regex::new(r"(?ix)^point|linestring|polygon|multipoint|multilinestring|multipolygon").unwrap();
+    static ref WKT: Regex = Regex::new(
+        r"(?ix)^point|linestring|polygon|multipoint|multilinestring|multipolygon"
+    ).unwrap();
 }
 
 fn read_input(line: String) -> Input {
@@ -58,19 +87,17 @@ fn read_input(line: String) -> Input {
     }
 }
 
-fn run_wkt(matches: &ArgMatches) -> Result<(), String> {
+fn run_wkt(_matches: &ArgMatches) -> Result<(), String> {
     println!("RUNNING WKT ***");
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let input = read_input(line.unwrap());
-        println!("Input-contained line:");
-        println!("{:?}", input.input_type);
         println!("{}", input.raw);
     }
     Ok(())
 }
 
-fn run_type(matches: &ArgMatches) -> Result<(), String> {
+fn run_type(_matches: &ArgMatches) -> Result<(), String> {
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let input = read_input(line.unwrap());
@@ -81,8 +108,8 @@ fn run_type(matches: &ArgMatches) -> Result<(), String> {
 
 fn run(matches: ArgMatches) -> Result<(), String> {
     match matches.subcommand() {
-        ("wkt", Some(m)) => run_wkt(&matches),
-        ("type", Some(m)) => run_type(&matches),
+        ("wkt", Some(_m)) => run_wkt(&matches),
+        ("type", Some(_m)) => run_type(&matches),
         _ => Err("Unknown Command".to_string()),
     }
 }
