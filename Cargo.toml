@@ -1,0 +1,7 @@
+[package]
+name = "geoq"
+version = "0.1.0"
+authors = ["Horace Williams <horace.d.williams@gmail.com>"]
+
+[dependencies]
+clap = "2.31.2"
