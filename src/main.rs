@@ -3,6 +3,7 @@ extern crate lazy_static;
 extern crate clap;
 extern crate geo;
 extern crate regex;
+extern crate wkt;
 
 use clap::{App, ArgMatches, SubCommand};
 use geo::{Geometry, Point};
@@ -10,6 +11,7 @@ use regex::Regex;
 use std::io;
 use std::io::prelude::*;
 use std::process;
+use wkt::ToWkt;
 
 // Types to geom:
 // lat/lon: split on comma -> parse to double -> geo::Point
@@ -87,11 +89,23 @@ fn read_input(line: String) -> Input {
     }
 }
 
+// fn get_wkt(geom: &Geometry<f64>) -> Option<wkt::Wkt> {
+//     let mut wkt = wkt::Wkt::new();
+//     // wkt.add_item(geom);
+//     match geom {
+//         Geometry::Point => Some(wkt::Geometry(geom)),
+//         _ => None
+//     }
+// }
+
 fn run_wkt(_matches: &ArgMatches) -> Result<(), String> {
     println!("RUNNING WKT ***");
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let input = read_input(line.unwrap());
+        let geom = get_geom(&input);
+        let wkt = geom.to_wkt();
+        println!("{:?}", geom);
         println!("{}", input.raw);
     }
     Ok(())
