@@ -2,16 +2,17 @@
 extern crate lazy_static;
 extern crate clap;
 extern crate geo;
+extern crate geohash;
 extern crate regex;
 extern crate wkt;
 
 use clap::{App, ArgMatches, SubCommand};
-use geo::{Geometry, Point};
+use geo::{Coordinate, Geometry, LineString, Point, Polygon};
 use regex::Regex;
+use std::fmt;
 use std::io;
 use std::io::prelude::*;
 use std::process;
-use std::fmt;
 // use wkt::ToWkt;
 
 // Types to geom:
@@ -36,7 +37,7 @@ impl Input {
             Input::Geohash(ref raw) => raw,
             Input::WKT(ref raw) => raw,
             Input::GeoJSON(ref raw) => raw,
-            Input::Unknown(ref raw) => raw
+            Input::Unknown(ref raw) => raw,
         }
     }
 
@@ -44,22 +45,26 @@ impl Input {
         match *self {
             Input::LatLon(ref raw) => {
                 let pieces = raw.split(",").collect::<Vec<&str>>();
-                println!("~~~~~~~~~~");
-                println!("{:?}", pieces);
-                println!("{:?}", pieces[0].parse::<f64>());
-                println!("{:?}", pieces[1].parse::<f64>());
-                let lat = pieces[0].parse::<f64>();
-                let lon = pieces[1].parse::<f64>();
-                println!("{:?}", lat);
-                println!("{:?}", lon);
-                let ll = match (lat, lon) {
+                let ll = match (pieces[0].parse::<f64>(), pieces[1].parse::<f64>()) {
                     (Ok(lat), Ok(lon)) => (lat, lon),
-                    _ => (0.0, 0.0)
+                    _ => (0.0, 0.0),
                 };
-                println!("{:?}", ll);
                 Geometry::Point(Point::new(ll.1, ll.0))
             }
-            _ => Geometry::Point(Point::new(0., 0.))
+            Input::Geohash(ref raw) => {
+                let (bl, tr) = geohash::decode_bbox("ww8p1r4t8");
+                println!("{:?}", bl);
+                println!("{:?}", tr);
+                let outer = LineString(vec![
+                    Point::new(bl.x, bl.y),
+                    Point::new(bl.x, tr.y),
+                    Point::new(tr.x, tr.y),
+                    Point::new(tr.x, bl.y),
+                    Point::new(bl.x, bl.y),
+                ]);
+                Geometry::Polygon(Polygon::new(outer, Vec::new()))
+            }
+            _ => Geometry::Point(Point::new(0., 0.)),
         }
     }
 }
@@ -71,24 +76,34 @@ impl fmt::Display for Input {
             Input::Geohash(ref raw) => write!(f, "Geohash({})", raw),
             Input::WKT(ref raw) => write!(f, "WKT({})", raw),
             Input::GeoJSON(ref raw) => write!(f, "GeoJSON({})", raw),
-            Input::Unknown(ref raw) => write!(f, "Unknown({})", raw)
+            Input::Unknown(ref raw) => write!(f, "Unknown({})", raw),
         }
-        // write!(f, "{}", printable)
     }
 }
 
 #[test]
-fn getting_geometries() {
-    println!("*******************");
-    println!("*******************");
-    println!("*******************");
+fn geom_for_lat_lon() {
     let i = Input::LatLon("12,34".to_string());
-    let g: Geometry<f64> = i.geom();
-    match g {
-        Geometry::Point(p) => assert_eq!(p.0.y, 12.0),
+    match i.geom() {
+        Geometry::Point(p) => {
+            assert_eq!(p.0.y, 12.0);
+            assert_eq!(p.0.x, 34.0);
+        }
         _ => assert!(false),
     }
-    println!("{:?}", g);
+}
+
+#[test]
+fn geom_for_geohash() {
+    let i = Input::Geohash("9q5".to_string());
+    match i.geom() {
+        Geometry::Polygon(p) => {
+            println!("{:?}", p);
+            // assert_eq!(p.0.y, 12.0);
+            // assert_eq!(p.0.x, 34.0);
+        }
+        _ => assert!(false, "Geohash should give a polygon"),
+    }
 }
 
 lazy_static! {
