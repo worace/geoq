@@ -11,7 +11,8 @@ use regex::Regex;
 use std::io;
 use std::io::prelude::*;
 use std::process;
-use wkt::ToWkt;
+use std::fmt;
+// use wkt::ToWkt;
 
 // Types to geom:
 // lat/lon: split on comma -> parse to double -> geo::Point
@@ -20,21 +21,60 @@ use wkt::ToWkt;
 // GeoJSON: geojson_str.parse::<GeoJson>()
 
 #[derive(Debug)]
-enum InputType {
-    LatLon,
-    Geohash,
-    WKT,
-    GeoJSON,
-    Unknown,
+pub enum Input {
+    LatLon(String),
+    Geohash(String),
+    WKT(String),
+    GeoJSON(String),
+    Unknown(String),
 }
 
-pub struct Input {
-    raw: String,
-    input_type: InputType,
+impl Input {
+    fn raw(&self) -> &String {
+        match *self {
+            Input::LatLon(ref raw) => raw,
+            Input::Geohash(ref raw) => raw,
+            Input::WKT(ref raw) => raw,
+            Input::GeoJSON(ref raw) => raw,
+            Input::Unknown(ref raw) => raw
+        }
+    }
+
+    fn geom(&self) -> Geometry<f64> {
+        match *self {
+            Input::LatLon(ref raw) => {
+                let pieces = raw.split(",").collect::<Vec<&str>>();
+                println!("~~~~~~~~~~");
+                println!("{:?}", pieces);
+                println!("{:?}", pieces[0].parse::<f64>());
+                println!("{:?}", pieces[1].parse::<f64>());
+                let lat = pieces[0].parse::<f64>();
+                let lon = pieces[1].parse::<f64>();
+                println!("{:?}", lat);
+                println!("{:?}", lon);
+                let ll = match (lat, lon) {
+                    (Ok(lat), Ok(lon)) => (lat, lon),
+                    _ => (0.0, 0.0)
+                };
+                println!("{:?}", ll);
+                Geometry::Point(Point::new(ll.1, ll.0))
+            }
+            _ => Geometry::Point(Point::new(0., 0.))
+        }
+    }
 }
 
-pub fn get_geom(input: &Input) -> Geometry<f64> {
-    Geometry::Point(Point::new(0., 0.))
+impl fmt::Display for Input {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Input::LatLon(ref raw) => write!(f, "LatLon({})", raw),
+            Input::Geohash(ref raw) => write!(f, "Geohash({})", raw),
+            Input::WKT(ref raw) => write!(f, "WKT({})", raw),
+            Input::GeoJSON(ref raw) => write!(f, "GeoJSON({})", raw),
+            Input::Unknown(ref raw) => write!(f, "Unknown({})", raw)
+        }
+        // write!(f, "{}", printable)
+    }
 }
 
 #[test]
@@ -42,13 +82,13 @@ fn getting_geometries() {
     println!("*******************");
     println!("*******************");
     println!("*******************");
-    let i = Input {
-        raw: "12,34".to_string(),
-        input_type: InputType::LatLon,
-    };
-    let g: Geometry<f64> = get_geom(&i);
+    let i = Input::LatLon("12,34".to_string());
+    let g: Geometry<f64> = i.geom();
+    match g {
+        Geometry::Point(p) => assert_eq!(p.0.y, 12.0),
+        _ => assert!(false),
+    }
     println!("{:?}", g);
-    assert!(true);
 }
 
 lazy_static! {
@@ -62,30 +102,15 @@ lazy_static! {
 
 fn read_input(line: String) -> Input {
     if LATLON.is_match(&line) {
-        Input {
-            raw: line,
-            input_type: InputType::LatLon,
-        }
+        Input::LatLon(line)
     } else if GH.is_match(&line) {
-        Input {
-            raw: line,
-            input_type: InputType::Geohash,
-        }
+        Input::Geohash(line)
     } else if JSON.is_match(&line) {
-        Input {
-            raw: line,
-            input_type: InputType::GeoJSON,
-        }
+        Input::GeoJSON(line)
     } else if WKT.is_match(&line) {
-        Input {
-            raw: line,
-            input_type: InputType::WKT,
-        }
+        Input::WKT(line)
     } else {
-        Input {
-            raw: line,
-            input_type: InputType::Unknown,
-        }
+        Input::Unknown(line)
     }
 }
 
@@ -103,10 +128,10 @@ fn run_wkt(_matches: &ArgMatches) -> Result<(), String> {
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let input = read_input(line.unwrap());
-        let geom = get_geom(&input);
-        let wkt = geom.to_wkt();
+        let geom = input.geom();
+        // let wkt = geom.to_wkt();
         println!("{:?}", geom);
-        println!("{}", input.raw);
+        println!("{}", input.raw());
     }
     Ok(())
 }
@@ -115,7 +140,7 @@ fn run_type(_matches: &ArgMatches) -> Result<(), String> {
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let input = read_input(line.unwrap());
-        println!("{:?}", input.input_type);
+        println!("{}", input);
     }
     Ok(())
 }
