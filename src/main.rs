@@ -3,11 +3,13 @@ extern crate lazy_static;
 extern crate clap;
 extern crate geo;
 extern crate geohash;
+extern crate geojson;
 extern crate regex;
 extern crate wkt;
 
 use clap::{App, ArgMatches, SubCommand};
-use geo::{Coordinate, Geometry, LineString, Point, Polygon};
+use geo::{Geometry, LineString, Point, Polygon};
+use geojson::GeoJson;
 use regex::Regex;
 use std::fmt;
 use std::io;
@@ -16,10 +18,10 @@ use std::process;
 // use wkt::ToWkt;
 
 // Types to geom:
-// lat/lon: split on comma -> parse to double -> geo::Point
-// Geohash: strip whitespace -> geohash::decode()
-// WKT: wkt::Wkt::from_str
-// GeoJSON: geojson_str.parse::<GeoJson>()
+// [X] lat/lon: split on comma -> parse to double -> geo::Point
+// [X] Geohash: strip whitespace -> geohash::decode()
+// [*] WKT: wkt::Wkt::from_str -- BLOCKED on wkt library
+// [ ] GeoJSON: geojson_str.parse::<GeoJson>()
 
 #[derive(Debug)]
 pub enum Input {
@@ -52,17 +54,28 @@ impl Input {
                 Geometry::Point(Point::new(ll.1, ll.0))
             }
             Input::Geohash(ref raw) => {
-                let (bl, tr) = geohash::decode_bbox("ww8p1r4t8");
+                let (bl, tr) = geohash::decode_bbox(raw);
                 println!("{:?}", bl);
                 println!("{:?}", tr);
                 let outer = LineString(vec![
                     Point::new(bl.x, bl.y),
-                    Point::new(bl.x, tr.y),
-                    Point::new(tr.x, tr.y),
                     Point::new(tr.x, bl.y),
+                    Point::new(tr.x, tr.y),
+                    Point::new(bl.x, tr.y),
                     Point::new(bl.x, bl.y),
                 ]);
                 Geometry::Polygon(Polygon::new(outer, Vec::new()))
+            }
+            Input::GeoJSON(ref raw) => {
+                let gj: GeoJson = raw.parse::<GeoJson>().unwrap();
+                println!("{:?}", gj);
+                match gj {
+                    GeoJson::Geometry(_geom) => {
+                        Geometry::Point(Point::new(0., 0.))
+                    },
+                    GeoJson::Feature(_feature) => Geometry::Point(Point::new(0., 0.)),
+                    GeoJson::FeatureCollection(_fc) => Geometry::Point(Point::new(0., 0.)),
+                }
             }
             _ => Geometry::Point(Point::new(0., 0.)),
         }
@@ -95,10 +108,45 @@ fn geom_for_lat_lon() {
 
 #[test]
 fn geom_for_geohash() {
+    // Polygon { exterior: LineString([Point(Coordinate { x: -119.53125, y: 33.75 }), Point(Coordinate { x: -119.53125, y: 35.15625 }), Point(Coordinate { x: -118.125, y: 35.15625 }), Point(Coordinate { x: -118.125, y: 33.75 }), Point(Coordinate { x: -119.53125, y: 33.75 })]), interiors: [] }
+    let expected = Polygon::new(
+        vec![
+            [-119.53125, 33.75],
+            [-118.125, 33.75],
+            [-118.125, 35.15625],
+            [-119.53125, 35.15625],
+            [-119.53125, 33.75],
+        ].into(),
+        vec![],
+    );
+
     let i = Input::Geohash("9q5".to_string());
     match i.geom() {
         Geometry::Polygon(p) => {
             println!("{:?}", p);
+            assert_eq!(p, expected);
+            // assert_eq!(p.0.y, 12.0);
+            // assert_eq!(p.0.x, 34.0);
+        }
+        _ => assert!(false, "Geohash should give a polygon"),
+    }
+}
+
+#[test]
+fn geom_for_geojson() {
+    let gj = "{\"type\": \"LineString\", \"coordinates\": [[-26.01, 59.17], [-15.46, 45.58], [0.35, 35.74]]}";
+    let expected = LineString(
+        vec![
+            Point::new(-26.01, 59.17),
+            Point::new(-15.46, 45.58),
+            Point::new(0.35, 35.74),
+        ].into(),
+    );
+    let i = Input::GeoJSON(gj.to_string());
+    match i.geom() {
+        Geometry::LineString(l) => {
+            println!("{:?}", l);
+            assert_eq!(l, expected);
             // assert_eq!(p.0.y, 12.0);
             // assert_eq!(p.0.x, 34.0);
         }
