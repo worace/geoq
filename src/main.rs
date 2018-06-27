@@ -9,6 +9,7 @@ extern crate wkt;
 
 use clap::{App, ArgMatches, SubCommand};
 use geo::{Geometry, LineString, Point, Polygon};
+use geojson::conversion::*;
 use geojson::GeoJson;
 use regex::Regex;
 use std::fmt;
@@ -16,6 +17,14 @@ use std::io;
 use std::io::prelude::*;
 use std::process;
 // use wkt::ToWkt;
+
+#[derive(Debug)]
+enum Error {
+    InvalidGeoJSON,
+    NotImplemented,
+    UnknownCommand,
+    UnknownEntityFormat,
+}
 
 // Types to geom:
 // [X] lat/lon: split on comma -> parse to double -> geo::Point
@@ -43,7 +52,7 @@ impl Input {
         }
     }
 
-    fn geom(&self) -> Geometry<f64> {
+    fn geom(&self) -> Result<Geometry<f64>, Error> {
         match *self {
             Input::LatLon(ref raw) => {
                 let pieces = raw.split(",").collect::<Vec<&str>>();
@@ -51,12 +60,10 @@ impl Input {
                     (Ok(lat), Ok(lon)) => (lat, lon),
                     _ => (0.0, 0.0),
                 };
-                Geometry::Point(Point::new(ll.1, ll.0))
+                Ok(Geometry::Point(Point::new(ll.1, ll.0)))
             }
             Input::Geohash(ref raw) => {
                 let (bl, tr) = geohash::decode_bbox(raw);
-                println!("{:?}", bl);
-                println!("{:?}", tr);
                 let outer = LineString(vec![
                     Point::new(bl.x, bl.y),
                     Point::new(tr.x, bl.y),
@@ -64,20 +71,29 @@ impl Input {
                     Point::new(bl.x, tr.y),
                     Point::new(bl.x, bl.y),
                 ]);
-                Geometry::Polygon(Polygon::new(outer, Vec::new()))
+                Ok(Geometry::Polygon(Polygon::new(outer, Vec::new())))
             }
             Input::GeoJSON(ref raw) => {
-                let gj: GeoJson = raw.parse::<GeoJson>().unwrap();
-                println!("{:?}", gj);
+                let gj = match raw.parse() {
+                    Ok(gj) => gj,
+                    Err(_) => {
+                        return Err(Error::InvalidGeoJSON);
+                    }
+                };
+
                 match gj {
-                    GeoJson::Geometry(_geom) => {
-                        Geometry::Point(Point::new(0., 0.))
-                    },
-                    GeoJson::Feature(_feature) => Geometry::Point(Point::new(0., 0.)),
-                    GeoJson::FeatureCollection(_fc) => Geometry::Point(Point::new(0., 0.)),
+                    GeoJson::Geometry(gj_geom) => {
+                        let geom: Result<Geometry<f64>, geojson::Error> = gj_geom.value.try_into();
+                        match geom {
+                            Ok(g) => Ok(g),
+                            Err(_) => Err(Error::InvalidGeoJSON),
+                        }
+                    }
+                    GeoJson::Feature(_feature) => Err(Error::NotImplemented),
+                    GeoJson::FeatureCollection(_fc) => Err(Error::NotImplemented),
                 }
             }
-            _ => Geometry::Point(Point::new(0., 0.)),
+            _ => Err(Error::UnknownEntityFormat),
         }
     }
 }
@@ -98,7 +114,7 @@ impl fmt::Display for Input {
 fn geom_for_lat_lon() {
     let i = Input::LatLon("12,34".to_string());
     match i.geom() {
-        Geometry::Point(p) => {
+        Ok(Geometry::Point(p)) => {
             assert_eq!(p.0.y, 12.0);
             assert_eq!(p.0.x, 34.0);
         }
@@ -108,7 +124,6 @@ fn geom_for_lat_lon() {
 
 #[test]
 fn geom_for_geohash() {
-    // Polygon { exterior: LineString([Point(Coordinate { x: -119.53125, y: 33.75 }), Point(Coordinate { x: -119.53125, y: 35.15625 }), Point(Coordinate { x: -118.125, y: 35.15625 }), Point(Coordinate { x: -118.125, y: 33.75 }), Point(Coordinate { x: -119.53125, y: 33.75 })]), interiors: [] }
     let expected = Polygon::new(
         vec![
             [-119.53125, 33.75],
@@ -122,11 +137,9 @@ fn geom_for_geohash() {
 
     let i = Input::Geohash("9q5".to_string());
     match i.geom() {
-        Geometry::Polygon(p) => {
+        Ok(Geometry::Polygon(p)) => {
             println!("{:?}", p);
             assert_eq!(p, expected);
-            // assert_eq!(p.0.y, 12.0);
-            // assert_eq!(p.0.x, 34.0);
         }
         _ => assert!(false, "Geohash should give a polygon"),
     }
@@ -144,13 +157,24 @@ fn geom_for_geojson() {
     );
     let i = Input::GeoJSON(gj.to_string());
     match i.geom() {
-        Geometry::LineString(l) => {
+        Ok(Geometry::LineString(l)) => {
             println!("{:?}", l);
             assert_eq!(l, expected);
-            // assert_eq!(p.0.y, 12.0);
-            // assert_eq!(p.0.x, 34.0);
         }
         _ => assert!(false, "Geohash should give a polygon"),
+    }
+}
+
+#[test]
+fn geom_for_invalid_geojson() {
+    let gj = "{pizza}";
+    let i = Input::GeoJSON(gj.to_string());
+    match i.geom() {
+        Err(Error::InvalidGeoJSON) => assert!(true, "Returns proper error"),
+        _ => assert!(
+            false,
+            "Reading invalid GeoJSON should give Error::InvalidGeoJSON"
+        ),
     }
 }
 
@@ -186,20 +210,25 @@ fn read_input(line: String) -> Input {
 //     }
 // }
 
-fn run_wkt(_matches: &ArgMatches) -> Result<(), String> {
+fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
     println!("RUNNING WKT ***");
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let input = read_input(line.unwrap());
         let geom = input.geom();
         // let wkt = geom.to_wkt();
-        println!("{:?}", geom);
-        println!("{}", input.raw());
+        match geom {
+            Ok(g) => {
+                println!("{:?}", g);
+                println!("{}", input.raw());
+            }
+            Err(e) => return Err(e),
+        }
     }
     Ok(())
 }
 
-fn run_type(_matches: &ArgMatches) -> Result<(), String> {
+fn run_type(_matches: &ArgMatches) -> Result<(), Error> {
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let input = read_input(line.unwrap());
@@ -208,11 +237,11 @@ fn run_type(_matches: &ArgMatches) -> Result<(), String> {
     Ok(())
 }
 
-fn run(matches: ArgMatches) -> Result<(), String> {
+fn run(matches: ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("wkt", Some(_m)) => run_wkt(&matches),
         ("type", Some(_m)) => run_type(&matches),
-        _ => Err("Unknown Command".to_string()),
+        _ => Err(Error::UnknownCommand),
     }
 }
 
@@ -228,7 +257,7 @@ fn main() {
     println!("{:?}", matches.subcommand);
 
     if let Err(e) = run(matches) {
-        println!("Application error: {}", e);
+        println!("Application error: {:?}", e);
         process::exit(1);
     }
 }
