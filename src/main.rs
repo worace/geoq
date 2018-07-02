@@ -16,7 +16,7 @@ use std::fmt;
 use std::io;
 use std::io::prelude::*;
 use std::process;
-// use wkt::ToWkt;
+use wkt::Wkt;
 
 #[derive(Debug)]
 enum Error {
@@ -24,6 +24,7 @@ enum Error {
     NotImplemented,
     UnknownCommand,
     UnknownEntityFormat,
+    InvalidWkt,
 }
 
 // Types to geom:
@@ -58,6 +59,7 @@ impl Input {
                 let pieces = raw.split(",").collect::<Vec<&str>>();
                 let ll = match (pieces[0].parse::<f64>(), pieces[1].parse::<f64>()) {
                     (Ok(lat), Ok(lon)) => (lat, lon),
+                    // TODO Error
                     _ => (0.0, 0.0),
                 };
                 Ok(Geometry::Point(Point::new(ll.1, ll.0)))
@@ -91,6 +93,17 @@ impl Input {
                     }
                     GeoJson::Feature(_feature) => Err(Error::NotImplemented),
                     GeoJson::FeatureCollection(_fc) => Err(Error::NotImplemented),
+                }
+            }
+            Input::WKT(ref raw) => {
+                let wkt_res: Result<Wkt<f64>, &str> = Wkt::from_str(raw);
+                match wkt_res {
+                    Ok(wkt) => {
+                        let wkt_geom = wkt.items[0];
+                        println!("{:?}", wkt.items.len());
+                        Ok(Geometry::Point(Point::new(0.0, 0.0)))
+                    }
+                    Err(_) => Err(Error::InvalidWkt),
                 }
             }
             _ => Err(Error::UnknownEntityFormat),
@@ -158,7 +171,6 @@ fn geom_for_geojson() {
     let i = Input::GeoJSON(gj.to_string());
     match i.geom() {
         Ok(Geometry::LineString(l)) => {
-            println!("{:?}", l);
             assert_eq!(l, expected);
         }
         _ => assert!(false, "Geohash should give a polygon"),
@@ -175,6 +187,30 @@ fn geom_for_invalid_geojson() {
             false,
             "Reading invalid GeoJSON should give Error::InvalidGeoJSON"
         ),
+    }
+}
+
+#[test]
+fn geom_for_wkt() {
+    let expected = LineString(
+        vec![
+            Point::new(30.0, 10.0),
+            Point::new(10.0, 30.0),
+            Point::new(40.0, 40.0),
+        ].into(),
+    );
+
+    let wkt = "LINESTRING (30 10, 10 30, 40 40)";
+    let i = Input::WKT(String::from(wkt));
+    println!("*(**********)");
+    println!("{:?}", i);
+    match i.geom() {
+        Ok(Geometry::LineString(l)) => {
+            println!("{:?}", l);
+            assert_eq!(l, expected);
+        }
+        Err(e) => assert!(false, "WKT error: {:?}", e),
+        _ => assert!(false, "WKT should be read into a geometry"),
     }
 }
 
