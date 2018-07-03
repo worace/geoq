@@ -294,12 +294,10 @@ fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
 }
 
 fn run_geojson_geom(_matches: &ArgMatches) -> Result<(), Error> {
-    eprintln!("****** GJ GEOM *********");
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let input = read_input(line.unwrap());
         let geom = input.geom();
-        // let wkt = geom.to_wkt();
         match geom {
             Ok(g) => {
                 let gj_geom = geojson::Geometry::new(geojson::Value::from(&g));
@@ -315,11 +313,34 @@ fn run_geojson_geom(_matches: &ArgMatches) -> Result<(), Error> {
     Ok(())
 }
 
+fn run_geojson_feature(_matches: &ArgMatches) -> Result<(), Error> {
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        let input = read_input(line.unwrap());
+        let geom = input.geom();
+        match geom {
+            Ok(g) => {
+                let gj_geom = geojson::Geometry::new(geojson::Value::from(&g));
+                let feature = GeoJson::Feature(geojson::Feature {
+                    bbox: None,
+                    geometry: Some(gj_geom),
+                    id: None,
+                    properties: None,
+                    foreign_members: None
+                });
+                println!("{}", serde_json::to_string(&feature).unwrap());
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(())
+}
+
 fn run_geojson(matches: &ArgMatches) -> Result<(), Error> {
-    eprintln!("****** GEOJSON ********");
     let (_, gj) = matches.subcommand();
     match gj.unwrap().subcommand() {
         ("geom", Some(_m)) => run_geojson_geom(&matches),
+        ("f", Some(_m)) => run_geojson_feature(&matches),
         _ => Err(Error::UnknownCommand)
     }
 }
@@ -344,14 +365,17 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
 
 fn main() {
     let version = "0.1";
+
+    let geojson = SubCommand::with_name("gj")
+        .about("Output entity as GeoJSON.")
+        .subcommand(SubCommand::with_name("geom").about("Output entity as a GeoJSON geometry."))
+        .subcommand(SubCommand::with_name("f").about("Output entity as a GeoJSON Feature."));
     let matches = App::new("geoq")
         .version(version)
         .about("geoq - GeoSpatial utility belt")
         .subcommand(SubCommand::with_name("wkt").about("Output entity as WKT."))
         .subcommand(SubCommand::with_name("type").about("Check the format of an entity."))
-        .subcommand(SubCommand::with_name("gj")
-                    .about("Output entity as GeoJSON.")
-                    .subcommand(SubCommand::with_name("geom").about("Output entity as a GeoJSON geometry.")))
+        .subcommand(geojson)
         .get_matches();
 
     if let Err(e) = run(matches) {
