@@ -3,9 +3,11 @@ extern crate lazy_static;
 extern crate clap;
 extern crate geo;
 extern crate geohash;
+extern crate geo_types;
 extern crate geojson;
 extern crate regex;
 extern crate wkt;
+extern crate serde_json;
 
 use clap::{App, ArgMatches, SubCommand};
 use geo::{Geometry, LineString, Point, Polygon};
@@ -154,6 +156,18 @@ fn geom_for_lat_lon() {
 }
 
 #[test]
+fn geom_for_lat_lon_tsv() {
+    let i = Input::LatLon("12\t34".to_string());
+    match i.geom() {
+        Ok(Geometry::Point(p)) => {
+            assert_eq!(p.0.y, 12.0);
+            assert_eq!(p.0.x, 34.0);
+        }
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn geom_for_geohash() {
     let expected = Polygon::new(
         vec![
@@ -169,7 +183,6 @@ fn geom_for_geohash() {
     let i = Input::Geohash("9q5".to_string());
     match i.geom() {
         Ok(Geometry::Polygon(p)) => {
-            println!("{:?}", p);
             assert_eq!(p, expected);
         }
         _ => assert!(false, "Geohash should give a polygon"),
@@ -263,7 +276,7 @@ fn read_input(line: String) -> Input {
 // }
 
 fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
-    println!("RUNNING WKT ***");
+    eprintln!("RUNNING WKT ***");
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let input = read_input(line.unwrap());
@@ -271,13 +284,44 @@ fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
         // let wkt = geom.to_wkt();
         match geom {
             Ok(g) => {
-                println!("{:?}", g);
-                println!("{}", input.raw());
+                eprintln!("{:?}", g);
+                eprintln!("{}", input.raw());
             }
             Err(e) => return Err(e),
         }
     }
     Ok(())
+}
+
+fn run_geojson_geom(_matches: &ArgMatches) -> Result<(), Error> {
+    eprintln!("****** GJ GEOM *********");
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        let input = read_input(line.unwrap());
+        let geom = input.geom();
+        // let wkt = geom.to_wkt();
+        match geom {
+            Ok(g) => {
+                let gj_geom = geojson::Geometry::new(geojson::Value::from(&g));
+                println!("{}", serde_json::to_string(&gj_geom).unwrap());
+                // match gj {
+                //     serde_json::Value => println!("{}", gj.to_string()),
+                //     _ => return Err(Error::InvalidGeoJSON)
+                // }
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(())
+}
+
+fn run_geojson(matches: &ArgMatches) -> Result<(), Error> {
+    eprintln!("****** GEOJSON ********");
+    let (_, gj) = matches.subcommand();
+    match gj.unwrap().subcommand() {
+        ("geom", Some(_m)) => run_geojson_geom(&matches),
+        _ => Err(Error::UnknownCommand)
+    }
 }
 
 fn run_type(_matches: &ArgMatches) -> Result<(), Error> {
@@ -293,6 +337,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("wkt", Some(_m)) => run_wkt(&matches),
         ("type", Some(_m)) => run_type(&matches),
+        ("gj", Some(_m)) => run_geojson(&matches),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -304,9 +349,10 @@ fn main() {
         .about("geoq - GeoSpatial utility belt")
         .subcommand(SubCommand::with_name("wkt").about("Output entity as WKT."))
         .subcommand(SubCommand::with_name("type").about("Check the format of an entity."))
+        .subcommand(SubCommand::with_name("gj")
+                    .about("Output entity as GeoJSON.")
+                    .subcommand(SubCommand::with_name("geom").about("Output entity as a GeoJSON geometry.")))
         .get_matches();
-    println!("{:?}", matches);
-    println!("{:?}", matches.subcommand);
 
     if let Err(e) = run(matches) {
         println!("Application error: {:?}", e);

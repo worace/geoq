@@ -11,8 +11,7 @@ LINESTRING (30 10, 10 30, 40 40)
 pizza
 ";
 
-    let output = "
-LatLon(12,34)
+    let output = "LatLon(12,34)
 Geohash(9q5)
 GeoJSON({\"type\":\"Point\",\"coordinates\":[125.6, 10.1]})
 WKT(LINESTRING (30 10, 10 30, 40 40))
@@ -36,5 +35,26 @@ fn it_outputs_wkt() {
         .stdin(input)
         .stdout()
         .contains("POINT (34 12)")
+        .unwrap();
+}
+
+#[test]
+fn outputs_geojson_geoms() {
+    let input = "12,34
+12\t34
+9q5
+LINESTRING (30 10, 10 30, 40 40)
+";
+
+    let output = "{\"coordinates\":[34.0,12.0],\"type\":\"Point\"}
+{\"coordinates\":[34.0,12.0],\"type\":\"Point\"}
+{\"coordinates\":[[[-119.53125,33.75],[-118.125,33.75],[-118.125,35.15625],[-119.53125,35.15625],[-119.53125,33.75]]],\"type\":\"Polygon\"}
+{\"coordinates\":[[30.0,10.0],[10.0,30.0],[40.0,40.0]],\"type\":\"LineString\"}
+";
+    Assert::main_binary()
+        .with_args(&["gj", "geom"])
+        .stdin(input)
+        .stdout()
+        .is(output)
         .unwrap();
 }
