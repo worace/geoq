@@ -57,7 +57,7 @@ impl Input {
     fn geom(&self) -> Result<Geometry<f64>, Error> {
         match *self {
             Input::LatLon(ref raw) => {
-                let pieces = raw.split(",").collect::<Vec<&str>>();
+                let pieces = LATLON_SPLIT.split(raw).collect::<Vec<&str>>();
                 match (pieces[0].parse::<f64>(), pieces[1].parse::<f64>()) {
                     (Ok(lat), Ok(lon)) => Ok(Geometry::Point(Point::new(lon, lat))),
                     _ => Err(Error::NotImplemented),
@@ -126,6 +126,18 @@ impl fmt::Display for Input {
             Input::GeoJSON(ref raw) => write!(f, "GeoJSON({})", raw),
             Input::Unknown(ref raw) => write!(f, "Unknown({})", raw),
         }
+    }
+}
+
+#[test]
+fn reading_input_formats() {
+    match read_input("12,34".to_string()) {
+        Input::LatLon(_) => assert!(true),
+        _ => assert!(false)
+    }
+    match read_input("12\t34".to_string()) {
+        Input::LatLon(_) => assert!(true),
+        _ => assert!(false)
     }
 }
 
@@ -218,7 +230,8 @@ fn geom_for_wkt() {
 }
 
 lazy_static! {
-    static ref LATLON: Regex = Regex::new(r"^-?\d+\.?\d*,-?\d+\.?\d*$").unwrap();
+    static ref LATLON_SPLIT: Regex = Regex::new(",|\t").unwrap();
+    static ref LATLON: Regex = Regex::new(r"^-?\d+\.?\d*[,\t]-?\d+\.?\d*$").unwrap();
     static ref GH: Regex = Regex::new(r"(?i)^[0-9a-z--a--i--l--o]+$").unwrap();
     static ref JSON: Regex = Regex::new(r"\{").unwrap();
     static ref WKT: Regex = Regex::new(
