@@ -17,6 +17,7 @@ use std::io;
 use std::io::prelude::*;
 use std::process;
 use wkt::Wkt;
+use wkt::ToGeo;
 
 #[derive(Debug)]
 enum Error {
@@ -57,12 +58,10 @@ impl Input {
         match *self {
             Input::LatLon(ref raw) => {
                 let pieces = raw.split(",").collect::<Vec<&str>>();
-                let ll = match (pieces[0].parse::<f64>(), pieces[1].parse::<f64>()) {
-                    (Ok(lat), Ok(lon)) => (lat, lon),
-                    // TODO Error
-                    _ => (0.0, 0.0),
-                };
-                Ok(Geometry::Point(Point::new(ll.1, ll.0)))
+                match (pieces[0].parse::<f64>(), pieces[1].parse::<f64>()) {
+                    (Ok(lat), Ok(lon)) => Ok(Geometry::Point(Point::new(lon, lat))),
+                    _ => Err(Error::NotImplemented),
+                }
             }
             Input::Geohash(ref raw) => {
                 let (bl, tr) = geohash::decode_bbox(raw);
@@ -99,9 +98,16 @@ impl Input {
                 let wkt_res: Result<Wkt<f64>, &str> = Wkt::from_str(raw);
                 match wkt_res {
                     Ok(wkt) => {
-                        let wkt_geom = wkt.items[0];
-                        println!("{:?}", wkt.items.len());
-                        Ok(Geometry::Point(Point::new(0.0, 0.0)))
+                        match wkt.items.get(0) {
+                            Some(wkt_geom) => {
+                                let geo_geom = wkt_geom.to_geo();
+                                match geo_geom {
+                                    Ok(res) => Ok(res),
+                                    Err(_) => Err(Error::InvalidWkt)
+                                }
+                            }
+                            _ => Err(Error::InvalidWkt)
+                        }
                     }
                     Err(_) => Err(Error::InvalidWkt),
                 }
@@ -202,11 +208,8 @@ fn geom_for_wkt() {
 
     let wkt = "LINESTRING (30 10, 10 30, 40 40)";
     let i = Input::WKT(String::from(wkt));
-    println!("*(**********)");
-    println!("{:?}", i);
     match i.geom() {
         Ok(Geometry::LineString(l)) => {
-            println!("{:?}", l);
             assert_eq!(l, expected);
         }
         Err(e) => assert!(false, "WKT error: {:?}", e),
