@@ -2,7 +2,7 @@ use std::io::BufRead;
 use geoq::input;
 use geoq::input::Input;
 
-struct Reader<'a> {
+pub struct Reader<'a> {
     reader: &'a mut BufRead
 }
 
@@ -34,6 +34,7 @@ impl<'a> Iterator for Reader<'a> {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use geoq::reader::Reader;
 
