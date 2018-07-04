@@ -55,14 +55,26 @@ fn wkt_entities(raw: &String) -> Vec<Entity> {
     entities
 }
 
+fn parsed_geojson_entities(gj: GeoJson) -> Vec<Entity> {
+    match gj {
+        GeoJson::Geometry(gj_geom) => vec![Entity::GeoJsonGeometry(gj_geom)],
+        GeoJson::Feature(gj_feature) => vec![Entity::GeoJsonFeature(gj_feature)],
+        GeoJson::FeatureCollection(gj_fc) => {
+            gj_fc
+                .features
+                .into_iter()
+                .flat_map(|f| parsed_geojson_entities(GeoJson::Feature(f)))
+                .collect()
+        }
+    }
+}
+
 fn geojson_entities(raw: &String) -> Vec<Entity> {
     if let Ok(gj) = raw.parse() {
-        match gj {
-            GeoJson::Geometry(gj_geom) => vec![Entity::GeoJsonGeometry(gj_geom)],
-            GeoJson::Feature(gj_feature) => vec![Entity::GeoJsonFeature(gj_feature)],
-            GeoJson::FeatureCollection(_fc) => vec![],
-        }
+        parsed_geojson_entities(gj)
     } else {
+        eprintln!("****** FAILED TO PARSE GEOJSON");
+        eprintln!("{}", raw);
         vec![]
     }
 }
@@ -74,6 +86,7 @@ impl Entity {
             Entity::Geohash(ref raw) => geohash_geom(raw),
             Entity::Wkt(ref wkt_geom) => wkt_geom.to_geo().unwrap(),
             Entity::GeoJsonGeometry(gj_geom) => gj_geom.value.try_into().unwrap(),
+            Entity::GeoJsonFeature(gj_feature) => gj_feature.geometry.unwrap().value.try_into().unwrap(),
             _ => Geometry::Point(Point::new(0.0, 0.0))
         }
     }
@@ -185,5 +198,60 @@ mod tests {
         let geom_json = serde_json::to_string(&gj_geom).unwrap();
         let exp_json = "{\"coordinates\":[[-26.01,59.17],[-15.46,45.58],[0.35,35.74]],\"type\":\"LineString\"}";
         assert_eq!(exp_json, geom_json);
+    }
+
+    #[test]
+    fn entities_for_geojson_feature() {
+        // TODO - make properties map optional for geojson inputs?
+        let raw = "{\"type\": \"Feature\", \"properties\": {}, \"geometry\": {\"type\": \"LineString\", \"coordinates\": [[-26.01, 59.17], [-15.46, 45.58], [0.35, 35.74]]}}";
+        let i = Input::GeoJSON(raw.to_string());
+        let entities = entity::from_input(i.clone());
+
+        assert_eq!(1, entities.len());
+
+        let expected = LineString(
+            vec![
+                Point::new(-26.01, 59.17),
+                Point::new(-15.46, 45.58),
+                Point::new(0.35, 35.74),
+            ].into(),
+        );
+        let geom = entity::from_input(i.clone()).pop().unwrap().geom().as_linestring().unwrap();
+        assert_eq!(expected, geom);
+
+        let gj_geom = entity::from_input(i.clone()).pop().unwrap().geojson_geom();
+        let geom_json = serde_json::to_string(&gj_geom).unwrap();
+        let exp_json = "{\"coordinates\":[[-26.01,59.17],[-15.46,45.58],[0.35,35.74]],\"type\":\"LineString\"}";
+        assert_eq!(exp_json, geom_json);
+    }
+
+    #[test]
+    fn entities_for_geojson_feature_collection() {
+        let raw = r#"{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[34.0,12.0]}},{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[78.0,56.0]}}]}"#;
+        let i = Input::GeoJSON(raw.to_string());
+        let entities = entity::from_input(i.clone());
+
+        assert_eq!(2, entities.len());
+
+        let expected = vec![
+            Point::new(34.0, 12.0),
+            Point::new(78.0, 56.0),
+        ];
+        let geoms: Vec<Point<f64>> = entity::from_input(i.clone())
+            .into_iter()
+            .map(|e| e.geom().as_point().expect("Should parse to points"))
+            .collect();
+        assert_eq!(expected, geoms);
+
+        let expected_json = vec![
+            "{\"coordinates\":[34.0,12.0],\"type\":\"Point\"}",
+            "{\"coordinates\":[78.0,56.0],\"type\":\"Point\"}"
+        ];
+        let json: Vec<String> = entity::from_input(i.clone())
+            .into_iter()
+            .map(|e| e.geojson_geom())
+            .map(|j| serde_json::to_string(&j).unwrap())
+            .collect();
+        assert_eq!(expected_json, json);
     }
 }
