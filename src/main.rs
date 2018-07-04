@@ -11,7 +11,10 @@ extern crate serde_json;
 mod geoq;
 use geoq::error::Error;
 use geoq::input;
+use geoq::input::Input;
+use geoq::reader::Reader;
 
+use std::io::BufRead;
 use clap::{App, ArgMatches, SubCommand};
 use geojson::GeoJson;
 use std::io;
@@ -40,10 +43,8 @@ use std::process;
 
 fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
     let stdin = io::stdin();
-    for line in stdin.lock().lines() {
-        let input = input::read_line(line.unwrap());
+    for input in Reader::new(&mut stdin.lock()) {
         let geom = input.geom();
-        // let wkt = geom.to_wkt();
         match geom {
             Ok(g) => {
                 eprintln!("{:?}", g);
@@ -57,8 +58,7 @@ fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
 
 fn run_geojson_geom(_matches: &ArgMatches) -> Result<(), Error> {
     let stdin = io::stdin();
-    for line in stdin.lock().lines() {
-        let input = input::read_line(line.unwrap());
+    for input in Reader::new(&mut stdin.lock()) {
         let geom = input.geom();
         match geom {
             Ok(g) => {
@@ -77,8 +77,7 @@ fn run_geojson_geom(_matches: &ArgMatches) -> Result<(), Error> {
 
 fn run_geojson_feature(_matches: &ArgMatches) -> Result<(), Error> {
     let stdin = io::stdin();
-    for line in stdin.lock().lines() {
-        let input = input::read_line(line.unwrap());
+    for input in Reader::new(&mut stdin.lock()) {
         let geom = input.geom();
         match geom {
             Ok(g) => {
@@ -109,8 +108,7 @@ fn run_geojson(matches: &ArgMatches) -> Result<(), Error> {
 
 fn run_type(_matches: &ArgMatches) -> Result<(), Error> {
     let stdin = io::stdin();
-    for line in stdin.lock().lines() {
-        let input = input::read_line(line.unwrap());
+    for input in Reader::new(&mut stdin.lock()) {
         println!("{}", input);
     }
     Ok(())
