@@ -7,12 +7,14 @@ extern crate geojson;
 extern crate regex;
 extern crate serde_json;
 extern crate wkt;
+extern crate serde;
 
 mod geoq;
 use geoq::error::Error;
 use geoq::reader::Reader;
 use geoq::entity;
 
+use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeMap};
 use clap::{App, ArgMatches, SubCommand};
 use geojson::GeoJson;
 use std::io;
@@ -64,23 +66,55 @@ fn run_geojson_geom(_matches: &ArgMatches) -> Result<(), Error> {
 
 fn run_geojson_feature(_matches: &ArgMatches) -> Result<(), Error> {
     let stdin = io::stdin();
-    for input in Reader::new(&mut stdin.lock()) {
-        let geom = input.geom();
-        match geom {
-            Ok(g) => {
-                let gj_geom = geojson::Geometry::new(geojson::Value::from(&g));
-                let feature = GeoJson::Feature(geojson::Feature {
-                    bbox: None,
-                    geometry: Some(gj_geom),
-                    id: None,
-                    properties: None,
-                    foreign_members: None,
-                });
-                println!("{}", serde_json::to_string(&feature).unwrap());
-            }
-            Err(e) => return Err(e),
-        }
+    let mut stdin_reader = stdin.lock();
+    let reader = Reader::new(&mut stdin_reader);
+    let entities = reader.flat_map(|i| entity::from_input(i));
+    for e in entities {
+        let f = e.geojson_feature();
+        println!("{}", serde_json::to_string(&f).unwrap());
     }
+    Ok(())
+}
+
+fn run_geojson_feature_collection(_matches: &ArgMatches) -> Result<(), Error> {
+    let stdin = io::stdin();
+    let mut stdin_reader = stdin.lock();
+    let reader = Reader::new(&mut stdin_reader);
+    let features = reader
+        .flat_map(|i| entity::from_input(i))
+        .map(|e| e.geojson_feature());
+
+    let fc = geojson::FeatureCollection{
+        bbox: None,
+        features: features.collect(),
+        foreign_members: None
+    };
+    println!("{}", GeoJson::from(fc).to_string());
+
+    // TODO - Figure out how to do this streaming with serde
+    // let features = entities
+    //     .map(|e| e.gj_f_value());
+    //     .map(|f| serde_json::Map<String, serde_json::Value>::from(f));
+    // let f_array = serde_json::Value::Array(features.collect());
+
+    // let mut fc = serde_json::Map::new();
+    // fc.insert(String::from("type"), serde_json::to_value("FeatureCollection").unwrap());
+    // fc.insert(String::from("features"), f_array);
+
+    // let out = std::io::stdout();
+    // let mut ser = serde_json::Serializer::new(out);
+    // let mut map = ser.serialize_map(Some(2)).unwrap();
+    // map.serialize_key("type").unwrap();
+    // map.serialize_value("FeatureCollection");
+    // map.serialize_key("features");
+    // // let mut seq = ser.serialize_seq(None).unwrap();
+
+    // for e in entities {
+    //     map.serialize_element(&e.geojson_feature());
+    // }
+    // map.end();
+    // seq.end();
+
     Ok(())
 }
 
@@ -89,6 +123,7 @@ fn run_geojson(matches: &ArgMatches) -> Result<(), Error> {
     match gj.unwrap().subcommand() {
         ("geom", Some(_m)) => run_geojson_geom(&matches),
         ("f", Some(_m)) => run_geojson_feature(&matches),
+        ("fc", Some(_m)) => run_geojson_feature_collection(&matches),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -116,7 +151,8 @@ fn main() {
     let geojson = SubCommand::with_name("gj")
         .about("Output entity as GeoJSON.")
         .subcommand(SubCommand::with_name("geom").about("Output entity as a GeoJSON geometry."))
-        .subcommand(SubCommand::with_name("f").about("Output entity as a GeoJSON Feature."));
+        .subcommand(SubCommand::with_name("f").about("Output entity as a GeoJSON Feature."))
+        .subcommand(SubCommand::with_name("fc").about("Collect all given entities into a GeoJSON Feature Collection."));
     let matches = App::new("geoq")
         .version(version)
         .about("geoq - GeoSpatial utility belt")

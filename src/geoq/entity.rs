@@ -121,6 +121,12 @@ impl Entity {
             foreign_members: None,
         }
     }
+
+    // pub fn gj_f_value(self) -> serde_json::Map<String, serde_json::Value> {
+    //     // geojson::GeoJson::Feature(e.geojson_feature())
+    //     let f = self.geojson_feature();
+    //     serde_json::Map<String, serde_json::Value>::from(f)
+    // }
 }
 
 pub fn from_input(i: Input) -> Vec<Entity> {
