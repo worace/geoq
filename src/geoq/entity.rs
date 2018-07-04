@@ -5,6 +5,7 @@ extern crate wkt;
 extern crate regex;
 
 use geo_types::{Geometry, Point, Polygon, LineString};
+use geojson::conversion::*;
 use geojson::GeoJson;
 use geoq::input::Input;
 use geoq::error::Error;
@@ -54,12 +55,25 @@ fn wkt_entities(raw: &String) -> Vec<Entity> {
     entities
 }
 
+fn geojson_entities(raw: &String) -> Vec<Entity> {
+    if let Ok(gj) = raw.parse() {
+        match gj {
+            GeoJson::Geometry(gj_geom) => vec![Entity::GeoJsonGeometry(gj_geom)],
+            GeoJson::Feature(gj_feature) => vec![Entity::GeoJsonFeature(gj_feature)],
+            GeoJson::FeatureCollection(_fc) => vec![],
+        }
+    } else {
+        vec![]
+    }
+}
+
 impl Entity {
     pub fn geom(&self) -> geo_types::Geometry<f64> {
         match *self {
             Entity::LatLon(ref raw) => latlon_geom(raw),
             Entity::Geohash(ref raw) => geohash_geom(raw),
             Entity::Wkt(ref wkt_geom) => wkt_geom.to_geo().unwrap(),
+            Entity::GeoJsonGeometry(ref gj_geom) => gj_geom.value.try_into().unwrap(),
             _ => Geometry::Point(Point::new(0.0, 0.0))
         }
     }
@@ -75,6 +89,7 @@ pub fn from_input(i: Input) -> Vec<Entity> {
         Input::LatLon(raw) => vec![Entity::LatLon(raw)],
         Input::Geohash(raw) => vec![Entity::Geohash(raw)],
         Input::WKT(raw) => wkt_entities(&raw),
+        Input::GeoJSON(raw) => geojson_entities(&raw),
         _ => vec![],
     }
 }
@@ -128,6 +143,30 @@ mod tests {
     #[test]
     fn entities_for_wkt() {
         let i = Input::WKT("LINESTRING (30 10, 10 30, 40 40)".to_string());
+        let entities = entity::from_input(i);
+
+        assert_eq!(1, entities.len());
+
+        let expected = LineString(
+            vec![
+                Point::new(30.0, 10.0),
+                Point::new(10.0, 30.0),
+                Point::new(40.0, 40.0),
+            ].into(),
+        );
+        let geom = entities[0].geom().as_linestring().unwrap();
+        assert_eq!(expected, geom);
+
+        let gj_geom = entities[0].geojson_geom();
+        let geom_json = serde_json::to_string(&gj_geom).unwrap();
+        let exp_json = "{\"coordinates\":[[30.0,10.0],[10.0,30.0],[40.0,40.0]],\"type\":\"LineString\"}";
+        assert_eq!(exp_json, geom_json);
+    }
+
+    #[test]
+    fn entities_for_geojson_geom() {
+        let raw = "{\"type\": \"LineString\", \"coordinates\": [[-26.01, 59.17], [-15.46, 45.58], [0.35, 35.74]]}";
+        let i = Input::GeoJSON(raw.to_string());
         let entities = entity::from_input(i);
 
         assert_eq!(1, entities.len());
