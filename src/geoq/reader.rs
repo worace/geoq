@@ -17,7 +17,10 @@ fn read_line(buf_read: &mut BufRead) -> Option<String> {
     let bytes_read = buf_read.read_line(&mut buf);
     match bytes_read {
         Ok(0) => None,
-        Ok(_) => Some(buf),
+        Ok(len) => {
+            buf.truncate(len - 1);
+            Some(buf)
+        },
         _ => None
     }
 }
