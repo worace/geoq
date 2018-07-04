@@ -2,6 +2,7 @@ extern crate geo_types;
 extern crate geojson;
 extern crate geohash;
 
+use std;
 use geoq::error::Error;
 use geojson::conversion::*;
 use geojson::GeoJson;
@@ -21,7 +22,7 @@ lazy_static! {
     ).unwrap();
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Input {
     LatLon(String),
     Geohash(String),
