@@ -11,6 +11,7 @@ extern crate wkt;
 mod geoq;
 use geoq::error::Error;
 use geoq::reader::Reader;
+use geoq::entity;
 
 use clap::{App, ArgMatches, SubCommand};
 use geojson::GeoJson;
@@ -41,29 +42,22 @@ fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
     let stdin = io::stdin();
     let mut stdin_reader = stdin.lock();
     let reader = Reader::new(&mut stdin_reader);
-    let geoms = reader.map(|i| i.geom());
-    for geom in geoms {
-        match geom {
-            Ok(g) => {
-                eprintln!("{:?}", g);
-            }
-            Err(e) => return Err(e),
-        }
+    let entities = reader.flat_map(|i| entity::from_input(i));
+    for e in entities {
+        let g = e.geom();
+        eprintln!("{:?}", g);
     }
     Ok(())
 }
 
 fn run_geojson_geom(_matches: &ArgMatches) -> Result<(), Error> {
     let stdin = io::stdin();
-    for input in Reader::new(&mut stdin.lock()) {
-        let geom = input.geom();
-        match geom {
-            Ok(g) => {
-                let gj_geom = geojson::Geometry::new(geojson::Value::from(&g));
-                println!("{}", serde_json::to_string(&gj_geom).unwrap());
-            }
-            Err(e) => return Err(e),
-        }
+    let mut stdin_reader = stdin.lock();
+    let reader = Reader::new(&mut stdin_reader);
+    let entities = reader.flat_map(|i| entity::from_input(i));
+    for e in entities {
+        let gj_geom = e.geojson_geometry();
+        println!("{}", serde_json::to_string(&gj_geom).unwrap());
     }
     Ok(())
 }
