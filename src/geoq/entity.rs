@@ -92,7 +92,7 @@ impl Entity {
         }
     }
 
-    pub fn geojson_geom(self) -> geojson::Geometry {
+    pub fn geojson_geometry(self) -> geojson::Geometry {
         let geom = self.geom();
         geojson::Geometry::new(geojson::Value::from(&geom))
     }
@@ -138,7 +138,7 @@ mod tests {
         assert_eq!(12.0, geom.0.y);
         assert_eq!(34.0, geom.0.x);
 
-        let gj_geom = entity::from_input(i.clone()).pop().unwrap().geojson_geom();
+        let gj_geom = entity::from_input(i.clone()).pop().unwrap().geojson_geometry();
         let json = serde_json::to_string(&gj_geom).unwrap();
         assert_eq!("{\"coordinates\":[34.0,12.0],\"type\":\"Point\"}", json);
 
@@ -163,7 +163,7 @@ mod tests {
         let geom = entity::from_input(i.clone()).pop().unwrap().geom().as_polygon().unwrap();
         assert_eq!(expected, geom);
 
-        let gj_geom = entity::from_input(i.clone()).pop().unwrap().geojson_geom();
+        let gj_geom = entity::from_input(i.clone()).pop().unwrap().geojson_geometry();
         let geom_json = serde_json::to_string(&gj_geom).unwrap();
         let exp_json = "{\"coordinates\":[[[-119.53125,33.75],[-118.125,33.75],[-118.125,35.15625],[-119.53125,35.15625],[-119.53125,33.75]]],\"type\":\"Polygon\"}";
         assert_eq!(exp_json, geom_json);
@@ -188,7 +188,7 @@ mod tests {
         let geom = entity::from_input(i.clone()).pop().unwrap().geom().as_linestring().unwrap();
         assert_eq!(expected, geom);
 
-        let gj_geom = entity::from_input(i.clone()).pop().unwrap().geojson_geom();
+        let gj_geom = entity::from_input(i.clone()).pop().unwrap().geojson_geometry();
         let geom_json = serde_json::to_string(&gj_geom).unwrap();
         let exp_json = "{\"coordinates\":[[30.0,10.0],[10.0,30.0],[40.0,40.0]],\"type\":\"LineString\"}";
         assert_eq!(exp_json, geom_json);
@@ -197,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn entities_for_geojson_geom() {
+    fn entities_for_geojson_geometry() {
         let raw = "{\"type\": \"LineString\", \"coordinates\": [[-26.01, 59.17], [-15.46, 45.58], [0.35, 35.74]]}";
         let i = Input::GeoJSON(raw.to_string());
         let entities = entity::from_input(i.clone());
@@ -214,7 +214,7 @@ mod tests {
         let geom = entity::from_input(i.clone()).pop().unwrap().geom().as_linestring().unwrap();
         assert_eq!(expected, geom);
 
-        let gj_geom = entity::from_input(i.clone()).pop().unwrap().geojson_geom();
+        let gj_geom = entity::from_input(i.clone()).pop().unwrap().geojson_geometry();
         let geom_json = serde_json::to_string(&gj_geom).unwrap();
         let exp_json = "{\"coordinates\":[[-26.01,59.17],[-15.46,45.58],[0.35,35.74]],\"type\":\"LineString\"}";
         assert_eq!(exp_json, geom_json);
@@ -241,7 +241,7 @@ mod tests {
         let geom = entity::from_input(i.clone()).pop().unwrap().geom().as_linestring().unwrap();
         assert_eq!(expected, geom);
 
-        let gj_geom = entity::from_input(i.clone()).pop().unwrap().geojson_geom();
+        let gj_geom = entity::from_input(i.clone()).pop().unwrap().geojson_geometry();
         let geom_json = serde_json::to_string(&gj_geom).unwrap();
         let exp_json = "{\"coordinates\":[[-26.01,59.17],[-15.46,45.58],[0.35,35.74]],\"type\":\"LineString\"}";
         assert_eq!(exp_json, geom_json);
@@ -278,7 +278,7 @@ mod tests {
         ];
         let json: Vec<String> = entity::from_input(i.clone())
             .into_iter()
-            .map(|e| e.geojson_geom())
+            .map(|e| e.geojson_geometry())
             .map(|j| serde_json::to_string(&j).unwrap())
             .collect();
         assert_eq!(expected_json, json);
