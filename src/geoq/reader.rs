@@ -34,23 +34,6 @@ impl<'a> Iterator for Reader<'a> {
     }
 }
 
-// pub type Reader = Iterator<Item = >;
-
-// impl IntoIterator for BufRead {
-//     type Item = Input;
-//     type IntoIter = std::iter::Iterator<Result<Input, &'static str>>;
-
-//     fn into_iter(self) -> Self::IntoIter {
-//         self.lock().lines().map(|l| input::read_line(l))
-//     }
-// }
-
-// pub fn new(reader: BufRead) -> IntoIterator<Item = Result<Input, &'static str>> {
-    // let res = vec![];
-    // res.into_iter()
-    // // iter::empty::<Result<Input, &'static str>>()
-// }
-
 mod tests {
     use geoq::reader::Reader;
 
