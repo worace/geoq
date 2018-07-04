@@ -5,20 +5,16 @@ extern crate geo;
 extern crate geo_types;
 extern crate geojson;
 extern crate regex;
-extern crate wkt;
 extern crate serde_json;
+extern crate wkt;
 
 mod geoq;
 use geoq::error::Error;
-use geoq::input;
-use geoq::input::Input;
 use geoq::reader::Reader;
 
-use std::io::BufRead;
 use clap::{App, ArgMatches, SubCommand};
 use geojson::GeoJson;
 use std::io;
-use std::io::prelude::*;
 use std::process;
 
 // Decoding
@@ -43,12 +39,13 @@ use std::process;
 
 fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
     let stdin = io::stdin();
-    for input in Reader::new(&mut stdin.lock()) {
-        let geom = input.geom();
+    let mut stdin_reader = stdin.lock();
+    let reader = Reader::new(&mut stdin_reader);
+    let geoms = reader.map(|i| i.geom());
+    for geom in geoms {
         match geom {
             Ok(g) => {
                 eprintln!("{:?}", g);
-                eprintln!("{}", input.raw());
             }
             Err(e) => return Err(e),
         }
@@ -64,10 +61,6 @@ fn run_geojson_geom(_matches: &ArgMatches) -> Result<(), Error> {
             Ok(g) => {
                 let gj_geom = geojson::Geometry::new(geojson::Value::from(&g));
                 println!("{}", serde_json::to_string(&gj_geom).unwrap());
-                // match gj {
-                //     serde_json::Value => println!("{}", gj.to_string()),
-                //     _ => return Err(Error::InvalidGeoJSON)
-                // }
             }
             Err(e) => return Err(e),
         }
@@ -87,7 +80,7 @@ fn run_geojson_feature(_matches: &ArgMatches) -> Result<(), Error> {
                     geometry: Some(gj_geom),
                     id: None,
                     properties: None,
-                    foreign_members: None
+                    foreign_members: None,
                 });
                 println!("{}", serde_json::to_string(&feature).unwrap());
             }
@@ -102,7 +95,7 @@ fn run_geojson(matches: &ArgMatches) -> Result<(), Error> {
     match gj.unwrap().subcommand() {
         ("geom", Some(_m)) => run_geojson_geom(&matches),
         ("f", Some(_m)) => run_geojson_feature(&matches),
-        _ => Err(Error::UnknownCommand)
+        _ => Err(Error::UnknownCommand),
     }
 }
 

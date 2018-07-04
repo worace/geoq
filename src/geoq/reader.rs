@@ -1,3 +1,5 @@
+extern crate geo_types;
+
 use std::io::BufRead;
 use geoq::input;
 use geoq::input::Input;
