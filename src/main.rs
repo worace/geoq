@@ -8,10 +8,9 @@ extern crate regex;
 extern crate wkt;
 extern crate serde_json;
 
-mod input;
-mod error;
-use input::Input;
-use error::Error;
+mod geoq;
+use geoq::error::Error;
+use geoq::input;
 
 use clap::{App, ArgMatches, SubCommand};
 use geojson::GeoJson;

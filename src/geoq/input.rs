@@ -2,7 +2,7 @@ extern crate geo_types;
 extern crate geojson;
 extern crate geohash;
 
-use error::Error;
+use geoq::error::Error;
 use geojson::conversion::*;
 use geojson::GeoJson;
 use wkt::Wkt;
