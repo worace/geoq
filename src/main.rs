@@ -7,14 +7,12 @@ extern crate geojson;
 extern crate regex;
 extern crate serde_json;
 extern crate wkt;
-extern crate serde;
 
 mod geoq;
 use geoq::error::Error;
 use geoq::reader::Reader;
 use geoq::entity;
 
-use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeMap};
 use clap::{App, ArgMatches, SubCommand};
 use geojson::GeoJson;
 use std::io;
@@ -90,30 +88,6 @@ fn run_geojson_feature_collection(_matches: &ArgMatches) -> Result<(), Error> {
         foreign_members: None
     };
     println!("{}", GeoJson::from(fc).to_string());
-
-    // TODO - Figure out how to do this streaming with serde
-    // let features = entities
-    //     .map(|e| e.gj_f_value());
-    //     .map(|f| serde_json::Map<String, serde_json::Value>::from(f));
-    // let f_array = serde_json::Value::Array(features.collect());
-
-    // let mut fc = serde_json::Map::new();
-    // fc.insert(String::from("type"), serde_json::to_value("FeatureCollection").unwrap());
-    // fc.insert(String::from("features"), f_array);
-
-    // let out = std::io::stdout();
-    // let mut ser = serde_json::Serializer::new(out);
-    // let mut map = ser.serialize_map(Some(2)).unwrap();
-    // map.serialize_key("type").unwrap();
-    // map.serialize_value("FeatureCollection");
-    // map.serialize_key("features");
-    // // let mut seq = ser.serialize_seq(None).unwrap();
-
-    // for e in entities {
-    //     map.serialize_element(&e.geojson_feature());
-    // }
-    // map.end();
-    // seq.end();
 
     Ok(())
 }
