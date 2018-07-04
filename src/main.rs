@@ -30,12 +30,6 @@ enum Error {
     InvalidWkt,
 }
 
-// Types to geom:
-// [X] lat/lon: split on comma -> parse to double -> geo::Point
-// [X] Geohash: strip whitespace -> geohash::decode()
-// [*] WKT: wkt::Wkt::from_str -- BLOCKED on wkt library
-// [ ] GeoJSON: geojson_str.parse::<GeoJson>()
-
 #[derive(Debug)]
 pub enum Input {
     LatLon(String),
@@ -44,6 +38,26 @@ pub enum Input {
     GeoJSON(String),
     Unknown(String),
 }
+
+// Decoding
+// - Input: 1 per line; contains Raw as string
+// - Entity: multiple per Input.
+//   Probably(?) contains each native de-serialized type as member
+//   (so Entity::GeoJson(GeoJson::Geometry/Feature, Entity::WKT(Wkt::Thin, Entity::WKT(Wkt::Thing)))
+// - io Line --Map--> Input --FlatMap--> Entity
+// Entity traits:
+// - to geo_types Geom
+// - to wkt
+// - to geojson feature / geometry
+// Building Feature Collection:
+// Iterate entities from stream
+// Start serde json with type: Feature Collection, features: (start list)
+// for each entity build feature and write to serde list
+// Interface Migration
+// - InputReader(std IO) -> Iterator<Input>
+//   - replace all repeated instances of iterating over stdin lines with this
+// - InputReader.entities -> Iterator<Entity>
+// Remove Input::Uknown -- just make read_input give Result and surface these errors earlier
 
 impl Input {
     fn raw(&self) -> &String {
@@ -266,17 +280,7 @@ fn read_input(line: String) -> Input {
     }
 }
 
-// fn get_wkt(geom: &Geometry<f64>) -> Option<wkt::Wkt> {
-//     let mut wkt = wkt::Wkt::new();
-//     // wkt.add_item(geom);
-//     match geom {
-//         Geometry::Point => Some(wkt::Geometry(geom)),
-//         _ => None
-//     }
-// }
-
 fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
-    eprintln!("RUNNING WKT ***");
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let input = read_input(line.unwrap());

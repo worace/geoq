@@ -5,9 +5,9 @@
 * [X] test reader matching functions
 * [X] Geojson geom printing
 * [X] Geojson feature printing
+* [ ] Geojson feature collection aggregation
 * [ ] Add wkt writing -- perhaps borrow from https://github.com/CanalTP/rust-wkt/tree/write-wkt ?
 * [ ] Preserve features on existing GJ features
-* [ ] Geojson feature collection aggregation
 * [ ] Point geohash (`echo 12,34 | geoq gh point 4 => abcd`)
 * [ ] map via geojson.io
 * [ ] Map large JSON with embedded copy of geojson.io web page
