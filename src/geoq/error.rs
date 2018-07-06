@@ -6,4 +6,6 @@ pub enum Error {
     UnknownCommand,
     UnknownEntityFormat,
     InvalidWkt,
+    MissingArgument,
+    InvalidNumberFormat,
 }

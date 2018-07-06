@@ -69,7 +69,7 @@ LINESTRING (30 10, 10 30, 40 40)
 #[test]
 fn outputs_geojson_features() {
     let input = r#"12,34
-12\t34
+12	34
 9q5
 LINESTRING (30 10, 10 30, 40 40)
 {"type":"Point","coordinates":[125.6, 10.1]}
@@ -78,6 +78,7 @@ LINESTRING (30 10, 10 30, 40 40)
 "#;
 
     let output = r#"{"geometry":{"coordinates":[34.0,12.0],"type":"Point"},"properties":{},"type":"Feature"}
+{"geometry":{"coordinates":[34.0,12.0],"type":"Point"},"properties":{},"type":"Feature"}
 {"geometry":{"coordinates":[[[-119.53125,33.75],[-118.125,33.75],[-118.125,35.15625],[-119.53125,35.15625],[-119.53125,33.75]]],"type":"Polygon"},"properties":{},"type":"Feature"}
 {"geometry":{"coordinates":[[30.0,10.0],[10.0,30.0],[40.0,40.0]],"type":"LineString"},"properties":{},"type":"Feature"}
 {"geometry":{"coordinates":[125.6,10.1],"type":"Point"},"properties":{},"type":"Feature"}
@@ -96,16 +97,35 @@ LINESTRING (30 10, 10 30, 40 40)
 #[test]
 fn outputs_geojson_featurecollection() {
     let input = r#"12,34
-12\t34
+12	34
 9q5
 LINESTRING (30 10, 10 30, 40 40)
 {"type":"Point","coordinates":[125.6, 10.1]}
 {"type":"Feature","properties":{"a": "b"},"geometry":{"type":"Point","coordinates":[125.6, 10.1]}}
 "#;
 
-    let output = r#"{"features":[{"geometry":{"coordinates":[34.0,12.0],"type":"Point"},"properties":{},"type":"Feature"},{"geometry":{"coordinates":[[[-119.53125,33.75],[-118.125,33.75],[-118.125,35.15625],[-119.53125,35.15625],[-119.53125,33.75]]],"type":"Polygon"},"properties":{},"type":"Feature"},{"geometry":{"coordinates":[[30.0,10.0],[10.0,30.0],[40.0,40.0]],"type":"LineString"},"properties":{},"type":"Feature"},{"geometry":{"coordinates":[125.6,10.1],"type":"Point"},"properties":{},"type":"Feature"},{"geometry":{"coordinates":[125.6,10.1],"type":"Point"},"properties":{"a":"b"},"type":"Feature"}],"type":"FeatureCollection"}"#;
+    let output = r#"{"features":[{"geometry":{"coordinates":[34.0,12.0],"type":"Point"},"properties":{},"type":"Feature"},{"geometry":{"coordinates":[34.0,12.0],"type":"Point"},"properties":{},"type":"Feature"},{"geometry":{"coordinates":[[[-119.53125,33.75],[-118.125,33.75],[-118.125,35.15625],[-119.53125,35.15625],[-119.53125,33.75]]],"type":"Polygon"},"properties":{},"type":"Feature"},{"geometry":{"coordinates":[[30.0,10.0],[10.0,30.0],[40.0,40.0]],"type":"LineString"},"properties":{},"type":"Feature"},{"geometry":{"coordinates":[125.6,10.1],"type":"Point"},"properties":{},"type":"Feature"},{"geometry":{"coordinates":[125.6,10.1],"type":"Point"},"properties":{"a":"b"},"type":"Feature"}],"type":"FeatureCollection"}"#;
     Assert::main_binary()
         .with_args(&["gj", "fc"])
+        .stdin(input)
+        .stdout()
+        .is(output)
+        .unwrap();
+}
+
+#[test]
+fn outputs_geohash_for_point() {
+    let input = r#"12,34
+12	34
+34,-118
+"#;
+
+    let output = r#"sf0hm8w
+sf0hm8w
+9qh16ve
+"#;
+    Assert::main_binary()
+        .with_args(&["gh", "point", "7"])
         .stdin(input)
         .stdout()
         .is(output)

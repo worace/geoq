@@ -5,10 +5,10 @@
 * [X] test reader matching functions
 * [X] Geojson geom printing
 * [X] Geojson feature printing
-* [ ] Geojson feature collection aggregation
+* [X] Geojson feature collection aggregation
 * [ ] Add wkt writing -- perhaps borrow from https://github.com/CanalTP/rust-wkt/tree/write-wkt ?
-* [ ] Preserve features on existing GJ features
-* [ ] Point geohash (`echo 12,34 | geoq gh point 4 => abcd`)
+* [X] Preserve features on existing GJ features
+* [X] Point geohash (`echo 12,34 | geoq gh point 4 => abcd`)
 * [ ] map via geojson.io
 * [ ] Map large JSON with embedded copy of geojson.io web page
 * [ ] Refactor reading interface to produce an iter<results>
@@ -19,3 +19,4 @@
 * [ ] `filter` subcommand
   * intersects
   * contains
+* [ ] Make error types support string messages (or just make them strings? add a lookup table?)

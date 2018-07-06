@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate clap;
+extern crate geohash;
 extern crate geo;
 extern crate geo_types;
 extern crate geojson;
@@ -13,7 +14,7 @@ use geoq::error::Error;
 use geoq::reader::Reader;
 use geoq::entity;
 
-use clap::{App, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, SubCommand, Arg};
 use geojson::GeoJson;
 use std::io;
 use std::process;
@@ -110,11 +111,45 @@ fn run_type(_matches: &ArgMatches) -> Result<(), Error> {
     Ok(())
 }
 
+fn run_geohash_point(matches: &ArgMatches) -> Result<(), Error> {
+    match matches.value_of("level") {
+        Some(l) => {
+            match l.parse::<usize>() {
+                Ok(level) => {
+                    let stdin = io::stdin();
+                    let mut stdin_reader = stdin.lock();
+                    let reader = Reader::new(&mut stdin_reader);
+                    let entities = reader.flat_map(|i| entity::from_input(i));
+                    for e in entities {
+                        match e.geom() {
+                            geo_types::Geometry::Point(p) => {
+                                println!("{}", geohash::encode(p.0, level));
+                            },
+                            _ => return Err(Error::NotImplemented)
+                        }
+                    }
+                    Ok(())
+                }
+                _ => Err(Error::InvalidNumberFormat)
+            }
+        }
+        _ => Err(Error::MissingArgument)
+    }
+}
+
+fn run_geohash(matches: &ArgMatches) -> Result<(), Error> {
+    match matches.subcommand() {
+        ("point", Some(m)) => run_geohash_point(m),
+        _ => Err(Error::UnknownCommand),
+    }
+}
+
 fn run(matches: ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("wkt", Some(_m)) => run_wkt(&matches),
         ("type", Some(_m)) => run_type(&matches),
         ("gj", Some(_m)) => run_geojson(&matches),
+        ("gh", Some(m)) => run_geohash(m),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -127,11 +162,21 @@ fn main() {
         .subcommand(SubCommand::with_name("geom").about("Output entity as a GeoJSON geometry."))
         .subcommand(SubCommand::with_name("f").about("Output entity as a GeoJSON Feature."))
         .subcommand(SubCommand::with_name("fc").about("Collect all given entities into a GeoJSON Feature Collection."));
+
+    let geohash = SubCommand::with_name("gh")
+        .about("Output Geohash representations of entities.")
+        .subcommand(SubCommand::with_name("point").about("Output base 32 Geohash for a given Lat,Lon.")
+                    .arg(Arg::with_name("level")
+                         .help("Characters of geohash precision")
+                         .required(true)
+                         .index(1)));
+
     let matches = App::new("geoq")
         .version(version)
         .about("geoq - GeoSpatial utility belt")
         .subcommand(SubCommand::with_name("wkt").about("Output entity as WKT."))
         .subcommand(SubCommand::with_name("type").about("Check the format of an entity."))
+        .subcommand(geohash)
         .subcommand(geojson)
         .get_matches();
 
