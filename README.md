@@ -25,6 +25,7 @@
 * [ ] Make "exit on invalid" configurable
 * [ ] figure out streaming geojson feature collection output
 * [ ] cross-platform `open` command for geojson map
+* [ ] Geohash children command
 
 Entity refactoring
 problem: currently conversion methods take ownership -- getting geometry or geojson rep consumes original input
