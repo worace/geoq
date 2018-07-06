@@ -9,7 +9,7 @@
 * [ ] Add wkt writing -- perhaps borrow from https://github.com/CanalTP/rust-wkt/tree/write-wkt ?
 * [X] Preserve features on existing GJ features
 * [X] Point geohash (`echo 12,34 | geoq gh point 4 => abcd`)
-* [ ] map via geojson.io
+* [x] map via geojson.io
 * [ ] Map large JSON with embedded copy of geojson.io web page
 * [ ] Refactor reading interface to produce an iter<results> (i.e. let reader methods return errors)
 * [ ] Migrate Geojson and WKT output formats to trait
@@ -24,6 +24,7 @@
 * [ ] Print invalid geometries to stderr (or exit program?)
 * [ ] Make "exit on invalid" configurable
 * [ ] figure out streaming geojson feature collection output
+* [ ] cross-platform `open` command for geojson map
 
 Entity refactoring
 problem: currently conversion methods take ownership -- getting geometry or geojson rep consumes original input

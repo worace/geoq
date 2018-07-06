@@ -1,20 +1,24 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate clap;
-extern crate geohash;
 extern crate geo;
 extern crate geo_types;
+extern crate geohash;
 extern crate geojson;
 extern crate regex;
 extern crate serde_json;
+extern crate url;
 extern crate wkt;
 
 mod geoq;
+use geoq::entity;
 use geoq::error::Error;
 use geoq::reader::Reader;
-use geoq::entity;
+use std::process::Command;
+use url::percent_encoding;
+use url::percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 
-use clap::{App, ArgMatches, SubCommand, Arg};
+use clap::{App, Arg, ArgMatches, SubCommand};
 use geojson::GeoJson;
 use std::io;
 use std::process;
@@ -83,10 +87,10 @@ fn run_geojson_feature_collection(_matches: &ArgMatches) -> Result<(), Error> {
         .flat_map(|i| entity::from_input(i))
         .map(|e| e.geojson_feature());
 
-    let fc = geojson::FeatureCollection{
+    let fc = geojson::FeatureCollection {
         bbox: None,
         features: features.collect(),
-        foreign_members: None
+        foreign_members: None,
     };
     println!("{}", GeoJson::from(fc).to_string());
 
@@ -113,27 +117,25 @@ fn run_type(_matches: &ArgMatches) -> Result<(), Error> {
 
 fn run_geohash_point(matches: &ArgMatches) -> Result<(), Error> {
     match matches.value_of("level") {
-        Some(l) => {
-            match l.parse::<usize>() {
-                Ok(level) => {
-                    let stdin = io::stdin();
-                    let mut stdin_reader = stdin.lock();
-                    let reader = Reader::new(&mut stdin_reader);
-                    let entities = reader.flat_map(|i| entity::from_input(i));
-                    for e in entities {
-                        match e.geom() {
-                            geo_types::Geometry::Point(p) => {
-                                println!("{}", geohash::encode(p.0, level));
-                            },
-                            _ => return Err(Error::NotImplemented)
+        Some(l) => match l.parse::<usize>() {
+            Ok(level) => {
+                let stdin = io::stdin();
+                let mut stdin_reader = stdin.lock();
+                let reader = Reader::new(&mut stdin_reader);
+                let entities = reader.flat_map(|i| entity::from_input(i));
+                for e in entities {
+                    match e.geom() {
+                        geo_types::Geometry::Point(p) => {
+                            println!("{}", geohash::encode(p.0, level));
                         }
+                        _ => return Err(Error::NotImplemented),
                     }
-                    Ok(())
                 }
-                _ => Err(Error::InvalidNumberFormat)
+                Ok(())
             }
-        }
-        _ => Err(Error::MissingArgument)
+            _ => Err(Error::InvalidNumberFormat),
+        },
+        _ => Err(Error::MissingArgument),
     }
 }
 
@@ -144,12 +146,38 @@ fn run_geohash(matches: &ArgMatches) -> Result<(), Error> {
     }
 }
 
+fn run_map() -> Result<(), Error> {
+    let stdin = io::stdin();
+    let mut stdin_reader = stdin.lock();
+    let reader = Reader::new(&mut stdin_reader);
+    let features = reader
+        .flat_map(|i| entity::from_input(i))
+        .map(|e| e.geojson_feature());
+
+    let fc = geojson::FeatureCollection {
+        bbox: None,
+        features: features.collect(),
+        foreign_members: None,
+    };
+    let fc_json = GeoJson::from(fc).to_string();
+    let encoded = utf8_percent_encode(&fc_json, DEFAULT_ENCODE_SET);
+    let url = format!("http://geojson.io#data=data:application/json,{}", encoded);
+    // open_command = OS.mac? ? 'open' : 'xdg-open'
+    Command::new(format!("open"))
+        .arg(url)
+        .status()
+        .expect("Failed to open geojson.io");
+
+    Ok(())
+}
+
 fn run(matches: ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("wkt", Some(_m)) => run_wkt(&matches),
         ("type", Some(_m)) => run_type(&matches),
         ("gj", Some(_m)) => run_geojson(&matches),
         ("gh", Some(m)) => run_geohash(m),
+        ("map", Some(m)) => run_map(),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -158,24 +186,33 @@ fn main() {
     let version = "0.1";
 
     let geojson = SubCommand::with_name("gj")
-        .about("Output entity as GeoJSON.")
-        .subcommand(SubCommand::with_name("geom").about("Output entity as a GeoJSON geometry."))
-        .subcommand(SubCommand::with_name("f").about("Output entity as a GeoJSON Feature."))
-        .subcommand(SubCommand::with_name("fc").about("Collect all given entities into a GeoJSON Feature Collection."));
+        .about("Output entity as GeoJSON")
+        .subcommand(SubCommand::with_name("geom").about("Output entity as a GeoJSON geometry"))
+        .subcommand(SubCommand::with_name("f").about("Output entity as a GeoJSON Feature"))
+        .subcommand(
+            SubCommand::with_name("fc")
+                .about("Collect all given entities into a GeoJSON Feature Collection"),
+        );
 
     let geohash = SubCommand::with_name("gh")
-        .about("Output Geohash representations of entities.")
-        .subcommand(SubCommand::with_name("point").about("Output base 32 Geohash for a given Lat,Lon.")
-                    .arg(Arg::with_name("level")
-                         .help("Characters of geohash precision")
-                         .required(true)
-                         .index(1)));
+        .about("Output Geohash representations of entities")
+        .subcommand(
+            SubCommand::with_name("point")
+                .about("Output base 32 Geohash for a given Lat,Lon")
+                .arg(
+                    Arg::with_name("level")
+                        .help("Characters of geohash precision")
+                        .required(true)
+                        .index(1),
+                ),
+        );
 
     let matches = App::new("geoq")
         .version(version)
         .about("geoq - GeoSpatial utility belt")
-        .subcommand(SubCommand::with_name("wkt").about("Output entity as WKT."))
-        .subcommand(SubCommand::with_name("type").about("Check the format of an entity."))
+        .subcommand(SubCommand::with_name("wkt").about("Output entity as WKT"))
+        .subcommand(SubCommand::with_name("type").about("Check the format of an entity"))
+        .subcommand(SubCommand::with_name("map").about("View entities on a map using geojson.io"))
         .subcommand(geohash)
         .subcommand(geojson)
         .get_matches();
