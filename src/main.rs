@@ -9,6 +9,7 @@ extern crate regex;
 extern crate serde_json;
 extern crate url;
 extern crate wkt;
+extern crate os_type;
 
 mod geoq;
 use geoq::entity;
@@ -182,8 +183,14 @@ fn run_map() -> Result<(), Error> {
     let fc_json = GeoJson::from(fc).to_string();
     let encoded = utf8_percent_encode(&fc_json, DEFAULT_ENCODE_SET);
     let url = format!("http://geojson.io#data=data:application/json,{}", encoded);
-    // open_command = OS.mac? ? 'open' : 'xdg-open'
-    Command::new(format!("open"))
+
+    // TODO: something for windows here?
+    let open_command = match os_type::current_platform().os_type {
+        os_type::OSType::OSX => "open",
+        _ => "xdg-open"
+    };
+
+    Command::new(open_command)
         .arg(url)
         .status()
         .expect("Failed to open geojson.io");

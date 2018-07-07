@@ -13,7 +13,7 @@
 * [ ] Map large JSON with embedded copy of geojson.io web page
 * [ ] `filter intersects`
 * [ ] `filter within`
-* [ ] `gh children`
+* [X] `gh children`
 * [ ] `gh neighbors`
 * [ ] `wkt geomcollection`
 * [ ] `wkt multi` (linestring/poly/point? figure out how to decide)
@@ -33,7 +33,7 @@
 * [ ] Print invalid geometries to stderr (or exit program?)
 * [ ] Make "exit on invalid" configurable
 * [ ] figure out streaming geojson feature collection output
-* [ ] cross-platform `open` command for geojson map
+* [X] cross-platform `open` command for geojson map
 * [ ] Migrate back to official rust-wkt crate
 
 Entity refactoring
