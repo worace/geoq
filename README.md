@@ -6,7 +6,7 @@
 * [X] Geojson geom printing
 * [X] Geojson feature printing
 * [X] Geojson feature collection aggregation
-* [ ] Add wkt writing -- perhaps borrow from https://github.com/CanalTP/rust-wkt/tree/write-wkt ?
+* [X] Add wkt writing -- perhaps borrow from https://github.com/CanalTP/rust-wkt/tree/write-wkt ?
 * [X] Preserve features on existing GJ features
 * [X] Point geohash (`echo 12,34 | geoq gh point 4 => abcd`)
 * [x] map via geojson.io
@@ -26,6 +26,7 @@
 * [ ] figure out streaming geojson feature collection output
 * [ ] cross-platform `open` command for geojson map
 * [ ] Geohash children command
+* [ ] Migrate back to official rust-wkt crate
 
 Entity refactoring
 problem: currently conversion methods take ownership -- getting geometry or geojson rep consumes original input

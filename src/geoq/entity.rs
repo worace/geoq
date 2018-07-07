@@ -13,6 +13,7 @@ use geoq::input::Input;
 use regex::Regex;
 use serde_json;
 use wkt::ToGeo;
+use wkt::ToWkt;
 use wkt::Wkt;
 
 lazy_static! {
@@ -92,6 +93,12 @@ impl Entity {
         }
     }
 
+    pub fn wkt(self) -> wkt::Geometry<f64> {
+        let geom = self.geom();
+        let mut wkt = geom.to_wkt();
+        wkt.items.pop().unwrap()
+    }
+
     pub fn geojson_geometry(self) -> geojson::Geometry {
         let geom = self.geom();
         geojson::Geometry::new(geojson::Value::from(&geom))
@@ -142,6 +149,8 @@ pub fn from_input(i: Input) -> Vec<Entity> {
 #[cfg(test)]
 mod tests {
     extern crate serde_json;
+    extern crate wkt;
+
     use geo_types::{LineString, Point, Polygon};
     use geoq::entity;
     use geoq::input::Input;
@@ -160,6 +169,9 @@ mod tests {
             .unwrap();
         assert_eq!(12.0, geom.0.y);
         assert_eq!(34.0, geom.0.x);
+
+        let wkt = entity::from_input(i.clone()).pop().unwrap().wkt();
+        assert_eq!("POINT(34 12)", wkt.to_string());
 
         let gj_geom = entity::from_input(i.clone())
             .pop()
@@ -208,6 +220,9 @@ mod tests {
             .unwrap();
         assert_eq!(expected, geom);
 
+        let wkt = entity::from_input(i.clone()).pop().unwrap().wkt();
+        assert_eq!(wkt.to_string(), "POLYGON((-119.53125 33.75,-118.125 33.75,-118.125 35.15625,-119.53125 35.15625,-119.53125 33.75))");
+
         let gj_geom = entity::from_input(i.clone())
             .pop()
             .unwrap()
@@ -254,6 +269,9 @@ mod tests {
             .as_linestring()
             .unwrap();
         assert_eq!(expected, geom);
+
+        let wkt = entity::from_input(i.clone()).pop().unwrap().wkt();
+        assert_eq!(wkt.to_string(), "LINESTRING(30 10,10 30,40 40)");
 
         let gj_geom = entity::from_input(i.clone())
             .pop()
@@ -304,6 +322,12 @@ mod tests {
             .unwrap();
         assert_eq!(expected, geom);
 
+        let wkt = entity::from_input(i.clone()).pop().unwrap().wkt();
+        assert_eq!(
+            wkt.to_string(),
+            "LINESTRING(-26.01 59.17,-15.46 45.58,0.35 35.74)"
+        );
+
         let gj_geom = entity::from_input(i.clone())
             .pop()
             .unwrap()
@@ -353,6 +377,12 @@ mod tests {
             .unwrap();
         assert_eq!(expected, geom);
 
+        let wkt = entity::from_input(i.clone()).pop().unwrap().wkt();
+        assert_eq!(
+            wkt.to_string(),
+            "LINESTRING(-26.01 59.17,-15.46 45.58,0.35 35.74)"
+        );
+
         let gj_geom = entity::from_input(i.clone())
             .pop()
             .unwrap()
@@ -394,6 +424,12 @@ mod tests {
             .map(|e| e.geom().as_point().expect("Should parse to points"))
             .collect();
         assert_eq!(expected, geoms);
+
+        let wkts: Vec<String> = entity::from_input(i.clone())
+            .into_iter()
+            .map(|e| e.wkt().to_string())
+            .collect();
+        assert_eq!(wkts, vec!["POINT(34 12)", "POINT(78 56)"]);
 
         let expected_json = vec![
             "{\"coordinates\":[34.0,12.0],\"type\":\"Point\"}",

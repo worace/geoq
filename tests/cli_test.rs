@@ -27,14 +27,30 @@ Unknown(pizza)
 }
 
 #[test]
-#[ignore]
 fn it_outputs_wkt() {
-    let input = "12,34";
+    let input = r#"12,34
+12	34
+9q5
+LINESTRING (30 10, 10 30, 40 40)
+{"type":"Point","coordinates":[125.6, 10.1]}
+{"type":"Feature","properties":{"a": "b"},"geometry":{"type":"Point","coordinates":[125.6, 10.1]}}
+{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[34.0,12.0]}},{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[78.0,56.0]}}]}
+"#;
+
+    let output = r#"POINT(34 12)
+POINT(34 12)
+POLYGON((-119.53125 33.75,-118.125 33.75,-118.125 35.15625,-119.53125 35.15625,-119.53125 33.75))
+LINESTRING(30 10,10 30,40 40)
+POINT(125.6 10.1)
+POINT(125.6 10.1)
+POINT(34 12)
+POINT(78 56)
+"#;
     Assert::main_binary()
         .with_args(&["wkt"])
         .stdin(input)
         .stdout()
-        .contains("POINT (34 12)")
+        .is(output)
         .unwrap();
 }
 

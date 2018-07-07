@@ -49,8 +49,7 @@ fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
     let reader = Reader::new(&mut stdin_reader);
     let entities = reader.flat_map(|i| entity::from_input(i));
     for e in entities {
-        let g = e.geom();
-        eprintln!("{:?}", g);
+        println!("{}", e.wkt());
     }
     Ok(())
 }
