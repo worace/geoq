@@ -206,3 +206,47 @@ fn geohash_children() {
         .fails()
         .unwrap();
 }
+
+#[test]
+fn geohash_neighbors() {
+    let input = "9q5\n";
+    let output_with = r#"9q5
+9q7
+9qk
+9qh
+9mu
+9mg
+9mf
+9q4
+9q6
+"#;
+
+    let output_without = r#"9q7
+9qk
+9qh
+9mu
+9mg
+9mf
+9q4
+9q6
+"#;
+    Assert::main_binary()
+        .with_args(&["gh", "neighbors"])
+        .stdin(input)
+        .stdout()
+        .is(output_with)
+        .unwrap();
+
+    Assert::main_binary()
+        .with_args(&["gh", "neighbors", "-e"])
+        .stdin(input)
+        .stdout()
+        .is(output_without)
+        .unwrap();
+
+    Assert::main_binary()
+        .with_args(&["gh", "neighbors"])
+        .stdin("LINESTRING (30 10, 10 30, 40 40)\n")
+        .fails()
+        .unwrap();
+}

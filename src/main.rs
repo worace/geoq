@@ -159,10 +159,29 @@ fn run_geohash_children() -> Result<(), Error> {
     Ok(())
 }
 
+fn run_geohash_neighbors(matches: &ArgMatches) -> Result<(), Error> {
+    let exclude = matches.is_present("exclude");
+    let stdin = io::stdin();
+    let mut stdin_reader = stdin.lock();
+    let reader = Reader::new(&mut stdin_reader);
+    for i in reader {
+        match i {
+            Input::Geohash(ref raw) => {
+                for gh in geoq::geohash::neighbors(raw, !exclude).iter() {
+                    println!("{}", gh);
+                }
+            }
+            _ => return Err(Error::NotImplemented),
+        }
+    }
+    Ok(())
+}
+
 fn run_geohash(matches: &ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("point", Some(m)) => run_geohash_point(m),
         ("children", Some(_)) => run_geohash_children(),
+        ("neighbors", Some(m)) => run_geohash_neighbors(m),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -233,7 +252,13 @@ fn main() {
                         .index(1),
                 ),
         )
-        .subcommand(SubCommand::with_name("children").about("Get children for the given geohash"));
+        .subcommand(SubCommand::with_name("children").about("Get children for the given geohash"))
+        .subcommand(SubCommand::with_name("neighbors")
+                    .about("Get neighbors of the given Geohash")
+                    .arg(Arg::with_name("exclude")
+                         .long("exclude")
+                         .short("e")
+                         .help("Exclude the given geohash from its neighbors.\nBy default it will be included in the output,\ngiving a 3x3 grid centered on the provided geohash.")));
 
     let matches = App::new("geoq")
         .version(version)
