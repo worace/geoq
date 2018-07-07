@@ -147,3 +147,62 @@ sf0hm8w
         .is(output)
         .unwrap();
 }
+
+#[test]
+fn geohash_not_allowed_for_non_point() {
+    let input = "LINESTRING (30 10, 10 30, 40 40)\n";
+    Assert::main_binary()
+        .with_args(&["gh", "point", "7"])
+        .stdin(input)
+        .fails();
+}
+
+#[test]
+fn geohash_children() {
+    let input = "9q5\n";
+    let output = r#"9q50
+9q51
+9q52
+9q53
+9q54
+9q55
+9q56
+9q57
+9q58
+9q59
+9q5b
+9q5c
+9q5d
+9q5e
+9q5f
+9q5g
+9q5h
+9q5j
+9q5k
+9q5m
+9q5n
+9q5p
+9q5q
+9q5r
+9q5s
+9q5t
+9q5u
+9q5v
+9q5w
+9q5x
+9q5y
+9q5z
+"#;
+    Assert::main_binary()
+        .with_args(&["gh", "children"])
+        .stdin(input)
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    Assert::main_binary()
+        .with_args(&["gh", "children"])
+        .stdin("LINESTRING (30 10, 10 30, 40 40)\n")
+        .fails()
+        .unwrap();
+}

@@ -14,6 +14,7 @@ mod geoq;
 use geoq::entity;
 use geoq::error::Error;
 use geoq::reader::Reader;
+use geoq::input::Input;
 use std::process::Command;
 use url::percent_encoding;
 use url::percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
@@ -42,6 +43,9 @@ use std::process;
 //   - replace all repeated instances of iterating over stdin lines with this
 // - InputReader.entities -> Iterator<Entity>
 // Remove Input::Uknown -- just make read_input give Result and surface these errors earlier
+
+static BASE_32: [char; 32] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'b', 'c', 'd', 'e', 'f', 'g',
+                              'h', 'j', 'k', 'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
 
 fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
     let stdin = io::stdin();
@@ -137,10 +141,27 @@ fn run_geohash_point(matches: &ArgMatches) -> Result<(), Error> {
         _ => Err(Error::MissingArgument),
     }
 }
+fn run_geohash_children() -> Result<(), Error> {
+    let stdin = io::stdin();
+    let mut stdin_reader = stdin.lock();
+    let reader = Reader::new(&mut stdin_reader);
+    for i in reader {
+        match i {
+            Input::Geohash(ref raw) => {
+                for c in &BASE_32 {
+                    println!("{}{}", raw, c);
+                }
+            }
+            _ => return Err(Error::NotImplemented),
+        }
+    }
+    Ok(())
+}
 
 fn run_geohash(matches: &ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("point", Some(m)) => run_geohash_point(m),
+        ("children", Some(_)) => run_geohash_children(),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -204,7 +225,8 @@ fn main() {
                         .required(true)
                         .index(1),
                 ),
-        );
+        )
+        .subcommand(SubCommand::with_name("children").about("Get children for the given geohash"));
 
     let matches = App::new("geoq")
         .version(version)
