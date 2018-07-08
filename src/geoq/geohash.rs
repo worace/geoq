@@ -60,7 +60,7 @@ fn contains(outer: &Polygon<f64>, inner: &Geometry<f64>) -> bool {
     }
 }
 
-fn intersects(outer: &Polygon<f64>, inner: &Geometry<f64>) -> bool {
+pub fn intersects(outer: &Polygon<f64>, inner: &Geometry<f64>) -> bool {
     match *inner {
         Geometry::Point(ref g) => outer.contains(g),
         Geometry::LineString(ref g) => outer.intersects(g),

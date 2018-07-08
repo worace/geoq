@@ -16,9 +16,11 @@ use geoq::entity;
 use geoq::error::Error;
 use geoq::reader::Reader;
 use geoq::input::Input;
+use geoq::input;
 use std::process::Command;
 use url::percent_encoding;
 use url::percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
+use geo_types::{Geometry, Polygon, MultiPolygon};
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use geojson::GeoJson;
@@ -242,13 +244,60 @@ fn run_map() -> Result<(), Error> {
     Ok(())
 }
 
+fn run_filter_intersects(matches: &ArgMatches) -> Result<(), Error> {
+    match matches.value_of("query") {
+        Some(q) => {
+            let query_entities = entity::from_input(input::read_line(q.to_string()));
+            if query_entities.is_empty() {
+                Err(Error::UnknownEntityFormat)
+            } else {
+                let query_geoms = query_entities.into_iter().map(|e| e.geom());
+                let query_polygons: Vec<Polygon<f64>> = query_geoms.flat_map(|g| {
+                    match g {
+                        Geometry::Polygon(p) => vec![p],
+                        Geometry::MultiPolygon(mp) => mp.0,
+                        _ => vec![]
+                    }
+                }).collect();
+
+                let stdin = io::stdin();
+                let mut stdin_reader = stdin.lock();
+                let reader = Reader::new(&mut stdin_reader);
+
+                for input in reader {
+                    // TODO restructure so this doesnlt need to be cloned
+                    let output = input.raw().clone();
+                    let entities = entity::from_input(input);
+                    let geoms: Vec<Geometry<f64>> = entities.into_iter().map(|e| e.geom()).collect();
+                    if query_polygons.iter().any(|ref query_poly| {
+                        geoms.iter().any(|ref e_geom| geoq::geohash::intersects(query_poly, e_geom))
+                    }) {
+                        println!("{}", output);
+                    }
+                }
+
+                Ok(())
+            }
+        },
+        _ => Err(Error::MissingArgument),
+    }
+}
+
+fn run_filter(matches: &ArgMatches) -> Result<(), Error> {
+    match matches.subcommand() {
+        ("intersects", Some(m)) => run_filter_intersects(m),
+        _ => Err(Error::UnknownCommand),
+    }
+}
+
 fn run(matches: ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("wkt", Some(_m)) => run_wkt(&matches),
         ("type", Some(_m)) => run_type(&matches),
         ("gj", Some(_m)) => run_geojson(&matches),
         ("gh", Some(m)) => run_geohash(m),
-        ("map", Some(m)) => run_map(),
+        ("map", Some(_)) => run_map(),
+        ("filter", Some(m)) => run_filter(m),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -298,6 +347,19 @@ fn main() {
                          .short("e")
                          .help("Exclude the given geohash from its neighbors.\nBy default it will be included in the output,\ngiving a 3x3 grid centered on the provided geohash.")));
 
+    let filter = SubCommand::with_name("filter")
+        .about("Select a subset of provided entities based on geospatial predicates")
+        .subcommand(
+            SubCommand::with_name("intersects")
+                .about("Output only entities (from STDIN) which intersect a QUERY entity (as command-line ARG)")
+                .arg(
+                    Arg::with_name("query")
+                        .help("Entity to check intersections.\nMust be Lat/Lon, Geohash, WKT, or GeoJSON.\nCurrently only POLYGON query geometries are supported.")
+                        .required(true)
+                        .index(1),
+                )
+        );
+
     let matches = App::new("geoq")
         .version(version)
         .about("geoq - GeoSpatial utility belt")
@@ -306,6 +368,7 @@ fn main() {
         .subcommand(SubCommand::with_name("map").about("View entities on a map using geojson.io"))
         .subcommand(geohash)
         .subcommand(geojson)
+        .subcommand(filter)
         .get_matches();
 
     if let Err(e) = run(matches) {
