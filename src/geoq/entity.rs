@@ -8,7 +8,6 @@ use geo_types::{Geometry, LineString, Point, Polygon};
 use geojson::conversion::*;
 use geojson::GeoJson;
 use geoq::error::Error;
-use geoq::input;
 use geoq::input::Input;
 use regex::Regex;
 use serde_json;
@@ -89,7 +88,6 @@ impl Entity {
             Entity::GeoJsonFeature(gj_feature) => {
                 gj_feature.geometry.unwrap().value.try_into().unwrap()
             }
-            _ => Geometry::Point(Point::new(0.0, 0.0)),
         }
     }
 
@@ -200,7 +198,6 @@ mod tests {
     #[test]
     fn entities_for_geohash() {
         let i = Input::Geohash("9q5".to_string());
-        let entities = entity::from_input(i.clone());
 
         let expected = Polygon::new(
             vec![
