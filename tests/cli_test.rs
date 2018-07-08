@@ -250,3 +250,183 @@ fn geohash_neighbors() {
         .fails()
         .unwrap();
 }
+
+#[test]
+fn geohash_covering() {
+    let input = r#"12,34
+12	34
+9q5
+LINESTRING (30 10, 10 30, 40 40)
+{"type":"Point","coordinates":[125.6, 10.1]}
+{"type":"Feature","properties":{"a": "b"},"geometry":{"type":"Point","coordinates":[125.6, 10.1]}}
+{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[34.0,12.0]}},{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[78.0,56.0]}}]}
+"#;
+
+    let output_with = r#"12,34
+sf0
+12	34
+sf0
+9q5
+9qk
+9qh
+9q7
+9q6
+9q5
+9q4
+9mu
+9mg
+9mf
+LINESTRING (30 10, 10 30, 40 40)
+szh
+sz5
+syg
+syf
+syc
+syb
+sy8
+swx
+sww
+swt
+swm
+swk
+sw7
+sw6
+sw4
+sw1
+sw0
+sqp
+smz
+smy
+smv
+smu
+sms
+sme
+smd
+sm9
+sm3
+sm2
+sm0
+skh
+skd
+skc
+skb
+sk9
+sk7
+sk6
+sk5
+sjr
+sjp
+se0
+sdh
+sdd
+sdc
+sdb
+sd9
+sd7
+sd6
+sd5
+s9v
+s9u
+s7w
+s7v
+s7u
+s7t
+s7r
+s7q
+s7p
+{"type":"Point","coordinates":[125.6, 10.1]}
+wcc
+{"type":"Feature","properties":{"a": "b"},"geometry":{"type":"Point","coordinates":[125.6, 10.1]}}
+wcc
+{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[34.0,12.0]}},{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[78.0,56.0]}}]}
+sf0
+v9z
+"#;
+
+    let output_without = r#"sf0
+sf0
+9qk
+9qh
+9q7
+9q6
+9q5
+9q4
+9mu
+9mg
+9mf
+szh
+sz5
+syg
+syf
+syc
+syb
+sy8
+swx
+sww
+swt
+swm
+swk
+sw7
+sw6
+sw4
+sw1
+sw0
+sqp
+smz
+smy
+smv
+smu
+sms
+sme
+smd
+sm9
+sm3
+sm2
+sm0
+skh
+skd
+skc
+skb
+sk9
+sk7
+sk6
+sk5
+sjr
+sjp
+se0
+sdh
+sdd
+sdc
+sdb
+sd9
+sd7
+sd6
+sd5
+s9v
+s9u
+s7w
+s7v
+s7u
+s7t
+s7r
+s7q
+s7p
+wcc
+wcc
+sf0
+v9z
+"#;
+    Assert::main_binary()
+        .with_args(&["gh", "covering", "3"])
+        .stdin(input)
+        .stdout()
+        .is(output_without)
+        .unwrap();
+
+    Assert::main_binary()
+        .with_args(&["gh", "covering", "3", "-o"])
+        .stdin(input)
+        .stdout()
+        .is(output_with)
+        .unwrap();
+}

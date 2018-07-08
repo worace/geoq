@@ -14,9 +14,11 @@
 * [ ] `filter intersects`
 * [ ] `filter within`
 * [X] `gh children`
-* [ ] `gh neighbors`
+* [X] `gh neighbors`
+* [X] `gh covering <level>`
 * [ ] `wkt geomcollection`
 * [ ] `wkt multi` (linestring/poly/point? figure out how to decide)
+* [ ] `area` - investigate geodesic area implementations?
 
 ### Improvements
 

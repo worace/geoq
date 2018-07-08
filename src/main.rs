@@ -45,9 +45,6 @@ use std::process;
 // - InputReader.entities -> Iterator<Entity>
 // Remove Input::Uknown -- just make read_input give Result and surface these errors earlier
 
-static BASE_32: [char; 32] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'b', 'c', 'd', 'e', 'f', 'g',
-                              'h', 'j', 'k', 'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-
 fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
     let stdin = io::stdin();
     let mut stdin_reader = stdin.lock();
@@ -142,6 +139,33 @@ fn run_geohash_point(matches: &ArgMatches) -> Result<(), Error> {
         _ => Err(Error::MissingArgument),
     }
 }
+
+fn run_geohash_covering(matches: &ArgMatches) -> Result<(), Error> {
+    match matches.value_of("level") {
+        Some(l) => match l.parse::<usize>() {
+            Ok(level) => {
+                let stdin = io::stdin();
+                let mut stdin_reader = stdin.lock();
+                let reader = Reader::new(&mut stdin_reader);
+                for i in reader {
+                    if matches.is_present("original") {
+                        println!("{}", i.raw());
+                    }
+                    for entity in entity::from_input(i) {
+                        let g = entity.geom();
+                        for gh in geoq::geohash::covering(&g, level) {
+                            println!("{}", gh);
+                        }
+                    }
+                }
+                Ok(())
+            }
+            _ => Err(Error::InvalidNumberFormat),
+        },
+        _ => Err(Error::MissingArgument),
+    }
+}
+
 fn run_geohash_children() -> Result<(), Error> {
     let stdin = io::stdin();
     let mut stdin_reader = stdin.lock();
@@ -149,8 +173,8 @@ fn run_geohash_children() -> Result<(), Error> {
     for i in reader {
         match i {
             Input::Geohash(ref raw) => {
-                for c in &BASE_32 {
-                    println!("{}{}", raw, c);
+                for gh in geoq::geohash::children(raw) {
+                    println!("{}", gh);
                 }
             }
             _ => return Err(Error::NotImplemented),
@@ -182,6 +206,7 @@ fn run_geohash(matches: &ArgMatches) -> Result<(), Error> {
         ("point", Some(m)) => run_geohash_point(m),
         ("children", Some(_)) => run_geohash_children(),
         ("neighbors", Some(m)) => run_geohash_neighbors(m),
+        ("covering", Some(m)) => run_geohash_covering(m),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -251,6 +276,19 @@ fn main() {
                         .required(true)
                         .index(1),
                 ),
+        )
+        .subcommand(
+            SubCommand::with_name("covering")
+                .about("Output the set of geohashes at the given level which covers the given entity")
+                .arg(
+                    Arg::with_name("level")
+                        .help("Characters of geohash precision")
+                        .required(true)
+                        .index(1),
+                ).arg(Arg::with_name("original")
+                      .long("original")
+                      .short("o")
+                      .help("Also print the query entity in the output.\nUseful for mapping a geometry along with its covering Geohashes.")),
         )
         .subcommand(SubCommand::with_name("children").about("Get children for the given geohash"))
         .subcommand(SubCommand::with_name("neighbors")
