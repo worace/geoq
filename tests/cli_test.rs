@@ -430,3 +430,16 @@ v9z
         .is(output_with)
         .unwrap();
 }
+
+#[test]
+fn gj_geom_edge_case() {
+    let input = r#"{"coordinates":[[[-87.97874531338036,34.92420945798039],[-87.9785957342853,34.92418491767909],[-87.97857664070615,34.9242631544226],[-87.97872621980122,34.92428769470051],[-87.97874531338036,34.92420945798039]]],"type":"Polygon"}
+"#;
+    Assert::main_binary()
+        .with_args(&["gj", "geom"])
+        .stdin(input)
+        .stdout()
+        .is(input)
+        .unwrap();
+
+}
