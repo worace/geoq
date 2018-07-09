@@ -40,6 +40,7 @@
 * [ ] crates.io release
 * [ ] Homebrew formula
 * [ ] Readme Docs + Install Instructions
+* [ ] Iterator-based covering GH implementation (don't hold whole list in memory as a vector)
 
 Entity refactoring
 problem: currently conversion methods take ownership -- getting geometry or geojson rep consumes original input
