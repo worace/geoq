@@ -37,6 +37,9 @@
 * [ ] figure out streaming geojson feature collection output
 * [X] cross-platform `open` command for geojson map
 * [ ] Migrate back to official rust-wkt crate
+* [ ] crates.io release
+* [ ] Homebrew formula
+* [ ] Readme Docs + Install Instructions
 
 Entity refactoring
 problem: currently conversion methods take ownership -- getting geometry or geojson rep consumes original input
