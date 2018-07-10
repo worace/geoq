@@ -1,5 +1,9 @@
 # geoq
 
+[![Build Status](https://travis-ci.org/worace/geoq.svg?branch=master)](https://travis-ci.org/worace/geoq)
+
+
+
 Geoq is a command-line tool for working with geospatial data.
 
 It unifies a few common GIS serialization formats with come utilities for manipulating and visualizing data on a map.

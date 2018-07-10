@@ -2,6 +2,11 @@
 name = "geoq"
 version = "0.0.1"
 authors = ["Horace Williams <horace@worace.works>"]
+license = "MIT"
+description = "Geospatial utility CLI"
+homepage = "https://github.com/worace/geoq"
+repository = "https://github.com/worace/geoq"
+documentation = "https://github.com/worace/geoq/blob/master/manual.md"
 
 [dependencies]
 clap = "2.31.2"
