@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/worace/geoq.svg?branch=master)](https://travis-ci.org/worace/geoq)
 
-
+[![crates.io](https://img.shields.io/badge/crates.io-v0.0.1-orange.svg)](https://crates.io/crates/geoq)
 
 Geoq is a command-line tool for working with geospatial data.
 
