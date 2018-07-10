@@ -11,7 +11,7 @@
 * [X] Geojson feature collection aggregation
 * [X] Add wkt writing -- perhaps borrow from https://github.com/CanalTP/rust-wkt/tree/write-wkt ?
 * [ ] Map large JSON with embedded copy of geojson.io web page
-* [ ] `filter intersects`
+* [X] `filter intersects`
 * [ ] `filter within`
 * [X] `gh children`
 * [X] `gh neighbors`
@@ -41,6 +41,7 @@
 * [ ] Homebrew formula
 * [ ] Readme Docs + Install Instructions
 * [ ] Iterator-based covering GH implementation (don't hold whole list in memory as a vector)
+* [ ] Move individual command handlers to separate namespaces
 
 Entity refactoring
 problem: currently conversion methods take ownership -- getting geometry or geojson rep consumes original input
