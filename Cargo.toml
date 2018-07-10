@@ -1,7 +1,7 @@
 [package]
 name = "geoq"
-version = "0.1.0"
-authors = ["Horace Williams <horace.d.williams@gmail.com>"]
+version = "0.0.1"
+authors = ["Horace Williams <horace@worace.works>"]
 
 [dependencies]
 clap = "2.31.2"
@@ -10,7 +10,7 @@ lazy_static = "1.0.1"
 geo = "0.9.1"
 geo-types = "0.1"
 geohash = "0.7.0"
-wkt = { path = "../rust-wkt" }
+wkt = { git = "https://github.com/worace/rust-wkt", branch = "hw/to-geo-with-display" }
 geojson = "0.11.1"
 serde_json = "1.0.22"
 url = "1.7.1"
