@@ -2,7 +2,7 @@ extern crate geo_types;
 extern crate geohash;
 extern crate geojson;
 extern crate regex;
-extern crate wkt;
+extern crate geoq_wkt as wkt;
 
 use geo_types::{Geometry, LineString, Point, Polygon};
 use geojson::conversion::*;
@@ -11,9 +11,9 @@ use geoq::error::Error;
 use geoq::input::Input;
 use regex::Regex;
 use serde_json;
-use wkt::ToGeo;
-use wkt::ToWkt;
-use wkt::Wkt;
+use geoq_wkt::ToGeo;
+use geoq_wkt::ToWkt;
+use geoq_wkt::Wkt;
 
 lazy_static! {
     static ref LATLON_SPLIT: Regex = Regex::new(",|\t").unwrap();
@@ -147,7 +147,7 @@ pub fn from_input(i: Input) -> Vec<Entity> {
 #[cfg(test)]
 mod tests {
     extern crate serde_json;
-    extern crate wkt;
+    extern crate geoq_wkt as wkt;
 
     use geo_types::{LineString, Point, Polygon};
     use geoq::entity;

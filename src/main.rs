@@ -8,7 +8,7 @@ extern crate geojson;
 extern crate regex;
 extern crate serde_json;
 extern crate url;
-extern crate wkt;
+extern crate geoq_wkt as wkt;
 extern crate os_type;
 
 mod geoq;

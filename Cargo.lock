@@ -254,12 +254,21 @@ dependencies = [
  "geo-types 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "geohash 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "geojson 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "geoq_wkt 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "os_type 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "wkt 0.2.0 (git+https://github.com/worace/rust-wkt?branch=hw/to-geo-with-display)",
+]
+
+[[package]]
+name = "geoq_wkt"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "geo-types 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-traits 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -751,15 +760,6 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
-[[package]]
-name = "wkt"
-version = "0.2.0"
-source = "git+https://github.com/worace/rust-wkt?branch=hw/to-geo-with-display#fa7d630eb0e3db5571be5f69756f18f38d97382a"
-dependencies = [
- "geo-types 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "num-traits 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
 [metadata]
 "checksum aho-corasick 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ca972c2ea5f742bfce5687b9aef75506a764f61d37f8f649047846a9686ddb66"
 "checksum aho-corasick 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)" = "d6531d44de723825aa81398a6415283229725a00fa30713812ab9323faa82fc4"
@@ -791,6 +791,7 @@ dependencies = [
 "checksum geo-types 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d46ce94cd761d2d22c0deb98bd79840cd76d1a11f9b41a993dbea03cd3cf6697"
 "checksum geohash 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3c264386302525915e9b2e93784359a56b7876708e10b74d518aa8a69fcc9cf5"
 "checksum geojson 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)" = "fb36a42a24a4a6322d270acc3598d6408923c49656fdbd35b01720eb4a648539"
+"checksum geoq_wkt 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a6fc0c1c8386a2bb9f02e0b33b46314b117d69b22fe011b1784a3a561cbfb4e5"
 "checksum idna 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "014b298351066f1512874135335d62a789ffe78a9974f94b43ed5621951eaf7d"
 "checksum itoa 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c069bbec61e1ca5a596166e55dfe4773ff745c3d16b700013bcaff9a6df2c682"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
@@ -857,4 +858,3 @@ dependencies = [
 "checksum winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2d315eee3b34aca4797b2da6b13ed88266e6d612562a0c46390af8299fc699bc"
 "checksum winapi-i686-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
 "checksum winapi-x86_64-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
-"checksum wkt 0.2.0 (git+https://github.com/worace/rust-wkt?branch=hw/to-geo-with-display)" = "<none>"

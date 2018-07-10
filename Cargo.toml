@@ -15,7 +15,7 @@ lazy_static = "1.0.1"
 geo = "0.9.1"
 geo-types = "0.1"
 geohash = "0.7.0"
-wkt = { git = "https://github.com/worace/rust-wkt", branch = "hw/to-geo-with-display" }
+geoq_wkt = "0.2.0"
 geojson = "0.11.1"
 serde_json = "1.0.22"
 url = "1.7.1"
