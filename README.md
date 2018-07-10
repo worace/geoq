@@ -1,54 +1,38 @@
-## TODO
+# geoq
 
+Geoq is a command-line tool for working with geospatial data.
 
-### Features
+It unifies a few common GIS serialization formats with come utilities for manipulating and visualizing data on a map.
 
-* [x] map via geojson.io
-* [X] Preserve features on existing GJ features
-* [X] Point geohash (`echo 12,34 | geoq gh point 4 => abcd`)
-* [X] Geojson geom printing
-* [X] Geojson feature printing
-* [X] Geojson feature collection aggregation
-* [X] Add wkt writing -- perhaps borrow from https://github.com/CanalTP/rust-wkt/tree/write-wkt ?
-* [ ] Map large JSON with embedded copy of geojson.io web page
-* [X] `filter intersects`
-* [ ] `filter within`
-* [X] `gh children`
-* [X] `gh neighbors`
-* [X] `gh covering <level>`
-* [ ] `wkt geomcollection`
-* [ ] `wkt multi` (linestring/poly/point? figure out how to decide)
-* [ ] `area` - investigate geodesic area implementations?
+As a brief taste, the command:
 
-### Improvements
+```
+echo '{"type":"Polygon","coordinates":[[[30,10],[40,40],[20,40],[10,20],[30,10]]]}' | geoq map
+```
 
-* [X] Try assert cli for testing CLI "type" command https://github.com/assert-rs/assert_cli
-* [X] Add rust-geohash and generate point geohashes
-* [X] test reader matching functions
-* [ ] Refactor reading interface to produce an iter<results> (i.e. let reader methods return errors)
-* [ ] Migrate Geojson and WKT output formats to trait
-* [ ] Add strings in error messages so, e.g. bad inputs can be printed with error
-* [ ] Investigate parallel iterator processing (rayon?)
-* [ ] Try streaming serde for feature collections: https://github.com/serde-rs/json/issues/345
-* [ ] Make error types support string messages (or just make them strings? add a lookup table?)
-* [ ] Geohash require valid precision level (1 - 12)
-* [ ] Print invalid geometries to stderr (or exit program?)
-* [ ] Make "exit on invalid" configurable
-* [ ] figure out streaming geojson feature collection output
-* [X] cross-platform `open` command for geojson map
-* [ ] Migrate back to official rust-wkt crate
-* [ ] crates.io release
-* [ ] Homebrew formula
-* [ ] Readme Docs + Install Instructions
-* [ ] Iterator-based covering GH implementation (don't hold whole list in memory as a vector)
-* [ ] Move individual command handlers to separate namespaces
+will open a browser window to render the desired polygon on a map.
 
-Entity refactoring
-problem: currently conversion methods take ownership -- getting geometry or geojson rep consumes original input
-Alternative: turn entities to structs with lazily-populated fields (or even eager...maybe perf doesnt matter)
-Entity
-- raw / original
-- properties map
-- geometry
+See the [Manual](https://github.com/worace/geoq/blob/master/manual.md) for more examples and available commands.
 
-...then other operations can borrow these fields
+## Install
+
+Currently installation is done through [crates.io](http://crates.io/), the Rust package repository.
+
+If you have Rust installed, simply:
+
+```
+cargo install geoq
+```
+
+To [install Rust](https://www.rust-lang.org/en-US/install.html) and the Cargo toolchain:
+
+```
+curl https://sh.rustup.rs -sSf | sh
+```
+
+You'll also need to add Cargo's `bin` directory to your path:
+
+```
+# e.g. in your ~/.bash_profile or other shell profile
+export PATH="$HOME/.cargo/bin:$PATH"
+```
