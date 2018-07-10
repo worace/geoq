@@ -8,7 +8,7 @@ extern crate geojson;
 extern crate regex;
 extern crate serde_json;
 extern crate url;
-extern crate geoq_wkt as wkt;
+extern crate geoq_wkt;
 extern crate os_type;
 
 mod geoq;
@@ -18,9 +18,8 @@ use geoq::reader::Reader;
 use geoq::input::Input;
 use geoq::input;
 use std::process::Command;
-use url::percent_encoding;
 use url::percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
-use geo_types::{Geometry, Polygon, MultiPolygon};
+use geo_types::{Geometry, Polygon};
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use geojson::GeoJson;

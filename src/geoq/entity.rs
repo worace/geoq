@@ -2,12 +2,11 @@ extern crate geo_types;
 extern crate geohash;
 extern crate geojson;
 extern crate regex;
-extern crate geoq_wkt as wkt;
+extern crate geoq_wkt;
 
 use geo_types::{Geometry, LineString, Point, Polygon};
 use geojson::conversion::*;
 use geojson::GeoJson;
-use geoq::error::Error;
 use geoq::input::Input;
 use regex::Regex;
 use serde_json;
@@ -22,7 +21,7 @@ lazy_static! {
 pub enum Entity {
     LatLon(String),
     Geohash(String),
-    Wkt(wkt::Geometry<f64>),
+    Wkt(geoq_wkt::Geometry<f64>),
     GeoJsonFeature(geojson::Feature),
     GeoJsonGeometry(geojson::Geometry),
 }
@@ -91,7 +90,7 @@ impl Entity {
         }
     }
 
-    pub fn wkt(self) -> wkt::Geometry<f64> {
+    pub fn wkt(self) -> geoq_wkt::Geometry<f64> {
         let geom = self.geom();
         let mut wkt = geom.to_wkt();
         wkt.items.pop().unwrap()
@@ -147,7 +146,7 @@ pub fn from_input(i: Input) -> Vec<Entity> {
 #[cfg(test)]
 mod tests {
     extern crate serde_json;
-    extern crate geoq_wkt as wkt;
+    extern crate geoq_wkt;
 
     use geo_types::{LineString, Point, Polygon};
     use geoq::entity;
