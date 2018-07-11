@@ -150,6 +150,19 @@ echo 9q5 | geoq map
 
 This involves a 2-step process where geoq first aggregates all your inputs into a GeoJSON Feature Collection (similar to `geoq gj fc`), and then sends the result to geojson.io in your browser via a URL parameter.
 
-Unfortunately, there is a limit on the amount of data that can be sent to geojson.io this way, so larger inputs will not work.
+Unfortunately, there is a limit on the amount of data that can be sent to geojson.io this way, so larger inputs will not work. We hope to have a better solution for this in the future but for now GeoJSON data over 27k characters will be rejected.
 
 ### Filtering - `geoq filter`
+
+Select geometries which match certain conditions
+
+**Filter intersections with Polygon**
+
+Will output only those entities which intersect the given query geometry.
+
+Currently only polygons are supported for querying, but hopefully more geometries will be added soon.
+
+```
+print "34.70,-118.44\n35.06,-117.87\n" | geoq filter intersects 9q5
+34.70,-118.44
+```
