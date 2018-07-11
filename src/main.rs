@@ -35,101 +35,6 @@ fn run_type(_matches: &ArgMatches) -> Result<(), Error> {
     Ok(())
 }
 
-fn run_geohash_point(matches: &ArgMatches) -> Result<(), Error> {
-    match matches.value_of("level") {
-        Some(l) => match l.parse::<usize>() {
-            Ok(level) => {
-                let stdin = io::stdin();
-                let mut stdin_reader = stdin.lock();
-                let reader = Reader::new(&mut stdin_reader);
-                let entities = reader.flat_map(|i| entity::from_input(i));
-                for e in entities {
-                    match e.geom() {
-                        geo_types::Geometry::Point(p) => {
-                            println!("{}", geohash::encode(p.0, level));
-                        }
-                        _ => return Err(Error::NotImplemented),
-                    }
-                }
-                Ok(())
-            }
-            _ => Err(Error::InvalidNumberFormat),
-        },
-        _ => Err(Error::MissingArgument),
-    }
-}
-
-fn run_geohash_covering(matches: &ArgMatches) -> Result<(), Error> {
-    match matches.value_of("level") {
-        Some(l) => match l.parse::<usize>() {
-            Ok(level) => {
-                let stdin = io::stdin();
-                let mut stdin_reader = stdin.lock();
-                let reader = Reader::new(&mut stdin_reader);
-                for i in reader {
-                    if matches.is_present("original") {
-                        println!("{}", i.raw());
-                    }
-                    for entity in entity::from_input(i) {
-                        let g = entity.geom();
-                        for gh in geoq::geohash::covering(&g, level) {
-                            println!("{}", gh);
-                        }
-                    }
-                }
-                Ok(())
-            }
-            _ => Err(Error::InvalidNumberFormat),
-        },
-        _ => Err(Error::MissingArgument),
-    }
-}
-
-fn run_geohash_children() -> Result<(), Error> {
-    let stdin = io::stdin();
-    let mut stdin_reader = stdin.lock();
-    let reader = Reader::new(&mut stdin_reader);
-    for i in reader {
-        match i {
-            Input::Geohash(ref raw) => {
-                for gh in geoq::geohash::children(raw) {
-                    println!("{}", gh);
-                }
-            }
-            _ => return Err(Error::NotImplemented),
-        }
-    }
-    Ok(())
-}
-
-fn run_geohash_neighbors(matches: &ArgMatches) -> Result<(), Error> {
-    let exclude = matches.is_present("exclude");
-    let stdin = io::stdin();
-    let mut stdin_reader = stdin.lock();
-    let reader = Reader::new(&mut stdin_reader);
-    for i in reader {
-        match i {
-            Input::Geohash(ref raw) => {
-                for gh in geoq::geohash::neighbors(raw, !exclude).iter() {
-                    println!("{}", gh);
-                }
-            }
-            _ => return Err(Error::NotImplemented),
-        }
-    }
-    Ok(())
-}
-
-fn run_geohash(matches: &ArgMatches) -> Result<(), Error> {
-    match matches.subcommand() {
-        ("point", Some(m)) => run_geohash_point(m),
-        ("children", Some(_)) => run_geohash_children(),
-        ("neighbors", Some(m)) => run_geohash_neighbors(m),
-        ("covering", Some(m)) => run_geohash_covering(m),
-        _ => Err(Error::UnknownCommand),
-    }
-}
-
 const GEOJSON_IO_URL_LIMIT: usize = 27000;
 
 fn run_map() -> Result<(), Error> {
@@ -220,7 +125,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("wkt", Some(_)) => commands::wkt::run_wkt(),
         ("type", Some(_m)) => run_type(&matches),
         ("gj", Some(_m)) => commands::geojson::run_geojson(&matches),
-        ("gh", Some(m)) => run_geohash(m),
+        ("gh", Some(m)) => commands::geohash::run(m),
         ("map", Some(_)) => run_map(),
         ("filter", Some(m)) => run_filter(m),
         _ => Err(Error::UnknownCommand),
