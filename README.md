@@ -39,3 +39,19 @@ You'll also need to add Cargo's `bin` directory to your path:
 # e.g. in your ~/.bash_profile or other shell profile
 export PATH="$HOME/.cargo/bin:$PATH"
 ```
+
+## Project Status
+
+This library is still in its infancy and there are probably a lot of rough edges.
+
+**What Works**
+
+* The commands documented in the [Manual](https://github.com/worace/geoq/blob/master/manual.md) should mostly work
+* Reading the supported input formats (Lat/Lon, Geohash, Wkt, Geojson) should be pretty reliable
+
+**What Doesnt**
+
+* Error handling is still pretty rough; in particular there's not great consistency between aborting loudly on some errors vs. handling and skipping over problematic inputs for others.
+* Docs need improvement, and I'm especially hoping to add better usage instructions and examples to the built-in help texts.
+* Some commands are still restricted to certain types of geometries
+* Hopefully more features will be added soon, as well as potentially more supported input formats
