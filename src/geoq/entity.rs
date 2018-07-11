@@ -68,12 +68,12 @@ fn parsed_geojson_entities(gj: GeoJson) -> Vec<Entity> {
 }
 
 fn geojson_entities(raw: &String) -> Vec<Entity> {
-    if let Ok(gj) = raw.parse() {
-        parsed_geojson_entities(gj)
-    } else {
-        eprintln!("****** FAILED TO PARSE GEOJSON");
-        eprintln!("{}", raw);
-        vec![]
+    match raw.parse() {
+        Ok(gj) => parsed_geojson_entities(gj),
+        Err(e) => {
+            eprintln!("Error parsing geojson: {} - {}", raw, e);
+            vec![]
+        }
     }
 }
 
