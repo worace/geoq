@@ -1,7 +1,6 @@
 extern crate geojson;
 extern crate serde_json;
 extern crate os_type;
-extern crate percent_encoding;
 
 use std::process::Command;
 use std::io;
@@ -9,7 +8,7 @@ use geojson::GeoJson;
 use geoq::reader::Reader;
 use geoq::entity;
 use geoq::error::Error;
-use self::percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
+use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 
 const GEOJSON_IO_URL_LIMIT: usize = 27000;
 

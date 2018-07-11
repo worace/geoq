@@ -5,19 +5,17 @@ extern crate geo;
 extern crate geo_types;
 extern crate geohash;
 extern crate geojson;
+extern crate geoq_wkt;
+extern crate os_type;
+extern crate percent_encoding;
 extern crate regex;
 extern crate serde_json;
-extern crate geoq_wkt;
 
 mod geoq;
-use geoq::entity;
-use geoq::error::Error;
-use geoq::reader::Reader;
 use geoq::commands;
+use geoq::error::Error;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use geojson::GeoJson;
-use std::io;
 use std::process;
 
 fn run(matches: ArgMatches) -> Result<(), Error> {
