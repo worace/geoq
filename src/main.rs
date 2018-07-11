@@ -13,29 +13,17 @@ mod geoq;
 use geoq::entity;
 use geoq::error::Error;
 use geoq::reader::Reader;
-use geoq::input::Input;
-use geoq::input;
 use geoq::commands;
-use geo_types::{Geometry, Polygon};
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use geojson::GeoJson;
 use std::io;
 use std::process;
 
-fn run_type(_matches: &ArgMatches) -> Result<(), Error> {
-    let stdin = io::stdin();
-    for input in Reader::new(&mut stdin.lock()) {
-        println!("{}", input);
-    }
-    Ok(())
-}
-
-
 fn run(matches: ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("wkt", Some(_)) => commands::wkt::run_wkt(),
-        ("type", Some(_m)) => run_type(&matches),
+        ("debug", Some(_m)) => commands::debug::run(),
         ("gj", Some(_m)) => commands::geojson::run_geojson(&matches),
         ("gh", Some(m)) => commands::geohash::run(m),
         ("map", Some(_)) => commands::map::run(),
@@ -106,7 +94,7 @@ fn main() {
         .version(version)
         .about("geoq - GeoSpatial utility belt")
         .subcommand(SubCommand::with_name("wkt").about("Output entity as WKT"))
-        .subcommand(SubCommand::with_name("type").about("Check the format of an entity"))
+        .subcommand(SubCommand::with_name("debug").about("Check the format of an entity"))
         .subcommand(SubCommand::with_name("map").about("View entities on a map using geojson.io"))
         .subcommand(geohash)
         .subcommand(geojson)

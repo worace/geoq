@@ -3,7 +3,7 @@ extern crate assert_cli;
 use assert_cli::Assert;
 
 #[test]
-fn it_finds_types() {
+fn it_gets_basic_debug_info_for_inputs() {
     let input = "12,34
 9q5
 {\"type\":\"Point\",\"coordinates\":[125.6, 10.1]}
@@ -19,7 +19,7 @@ Unknown(pizza)
 ";
     println!("{}", output);
     Assert::main_binary()
-        .with_args(&["type"])
+        .with_args(&["debug"])
         .stdin(input)
         .stdout()
         .contains(output)
