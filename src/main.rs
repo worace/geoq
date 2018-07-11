@@ -17,6 +17,7 @@ use geoq::error::Error;
 use geoq::reader::Reader;
 use geoq::input::Input;
 use geoq::input;
+use geoq::commands;
 use std::process::Command;
 use url::percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 use geo_types::{Geometry, Polygon};
@@ -25,89 +26,6 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use geojson::GeoJson;
 use std::io;
 use std::process;
-
-// Decoding
-// - Input: 1 per line; contains Raw as string
-// - Entity: multiple per Input.
-//   Probably(?) contains each native de-serialized type as member
-//   (so Entity::GeoJson(GeoJson::Geometry/Feature, Entity::WKT(Wkt::Thing, Entity::WKT(Wkt::Thing)))
-// - io Line --Map--> Input --FlatMap--> Entity
-// Entity traits:
-// - to geo_types Geom
-// - to wkt
-// - to geojson feature / geometry
-// Building Feature Collection:
-// Iterate entities from stream
-// Start serde json with type: Feature Collection, features: (start list)
-// for each entity build feature and write to serde list
-// Interface Migration
-// - InputReader(std IO) -> Iterator<Input>
-//   - replace all repeated instances of iterating over stdin lines with this
-// - InputReader.entities -> Iterator<Entity>
-// Remove Input::Uknown -- just make read_input give Result and surface these errors earlier
-
-fn run_wkt(_matches: &ArgMatches) -> Result<(), Error> {
-    let stdin = io::stdin();
-    let mut stdin_reader = stdin.lock();
-    let reader = Reader::new(&mut stdin_reader);
-    let entities = reader.flat_map(|i| entity::from_input(i));
-    for e in entities {
-        println!("{}", e.wkt());
-    }
-    Ok(())
-}
-
-fn run_geojson_geom(_matches: &ArgMatches) -> Result<(), Error> {
-    let stdin = io::stdin();
-    let mut stdin_reader = stdin.lock();
-    let reader = Reader::new(&mut stdin_reader);
-    let entities = reader.flat_map(|i| entity::from_input(i));
-    for e in entities {
-        let gj_geom = e.geojson_geometry();
-        println!("{}", serde_json::to_string(&gj_geom).unwrap());
-    }
-    Ok(())
-}
-
-fn run_geojson_feature(_matches: &ArgMatches) -> Result<(), Error> {
-    let stdin = io::stdin();
-    let mut stdin_reader = stdin.lock();
-    let reader = Reader::new(&mut stdin_reader);
-    let entities = reader.flat_map(|i| entity::from_input(i));
-    for e in entities {
-        let f = e.geojson_feature();
-        println!("{}", serde_json::to_string(&f).unwrap());
-    }
-    Ok(())
-}
-
-fn run_geojson_feature_collection(_matches: &ArgMatches) -> Result<(), Error> {
-    let stdin = io::stdin();
-    let mut stdin_reader = stdin.lock();
-    let reader = Reader::new(&mut stdin_reader);
-    let features = reader
-        .flat_map(|i| entity::from_input(i))
-        .map(|e| e.geojson_feature());
-
-    let fc = geojson::FeatureCollection {
-        bbox: None,
-        features: features.collect(),
-        foreign_members: None,
-    };
-    println!("{}", GeoJson::from(fc).to_string());
-
-    Ok(())
-}
-
-fn run_geojson(matches: &ArgMatches) -> Result<(), Error> {
-    let (_, gj) = matches.subcommand();
-    match gj.unwrap().subcommand() {
-        ("geom", Some(_m)) => run_geojson_geom(&matches),
-        ("f", Some(_m)) => run_geojson_feature(&matches),
-        ("fc", Some(_m)) => run_geojson_feature_collection(&matches),
-        _ => Err(Error::UnknownCommand),
-    }
-}
 
 fn run_type(_matches: &ArgMatches) -> Result<(), Error> {
     let stdin = io::stdin();
@@ -299,9 +217,9 @@ fn run_filter(matches: &ArgMatches) -> Result<(), Error> {
 
 fn run(matches: ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
-        ("wkt", Some(_m)) => run_wkt(&matches),
+        ("wkt", Some(_)) => commands::wkt::run_wkt(),
         ("type", Some(_m)) => run_type(&matches),
-        ("gj", Some(_m)) => run_geojson(&matches),
+        ("gj", Some(_m)) => commands::geojson::run_geojson(&matches),
         ("gh", Some(m)) => run_geohash(m),
         ("map", Some(_)) => run_map(),
         ("filter", Some(m)) => run_filter(m),
