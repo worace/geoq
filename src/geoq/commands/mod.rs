@@ -1,3 +1,4 @@
 pub mod wkt;
 pub mod geojson;
 pub mod geohash;
+pub mod filter;
