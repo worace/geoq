@@ -11,6 +11,18 @@ For most commands, geoq accepts linewise input via STDIN. The following common G
 
 Remember that even for WKT or GeoJSON inputs, they must be submitted **1 per line**. [jq](https://stedolan.github.io/jq/** can be useful for compacting unruly GeoJSON inputs if needed: `cat multi_line_geojsons.json | jq -cr . | geoq ...`.
 
+### Note on Feature Collections
+
+GeoJSON includes a [Feature Collection](https://macwright.org/2015/03/23/geojson-second-bite.html#featurecollection) type which represents a collection of multiple GeoJSON geometries.
+
+When reading a Feature Collection, geoq will actually unwrap the collection and treat its features as individual inputs, e.g.:
+
+```
+echo '{"features":[{"geometry":{"coordinates":[-118.44,34.7],"type":"Point"},"properties":{},"type":"Feature"},{"geometry":{"coordinates":[-117.87,35.06],"type":"Point"},"properties":{},"type":"Feature"}],"type":"FeatureCollection"}' | geoq wkt
+```
+
+This is useful for exploding and manipulating individual features, and it means that `geoq gj fc` can even be used to concat multiple feature collections. If you actually want to have a collection of Lines/Polygons/Points treated as a single geometry, try one of the [Multi- Geometry variants](https://macwright.org/2015/03/23/geojson-second-bite.html#multi-geometries).
+
 ## Commands
 
 ### GeoJSON - `geoq gj`
