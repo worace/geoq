@@ -477,3 +477,18 @@ fn large_input_is_rejected_from_map() {
         .fails()
         .unwrap();
 }
+
+#[test]
+#[ignore]
+fn reading_geojson_feature_without_properties() {
+    let input = r#"{"type":"Feature","geometry":{"type":"Point","coordinates":[125.6, 10.1]}}
+{"type":"Feature","properties":null,"geometry":{"type":"Point","coordinates":[125.6, 10.1]}}
+"#;
+
+    Assert::main_binary()
+        .with_args(&["wkt"])
+        .stdin(input)
+        .stderr()
+        .is("")
+        .unwrap();
+}
