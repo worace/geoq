@@ -8,4 +8,5 @@ pub enum Error {
     InvalidWkt,
     MissingArgument,
     InvalidNumberFormat,
+    InputTooLarge,
 }

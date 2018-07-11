@@ -212,6 +212,8 @@ fn run_geohash(matches: &ArgMatches) -> Result<(), Error> {
     }
 }
 
+const GEOJSON_IO_URL_LIMIT: usize = 27000;
+
 fn run_map() -> Result<(), Error> {
     let stdin = io::stdin();
     let mut stdin_reader = stdin.lock();
@@ -226,21 +228,27 @@ fn run_map() -> Result<(), Error> {
         foreign_members: None,
     };
     let fc_json = GeoJson::from(fc).to_string();
-    let encoded = utf8_percent_encode(&fc_json, DEFAULT_ENCODE_SET);
-    let url = format!("http://geojson.io#data=data:application/json,{}", encoded);
 
-    // TODO: something for windows here?
-    let open_command = match os_type::current_platform().os_type {
-        os_type::OSType::OSX => "open",
-        _ => "xdg-open"
-    };
+    if fc_json.len() > GEOJSON_IO_URL_LIMIT {
+        eprintln!("Input exceeds geojson.io 27k character upload limit.");
+        Err(Error::InputTooLarge)
+    } else {
+        let encoded = utf8_percent_encode(&fc_json, DEFAULT_ENCODE_SET);
+        let url = format!("http://geojson.io#data=data:application/json,{}", encoded);
 
-    Command::new(open_command)
-        .arg(url)
-        .status()
-        .expect("Failed to open geojson.io");
+        // TODO: something for windows here?
+        let open_command = match os_type::current_platform().os_type {
+            os_type::OSType::OSX => "open",
+            _ => "xdg-open"
+        };
 
-    Ok(())
+        Command::new(open_command)
+            .arg(url)
+            .status()
+            .expect("Failed to open geojson.io");
+
+        Ok(())
+    }
 }
 
 fn run_filter_intersects(matches: &ArgMatches) -> Result<(), Error> {

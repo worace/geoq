@@ -463,3 +463,17 @@ fn filter_intersects() {
         .unwrap();
 
 }
+
+#[test]
+fn large_input_is_rejected_from_map() {
+    let ghs: Vec<&str> = std::iter::repeat("0").take(200).collect();
+    let input = ghs.join("\n");
+
+    Assert::main_binary()
+        .with_args(&["map"])
+        .stdin(input)
+        .stderr()
+        .is("Input exceeds geojson.io 27k character upload limit.")
+        .fails()
+        .unwrap();
+}
