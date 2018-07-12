@@ -41,6 +41,19 @@ impl<'a> Iterator for Reader<'a> {
     }
 }
 
+pub fn inputs<F>(handler: F) -> Result<(), Error>
+where F: Fn(Input) -> Result<(), Error> {
+    let stdin = io::stdin();
+    let mut reader = stdin.lock();
+    while let Some(line) = read_line(&mut reader) {
+        let input = input::read_line(line);
+        if let Err(e) = handler(input) {
+            return Err(e);
+        }
+    }
+    Ok(())
+}
+
 pub fn entities<F>(handler: F) -> Result<(), Error>
 where F: Fn(&mut Iterator<Item = Entity>) -> Result<(), Error>
 {
