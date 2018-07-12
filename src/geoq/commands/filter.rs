@@ -12,7 +12,8 @@ use std::io;
 fn intersects(matches: &ArgMatches) -> Result<(), Error> {
     match matches.value_of("query") {
         Some(q) => {
-            let query_entities = entity::from_input(input::read_line(q.to_string()));
+            let query_input = try!(input::read_line(q.to_string()));
+            let query_entities = entity::from_input(query_input);
             if query_entities.is_empty() {
                 Err(Error::UnknownEntityFormat)
             } else {
