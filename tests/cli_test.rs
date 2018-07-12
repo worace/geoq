@@ -154,7 +154,24 @@ fn geohash_not_allowed_for_non_point() {
     Assert::main_binary()
         .with_args(&["gh", "point", "7"])
         .stdin(input)
-        .fails();
+        .fails()
+        .unwrap();
+}
+
+#[test]
+fn geohash_fails_for_missing_or_invalid_level() {
+    let input = "LINESTRING (30 10, 10 30, 40 40)\n";
+    Assert::main_binary()
+        .with_args(&["gh", "point", "pizza"])
+        .stdin(input)
+        .fails()
+        .unwrap();
+
+    Assert::main_binary()
+        .with_args(&["gh", "point"])
+        .stdin(input)
+        .fails()
+        .unwrap();
 }
 
 #[test]
@@ -428,6 +445,22 @@ v9z
         .stdin(input)
         .stdout()
         .is(output_with)
+        .unwrap();
+}
+
+#[test]
+fn gh_covering_errors() {
+    let input = "LINESTRING (30 10, 10 30, 40 40)\n";
+    Assert::main_binary()
+        .with_args(&["gh", "covering", "pizza"])
+        .stdin(input)
+        .fails()
+        .unwrap();
+
+    Assert::main_binary()
+        .with_args(&["gh", "covering"])
+        .stdin(input)
+        .fails()
         .unwrap();
 }
 

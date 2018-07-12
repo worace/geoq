@@ -4,7 +4,7 @@ use geoq;
 use clap::ArgMatches;
 use geoq::error::Error;
 use geoq::entity;
-use geoq::reader::Reader;
+use geoq::reader;
 use geo_types::{Geometry, Polygon};
 use geoq::input;
 use std::io;
@@ -25,11 +25,8 @@ fn intersects(matches: &ArgMatches) -> Result<(), Error> {
                     })
                     .collect();
 
-                let stdin = io::stdin();
-                let mut stdin_reader = stdin.lock();
-                let reader = Reader::new(&mut stdin_reader);
 
-                for input in reader {
+                reader::for_input(|input| {
                     // TODO restructure so this doesnlt need to be cloned
                     let output = input.raw().clone();
                     let entities = entity::from_input(input);
@@ -42,9 +39,8 @@ fn intersects(matches: &ArgMatches) -> Result<(), Error> {
                     }) {
                         println!("{}", output);
                     }
-                }
-
-                Ok(())
+                    Ok(())
+                })
             }
         }
         _ => Err(Error::MissingArgument),

@@ -53,12 +53,36 @@ where F: Fn(&mut Iterator<Item = Entity>) -> Result<(), Error>
 }
 
 pub fn for_entity<F>(handler: F) -> Result<(), Error>
-where F: Fn(Entity) -> ()
+where F: Fn(Entity) -> Result<(), Error>
 {
     entities(|e_iter| {
-        e_iter.for_each(&handler);
-        Ok(())
+        let mut result = Ok(());
+        for entity in e_iter {
+            match handler(entity) {
+                Ok(_) => continue,
+                Err(e) => {
+                    result = Err(e);
+                    break
+                }
+            }
+        }
+        result
     })
+}
+
+pub fn for_input<F>(handler: F) -> Result<(), Error>
+where F: Fn(Input) -> Result<(), Error>
+{
+    let stdin = io::stdin();
+    let mut stdin_reader = stdin.lock();
+    let reader = Reader::new(&mut stdin_reader);
+
+    for input in reader {
+        if let Err(e) = handler(input) {
+            return Err(e);
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]

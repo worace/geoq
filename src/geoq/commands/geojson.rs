@@ -16,6 +16,7 @@ fn geom() -> Result<(), Error> {
     reader::for_entity(|e| {
         let gj_geom = e.geojson_geometry();
         println!("{}", serde_json::to_string(&gj_geom).unwrap());
+        Ok(())
     })
 }
 
@@ -23,6 +24,7 @@ fn feature() -> Result<(), Error> {
     reader::for_entity(|e| {
         let f = e.geojson_feature();
         println!("{}", serde_json::to_string(&f).unwrap());
+        Ok(())
     })
 }
 
