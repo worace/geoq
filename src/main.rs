@@ -20,9 +20,9 @@ use std::process;
 
 fn run(matches: ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
-        ("wkt", Some(_)) => commands::wkt::run_wkt(),
+        ("wkt", Some(_)) => commands::wkt::run(),
         ("debug", Some(_m)) => commands::debug::run(),
-        ("gj", Some(_m)) => commands::geojson::run_geojson(&matches),
+        ("gj", Some(m)) => commands::geojson::run(m),
         ("gh", Some(m)) => commands::geohash::run(m),
         ("map", Some(_)) => commands::map::run(),
         ("filter", Some(m)) => commands::filter::run(m),

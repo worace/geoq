@@ -1,8 +1,11 @@
 extern crate geo_types;
 
+use std::io;
 use std::io::BufRead;
 use geoq::input;
 use geoq::input::Input;
+use geoq::entity::{self, Entity};
+use geoq::error::Error;
 
 pub struct Reader<'a> {
     reader: &'a mut BufRead
@@ -37,6 +40,25 @@ impl<'a> Iterator for Reader<'a> {
             None
         }
     }
+}
+
+pub fn entities<F>(handler: F) -> Result<(), Error>
+where F: Fn(&mut Iterator<Item = Entity>) -> Result<(), Error>
+{
+    let stdin = io::stdin();
+    let mut stdin_reader = stdin.lock();
+    let reader = Reader::new(&mut stdin_reader);
+    let mut entities = reader.flat_map(|i| entity::from_input(i));
+    handler(&mut entities)
+}
+
+pub fn for_entity<F>(handler: F) -> Result<(), Error>
+where F: Fn(Entity) -> ()
+{
+    entities(|e_iter| {
+        e_iter.for_each(&handler);
+        Ok(())
+    })
 }
 
 #[cfg(test)]
