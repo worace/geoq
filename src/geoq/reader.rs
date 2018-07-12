@@ -68,17 +68,12 @@ pub fn for_entity<F>(handler: F) -> Result<(), Error>
 where F: Fn(Entity) -> Result<(), Error>
 {
     entities(|e_iter| {
-        let mut result = Ok(());
         for entity in e_iter {
-            match handler(entity) {
-                Ok(_) => continue,
-                Err(e) => {
-                    result = Err(e);
-                    break
-                }
+            if let Err(e) = handler(entity) {
+                return Err(e)
             }
         }
-        result
+        Ok(())
     })
 }
 
