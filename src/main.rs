@@ -30,9 +30,9 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
     }
 }
 
-fn main() {
-    let version = "0.1";
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
+fn main() {
     let geojson = SubCommand::with_name("gj")
         .about("Output entity as GeoJSON")
         .subcommand(SubCommand::with_name("geom").about("Output entity as a GeoJSON geometry"))
@@ -89,7 +89,7 @@ fn main() {
         );
 
     let matches = App::new("geoq")
-        .version(version)
+        .version(VERSION)
         .about("geoq - GeoSpatial utility belt")
         .subcommand(SubCommand::with_name("wkt").about("Output entity as WKT"))
         .subcommand(SubCommand::with_name("debug").about("Check the format of an entity"))
