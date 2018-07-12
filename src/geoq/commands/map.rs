@@ -5,7 +5,7 @@ extern crate os_type;
 use std::process::Command;
 use std::io;
 use geojson::GeoJson;
-use geoq::reader::Reader;
+use geoq::reader;
 use geoq::entity;
 use geoq::error::Error;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
@@ -35,35 +35,32 @@ fn open(media: String) -> () {
 }
 
 pub fn run() -> Result<(), Error> {
-    let stdin = io::stdin();
-    let mut stdin_reader = stdin.lock();
-    let reader = Reader::new(&mut stdin_reader);
-    let features = reader
-        .flat_map(|i| entity::from_input(i))
-        .map(|e| e.geojson_feature());
+    reader::entities(|entities| {
+        let features = entities.map(|e| e.geojson_feature());
+        let fc = geojson::FeatureCollection {
+            bbox: None,
+            features: features.collect(),
+            foreign_members: None,
+        };
+        let fc_json = GeoJson::from(fc).to_string();
 
-    let fc = geojson::FeatureCollection {
-        bbox: None,
-        features: features.collect(),
-        foreign_members: None,
-    };
-    let fc_json = GeoJson::from(fc).to_string();
+        if fc_json.len() < GEOJSON_IO_URL_LIMIT {
+            let encoded = utf8_percent_encode(&fc_json, DEFAULT_ENCODE_SET);
+            let url = format!("http://geojson.io#data=data:application/json,{}", encoded);
+            open(url);
 
-    if fc_json.len() < GEOJSON_IO_URL_LIMIT {
-        let encoded = utf8_percent_encode(&fc_json, DEFAULT_ENCODE_SET);
-        let url = format!("http://geojson.io#data=data:application/json,{}", encoded);
-        open(url);
-        Ok(())
-    } else {
-        let tmpfile = format!("/tmp/geoq_map_{}.html", timestamp());
-        let mut file = try!(File::create(tmpfile.clone()));
-        eprintln!("Opening geojson.io map file: {}", tmpfile);
+            Ok(())
+        } else {
+            let tmpfile = format!("/tmp/geoq_map_{}.html", timestamp());
+            let mut file = try!(File::create(tmpfile.clone()));
+            eprintln!("Opening geojson.io map file: {}", tmpfile);
 
-        try!(file.write_all(GEOJSON_IO_HTML_P1));
-        try!(file.write_all(fc_json.as_bytes()));
-        try!(file.write_all(GEOJSON_IO_HTML_P2));
-        open(tmpfile);
+            try!(file.write_all(GEOJSON_IO_HTML_P1));
+            try!(file.write_all(fc_json.as_bytes()));
+            try!(file.write_all(GEOJSON_IO_HTML_P2));
+            open(tmpfile);
 
-        Ok(())
-    }
+            Ok(())
+        }
+    })
 }
