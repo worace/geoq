@@ -22,9 +22,8 @@ fn read_line(buf_read: &mut BufRead) -> Option<String> {
     let bytes_read = buf_read.read_line(&mut buf);
     match bytes_read {
         Ok(0) => None,
-        Ok(len) => {
-            buf.truncate(len - 1);
-            Some(buf)
+        Ok(_) => {
+            Some(buf.trim().to_string())
         },
         _ => None
     }
@@ -101,5 +100,23 @@ mod tests {
         let mut pointer = "9q5".as_bytes();
         let reader = Reader::new(&mut pointer);
         assert_eq!(1, reader.count());
+    }
+
+    #[test]
+    fn test_checking_character_for_single_line() {
+        let mut pointer = "9q5".as_bytes();
+        let mut reader = Reader::new(&mut pointer);
+        let gh = reader.next().unwrap();
+        assert_eq!("9q5", gh.raw());
+    }
+
+    #[test]
+    fn test_reading_2_lines() {
+        let mut pointer = "9q5\n9q4".as_bytes();
+        let mut reader = Reader::new(&mut pointer);
+        let a = reader.next().unwrap();
+        let b = reader.next().unwrap();
+        assert_eq!("9q5", a.raw());
+        assert_eq!("9q4", b.raw());
     }
 }
