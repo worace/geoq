@@ -27,6 +27,19 @@ Unknown(pizza)
 }
 
 #[test]
+#[ignore]
+fn invalid_wkt() {
+    let input = "Polygon ((30 10, 10 30, 40 40, 30 10)";
+    Assert::main_binary()
+        .with_args(&["debug"])
+        .stdin(input)
+        .stderr()
+        .contains("Invalid WKT")
+        .fails()
+        .unwrap();
+}
+
+#[test]
 fn it_outputs_wkt() {
     let input = r#"12,34
 12	34
