@@ -25,7 +25,6 @@ pub enum Input {
     Geohash(String),
     WKT(String),
     GeoJSON(String),
-    Unknown(String),
 }
 
 impl fmt::Display for Input {
@@ -35,7 +34,6 @@ impl fmt::Display for Input {
             Input::Geohash(ref raw) => write!(f, "Geohash({})", raw),
             Input::WKT(ref raw) => write!(f, "WKT({})", raw),
             Input::GeoJSON(ref raw) => write!(f, "GeoJSON({})", raw),
-            Input::Unknown(ref raw) => write!(f, "Unknown({})", raw),
         }
     }
 }
@@ -47,33 +45,32 @@ impl Input {
             Input::Geohash(ref raw) => raw,
             Input::WKT(ref raw) => raw,
             Input::GeoJSON(ref raw) => raw,
-            Input::Unknown(ref raw) => raw,
         }
     }
 }
 
-pub fn read_line(line: String) -> Input {
+pub fn read_line(line: String) -> Result<Input, Error> {
     if LATLON.is_match(&line) {
-        Input::LatLon(line)
+        Ok(Input::LatLon(line))
     } else if GH.is_match(&line) {
-        Input::Geohash(line)
+        Ok(Input::Geohash(line))
     } else if JSON.is_match(&line) {
-        Input::GeoJSON(line)
+        Ok(Input::GeoJSON(line))
     } else if WKT.is_match(&line) {
-        Input::WKT(line)
+        Ok(Input::WKT(line))
     } else {
-        Input::Unknown(line)
+        Err(Error::UnknownEntityFormat)
     }
 }
 
 #[test]
 fn reading_input_formats() {
     match read_line("12,34".to_string()) {
-        Input::LatLon(_) => assert!(true),
+        Ok(Input::LatLon(_)) => assert!(true),
         _ => assert!(false)
     }
     match read_line("12\t34".to_string()) {
-        Input::LatLon(_) => assert!(true),
+        Ok(Input::LatLon(_)) => assert!(true),
         _ => assert!(false)
     }
 }
