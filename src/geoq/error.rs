@@ -1,3 +1,6 @@
+use std::io;
+use std::convert::From;
+
 #[derive(Debug)]
 pub enum Error {
     InvalidLatLon,
@@ -9,4 +12,11 @@ pub enum Error {
     MissingArgument,
     InvalidNumberFormat,
     InputTooLarge,
+    IOError
+}
+
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Self {
+        Error::IOError
+    }
 }
