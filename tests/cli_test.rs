@@ -498,20 +498,6 @@ fn filter_intersects() {
 }
 
 #[test]
-fn large_input_is_rejected_from_map() {
-    let ghs: Vec<&str> = std::iter::repeat("0").take(200).collect();
-    let input = ghs.join("\n");
-
-    Assert::main_binary()
-        .with_args(&["map"])
-        .stdin(input)
-        .stderr()
-        .is("Input exceeds geojson.io 27k character upload limit.")
-        .fails()
-        .unwrap();
-}
-
-#[test]
 #[ignore]
 fn reading_geojson_feature_without_properties() {
     let input = r#"{"type":"Feature","geometry":{"type":"Point","coordinates":[125.6, 10.1]}}
