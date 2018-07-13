@@ -8,12 +8,13 @@ use geoq::entity::{self, Entity};
 use geoq::error::Error;
 
 pub struct Reader<'a> {
-    reader: &'a mut BufRead
+    reader: &'a mut BufRead,
+    result: Result<(), Error>
 }
 
 impl<'a> Reader<'a> {
     pub fn new(reader: &'a mut BufRead) -> Reader<'a> {
-        Reader{reader}
+        Reader{reader, result: Ok(())}
     }
 }
 
@@ -34,11 +35,28 @@ impl<'a> Iterator for Reader<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(line) = read_line(&mut *self.reader) {
-            Some(input::read_line(line))
+            match input::read_line(line) {
+                Ok(i) => Some(i),
+                Err(e) => {
+                    self.result = Err(e);
+                    None
+                }
+            }
         } else {
             None
         }
     }
+}
+
+pub fn inputs<F>(handler: F) -> Result<(), Error>
+where F: Fn(Input) -> Result<(), Error> {
+    let stdin = io::stdin();
+    let mut reader = stdin.lock();
+    while let Some(line) = read_line(&mut reader) {
+        let input = try!(input::read_line(line));
+        try!(handler(input));
+    }
+    Ok(())
 }
 
 pub fn entities<F>(handler: F) -> Result<(), Error>
@@ -55,17 +73,12 @@ pub fn for_entity<F>(handler: F) -> Result<(), Error>
 where F: Fn(Entity) -> Result<(), Error>
 {
     entities(|e_iter| {
-        let mut result = Ok(());
         for entity in e_iter {
-            match handler(entity) {
-                Ok(_) => continue,
-                Err(e) => {
-                    result = Err(e);
-                    break
-                }
+            if let Err(e) = handler(entity) {
+                return Err(e)
             }
         }
-        result
+        Ok(())
     })
 }
 
@@ -74,14 +87,14 @@ where F: Fn(Input) -> Result<(), Error>
 {
     let stdin = io::stdin();
     let mut stdin_reader = stdin.lock();
-    let reader = Reader::new(&mut stdin_reader);
+    let mut reader = Reader::new(&mut stdin_reader);
 
-    for input in reader {
+    for input in &mut reader {
         if let Err(e) = handler(input) {
             return Err(e);
         }
     }
-    Ok(())
+    reader.result
 }
 
 #[cfg(test)]

@@ -100,7 +100,7 @@ fn main() {
         .get_matches();
 
     if let Err(e) = run(matches) {
-        println!("Application error: {:?}", e);
+        eprintln!("Application error: {:?}", e);
         process::exit(1);
     }
 }

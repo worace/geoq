@@ -24,7 +24,7 @@
 * [X] Try assert cli for testing CLI "type" command https://github.com/assert-rs/assert_cli
 * [X] Add rust-geohash and generate point geohashes
 * [X] test reader matching functions
-* [ ] Refactor reading interface to produce an iter<results> (i.e. let reader methods return errors)
+* [X] Refactor reading interface to produce an iter<results> (i.e. let reader methods return errors)
 * [ ] Migrate Geojson and WKT output formats to trait
 * [ ] Add strings in error messages so, e.g. bad inputs can be printed with error
 * [ ] Investigate parallel iterator processing (rayon?)
@@ -36,12 +36,13 @@
 * [ ] figure out streaming geojson feature collection output
 * [X] cross-platform `open` command for geojson map
 * [ ] Migrate back to official rust-wkt crate
-* [ ] crates.io release
+* [X] crates.io release
 * [ ] Homebrew formula
-* [ ] Readme Docs + Install Instructions
+* [X] Readme Docs + Install Instructions
 * [ ] Iterator-based covering GH implementation (don't hold whole list in memory as a vector)
-* [ ] Move individual command handlers to separate namespaces
+* [X] Move individual command handlers to separate namespaces
 * [X] Limit geojson.io output length
+* [ ] Remove `Input::Unknown` -- make these give errors
 
 Entity refactoring
 problem: currently conversion methods take ownership -- getting geometry or geojson rep consumes original input
