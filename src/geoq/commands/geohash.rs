@@ -3,9 +3,8 @@ extern crate geohash;
 
 use geoq;
 use geoq::reader;
-use geoq::entity;
-use geoq::input::Input;
 use geoq::error::Error;
+use geoq::entity::Entity;
 use clap::ArgMatches;
 
 fn read_level(matches: &ArgMatches) -> Result<usize, Error> {
@@ -39,25 +38,23 @@ fn point(matches: &ArgMatches) -> Result<(), Error> {
 
 fn covering(matches: &ArgMatches) -> Result<(), Error> {
     let level = try!(read_level(matches));
-    reader::for_input(|i| {
+    reader::for_entity(|e| {
         if matches.is_present("original") {
-            println!("{}", i.raw());
+            println!("{}", e.raw());
         }
 
-        for entity in entity::from_input(i) {
-            let g = entity.geom();
-            for gh in geoq::geohash::covering(&g, level) {
-                println!("{}", gh);
-            }
+        let g = e.geom();
+        for gh in geoq::geohash::covering(&g, level) {
+            println!("{}", gh);
         }
         Ok(())
     })
 }
 
 fn children() -> Result<(), Error> {
-    reader::for_input(|i| {
-        match i {
-            Input::Geohash(ref raw) => {
+    reader::for_entity(|e| {
+        match e {
+            Entity::Geohash(ref raw) => {
                 for gh in geoq::geohash::children(raw) {
                     println!("{}", gh);
                 }
@@ -70,9 +67,9 @@ fn children() -> Result<(), Error> {
 
 fn neighbors(matches: &ArgMatches) -> Result<(), Error> {
     let exclude = matches.is_present("exclude");
-    reader::for_input(|i| {
-        match i {
-            Input::Geohash(ref raw) => {
+    reader::for_entity(|e| {
+        match e {
+            Entity::Geohash(ref raw) => {
                 for gh in geoq::geohash::neighbors(raw, !exclude).iter() {
                     println!("{}", gh);
                 }

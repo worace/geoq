@@ -7,13 +7,12 @@ use geoq::entity;
 use geoq::reader;
 use geo_types::{Geometry, Polygon};
 use geoq::input;
-use std::io;
 
 fn intersects(matches: &ArgMatches) -> Result<(), Error> {
     match matches.value_of("query") {
         Some(q) => {
             let query_input = try!(input::read_line(q.to_string()));
-            let query_entities = entity::from_input(query_input);
+            let query_entities = try!(entity::from_input(query_input));
             if query_entities.is_empty() {
                 Err(Error::UnknownEntityFormat)
             } else {
@@ -27,16 +26,12 @@ fn intersects(matches: &ArgMatches) -> Result<(), Error> {
                     .collect();
 
 
-                reader::for_input(|input| {
-                    // TODO restructure so this doesnlt need to be cloned
-                    let output = input.raw().clone();
-                    let entities = entity::from_input(input);
-                    let geoms: Vec<Geometry<f64>> =
-                        entities.into_iter().map(|e| e.geom()).collect();
+                reader::for_entity(|entity| {
+                    let output = entity.raw();
+                    // let output = ""; //entity.raw().clone();
+                    let geom = entity.geom();
                     if query_polygons.iter().any(|ref query_poly| {
-                        geoms
-                            .iter()
-                            .any(|ref e_geom| geoq::geohash::intersects(query_poly, e_geom))
+                        geoq::geohash::intersects(query_poly, &geom)
                     }) {
                         println!("{}", output);
                     }

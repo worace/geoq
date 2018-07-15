@@ -10,11 +10,11 @@ fn it_gets_basic_debug_info_for_inputs() {
 LINESTRING (30 10, 10 30, 40 40)
 ";
 
-    let output = "LatLon(12,34)
-Geohash(9q5)
-GeoJSON({\"type\":\"Point\",\"coordinates\":[125.6, 10.1]})
-WKT(LINESTRING (30 10, 10 30, 40 40))
-";
+    let output = r#"LatLon: 12,34
+Geohash: 9q5
+GeoJSON Geometry: {"type":"Point","coordinates":[125.6, 10.1]}
+WKT: LINESTRING(30 10,10 30,40 40)
+"#;
     Assert::main_binary()
         .with_args(&["debug"])
         .stdin(input)
@@ -36,14 +36,13 @@ fn exits_on_invalid_input() {
 }
 
 #[test]
-#[ignore]
 fn invalid_wkt() {
     let input = "Polygon ((30 10, 10 30, 40 40, 30 10)";
     Assert::main_binary()
         .with_args(&["debug"])
         .stdin(input)
         .stderr()
-        .contains("Invalid WKT")
+        .is("Application error: InvalidWkt")
         .fails()
         .unwrap();
 }
@@ -315,7 +314,7 @@ sf0
 9mu
 9mg
 9mf
-LINESTRING (30 10, 10 30, 40 40)
+LINESTRING(30 10,10 30,40 40)
 szh
 sz5
 syg
@@ -377,8 +376,9 @@ s7p
 wcc
 {"type":"Feature","properties":{"a": "b"},"geometry":{"type":"Point","coordinates":[125.6, 10.1]}}
 wcc
-{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[34.0,12.0]}},{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[78.0,56.0]}}]}
+{"geometry":{"coordinates":[34.0,12.0],"type":"Point"},"properties":{},"type":"Feature"}
 sf0
+{"geometry":{"coordinates":[78.0,56.0],"type":"Point"},"properties":{},"type":"Feature"}
 v9z
 "#;
 
