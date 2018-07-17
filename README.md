@@ -9,18 +9,17 @@ It combines common GIS serialization formats with utilities for manipulating and
 
 For example:
 
-```
+```sh
 # Print the geometry and the set of level 2 geohashes which covers the given geometry
-echo '{"type":"Polygon","coordinates":[[[30,10],[40,40],[20,40],[10,20],[30,10]]]}' | geoq gh covering 2 -o
-echo '{"type":"Polygon","coordinates":[[[-34,38],[-37,32],[-23,33],[-34,38]]]}' | geoq gh covering 2 -o
-# {"type":"Polygon","coordinates":[[[30,10],[40,40],[20,40],[10,20],[30,10]]]}
-# eq
-# en
-# em
-# ej
+$ echo '{"type":"Polygon","coordinates":[[[-34,38],[-37,32],[-23,33],[-34,38]]]}' | geoq gh covering 2 -o
+{"type":"Polygon","coordinates":[[[30,10],[40,40],[20,40],[10,20],[30,10]]]}
+eq
+en
+em
+ej
 
 # Feed that output into a map on geojson.io
-echo '{"type":"Polygon","coordinates":[[[-34,38],[-37,32],[-23,33],[-34,38]]]}' | geoq gh covering 2 -o | geoq map
+$ echo '{"type":"Polygon","coordinates":[[[-34,38],[-37,32],[-23,33],[-34,38]]]}' | geoq gh covering 2 -o | geoq map
 ```
 
 See the [Manual](https://github.com/worace/geoq/blob/master/manual.md) for more examples and available commands.
