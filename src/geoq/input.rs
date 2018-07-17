@@ -2,11 +2,7 @@ extern crate geo_types;
 extern crate geojson;
 extern crate geohash;
 
-use std;
 use geoq::error::Error;
-use geojson::conversion::*;
-use geojson::GeoJson;
-use geoq_wkt::Wkt;
 use regex::Regex;
 use std::fmt;
 
@@ -34,17 +30,6 @@ impl fmt::Display for Input {
             Input::Geohash(ref raw) => write!(f, "Geohash({})", raw),
             Input::WKT(ref raw) => write!(f, "WKT({})", raw),
             Input::GeoJSON(ref raw) => write!(f, "GeoJSON({})", raw),
-        }
-    }
-}
-
-impl Input {
-    pub fn raw(&self) -> &String {
-        match *self {
-            Input::LatLon(ref raw) => raw,
-            Input::Geohash(ref raw) => raw,
-            Input::WKT(ref raw) => raw,
-            Input::GeoJSON(ref raw) => raw,
         }
     }
 }

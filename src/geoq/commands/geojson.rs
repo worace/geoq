@@ -6,7 +6,6 @@ use clap::ArgMatches;
 use geojson::GeoJson;
 use geoq::error::Error;
 use geoq::reader::Reader;
-use geoq::entity::{self, Entity};
 use std::io;
 
 use geoq::reader;
@@ -29,17 +28,25 @@ fn feature() -> Result<(), Error> {
 }
 
 fn feature_collection() -> Result<(), Error> {
-    reader::entities(|entities| {
-        let features = entities.map(|e| e.geojson_feature());
+    let mut features: Vec<geojson::Feature> = Vec::new();
 
-        let fc = geojson::FeatureCollection {
-            bbox: None,
-            features: features.collect(),
-            foreign_members: None,
-        };
-        println!("{}", GeoJson::from(fc).to_string());
-        Ok(())
-    })
+    let stdin = io::stdin();
+    let mut stdin_reader = stdin.lock();
+    let reader = Reader::new(&mut stdin_reader);
+    for e_res in reader {
+        match e_res {
+            Err(e) => return Err(e),
+            Ok(e) => features.push(e.geojson_feature())
+        }
+    }
+
+    let fc = geojson::FeatureCollection {
+        bbox: None,
+        features: features,
+        foreign_members: None,
+    };
+    println!("{}", GeoJson::from(fc).to_string());
+    Ok(())
 }
 
 pub fn run(gj: &ArgMatches) -> Result<(), Error> {

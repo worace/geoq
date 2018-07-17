@@ -3,18 +3,19 @@ extern crate geo_types;
 use std::io;
 use std::io::BufRead;
 use geoq::input;
-use geoq::input::Input;
 use geoq::entity::{self, Entity};
 use geoq::error::Error;
+use std::collections::VecDeque;
+use std::iter::FromIterator;
 
 pub struct Reader<'a> {
     reader: &'a mut BufRead,
-    result: Result<(), Error>
+    entities: VecDeque<Entity>
 }
 
 impl<'a> Reader<'a> {
     pub fn new(reader: &'a mut BufRead) -> Reader<'a> {
-        Reader{reader, result: Ok(())}
+        Reader{reader, entities: VecDeque::new()}
     }
 }
 
@@ -31,70 +32,64 @@ fn read_line(buf_read: &mut BufRead) -> Option<String> {
 }
 
 impl<'a> Iterator for Reader<'a> {
-    type Item = Input;
+    type Item = Result<Entity, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(line) = read_line(&mut *self.reader) {
+        if let Some(entity) = self.entities.pop_front() {
+            return Some(Ok(entity));
+        }
+
+        while let Some(line) = read_line(&mut *self.reader) {
             match input::read_line(line) {
-                Ok(i) => Some(i),
+                Ok(i) => {
+                    match entity::from_input(i) {
+                        Ok(e_vec) => {
+                            let mut entities = VecDeque::from_iter(e_vec);
+                            if entities.is_empty() {
+                                continue;
+                            } else {
+                                self.entities.append(&mut entities);
+                                let e = self.entities.pop_front().unwrap();
+                                return Some(Ok(e));
+                            }
+                        },
+                        Err(e) => return Some(Err(e))
+                    }
+                },
                 Err(e) => {
-                    self.result = Err(e);
-                    None
+                    return Some(Err(e));
                 }
             }
-        } else {
-            None
         }
+        None
     }
-}
-
-pub fn inputs<F>(handler: F) -> Result<(), Error>
-where F: Fn(Input) -> Result<(), Error> {
-    let stdin = io::stdin();
-    let mut reader = stdin.lock();
-    while let Some(line) = read_line(&mut reader) {
-        let input = try!(input::read_line(line));
-        try!(handler(input));
-    }
-    Ok(())
 }
 
 pub fn entities<F>(handler: F) -> Result<(), Error>
-where F: Fn(&mut Iterator<Item = Entity>) -> Result<(), Error>
+where F: Fn(&mut Iterator<Item = Result<Entity, Error>>) -> Result<(), Error>
 {
     let stdin = io::stdin();
     let mut stdin_reader = stdin.lock();
-    let reader = Reader::new(&mut stdin_reader);
-    let mut entities = reader.flat_map(|i| entity::from_input(i));
-    handler(&mut entities)
+    let mut reader = Reader::new(&mut stdin_reader);
+    handler(&mut reader)
 }
 
 pub fn for_entity<F>(handler: F) -> Result<(), Error>
 where F: Fn(Entity) -> Result<(), Error>
 {
     entities(|e_iter| {
-        for entity in e_iter {
-            if let Err(e) = handler(entity) {
-                return Err(e)
+        for e_res in e_iter {
+            match e_res {
+                Err(e) => return Err(e),
+                Ok(entity) => {
+                    if let Err(e) = handler(entity) {
+                        return Err(e);
+                    }
+                }
             }
         }
         Ok(())
     })
-}
-
-pub fn for_input<F>(handler: F) -> Result<(), Error>
-where F: Fn(Input) -> Result<(), Error>
-{
-    let stdin = io::stdin();
-    let mut stdin_reader = stdin.lock();
-    let mut reader = Reader::new(&mut stdin_reader);
-
-    for input in &mut reader {
-        if let Err(e) = handler(input) {
-            return Err(e);
-        }
-    }
-    reader.result
 }
 
 #[cfg(test)]
@@ -119,7 +114,7 @@ mod tests {
     fn test_checking_character_for_single_line() {
         let mut pointer = "9q5".as_bytes();
         let mut reader = Reader::new(&mut pointer);
-        let gh = reader.next().unwrap();
+        let gh = reader.next().unwrap().unwrap();
         assert_eq!("9q5", gh.raw());
     }
 
@@ -129,7 +124,7 @@ mod tests {
         let mut reader = Reader::new(&mut pointer);
         let a = reader.next().unwrap();
         let b = reader.next().unwrap();
-        assert_eq!("9q5", a.raw());
-        assert_eq!("9q4", b.raw());
+        assert_eq!("9q5", a.unwrap().raw());
+        assert_eq!("9q4", b.unwrap().raw());
     }
 }

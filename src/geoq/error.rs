@@ -3,7 +3,7 @@ use std::convert::From;
 
 #[derive(Debug)]
 pub enum Error {
-    InvalidLatLon,
+    // InvalidLatLon,
     InvalidGeoJSON,
     NotImplemented,
     UnknownCommand,
@@ -11,12 +11,12 @@ pub enum Error {
     InvalidWkt,
     MissingArgument,
     InvalidNumberFormat,
-    InputTooLarge,
+    // InputTooLarge,
     IOError
 }
 
 impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Self {
+    fn from(_: io::Error) -> Self {
         Error::IOError
     }
 }
