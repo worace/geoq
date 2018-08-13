@@ -1,3 +1,5 @@
+extern crate serde_json;
+
 use std::io;
 use std::convert::From;
 
@@ -12,11 +14,19 @@ pub enum Error {
     MissingArgument,
     InvalidNumberFormat,
     // InputTooLarge,
-    IOError
+    IOError,
+    JSONParseError,
+    InvalidJSONType
 }
 
 impl From<io::Error> for Error {
     fn from(_: io::Error) -> Self {
         Error::IOError
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(_: serde_json::Error) -> Self {
+        Error::JSONParseError
     }
 }
