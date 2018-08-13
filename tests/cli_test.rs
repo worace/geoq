@@ -247,26 +247,26 @@ fn geohash_children() {
 
 #[test]
 fn geohash_neighbors() {
-    let input = "9q5\n";
-    let output_with = r#"9q5
-9q7
-9qk
-9qh
-9mu
-9mg
-9mf
-9q4
-9q6
+    let input = "9g3m\n";
+    let output_with = r#"9g3m
+9g3q
+9g3w
+9g3t
+9g3s
+9g3k
+9g3h
+9g3j
+9g3n
 "#;
 
-    let output_without = r#"9q7
-9qk
-9qh
-9mu
-9mg
-9mf
-9q4
-9q6
+    let output_without = r#"9g3q
+9g3w
+9g3t
+9g3s
+9g3k
+9g3h
+9g3j
+9g3n
 "#;
     Assert::main_binary()
         .with_args(&["gh", "neighbors"])
