@@ -17,7 +17,7 @@ use geoq::commands;
 use geoq::error::Error;
 use geoq::text;
 
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches, SubCommand, AppSettings};
 use std::process;
 
 fn run(matches: ArgMatches) -> Result<(), Error> {
@@ -101,6 +101,7 @@ fn main() {
 
     let matches = App::new("geoq")
         .version(VERSION)
+        .setting(AppSettings::SubcommandRequiredElseHelp)
         .about("geoq - GeoSpatial utility belt")
         .subcommand(SubCommand::with_name("wkt").about("Output entity as WKT"))
         .subcommand(SubCommand::with_name("debug").about("Check the format of an entity"))
