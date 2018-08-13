@@ -533,3 +533,28 @@ fn reading_geojson_feature_without_properties() {
         .is("")
         .unwrap();
 }
+
+
+#[test]
+fn json_point() {
+    let input = r#"{"latitude": 34.3, "longitude": -118.2, "name": "Horace", "pizza": "pie"}
+{"lat": 34.3, "lon": -118.2, "name": "Horace", "pizza": "pie"}
+{"latitude": 34.3, "lng": -118.2, "name": "Horace", "pizza": "pie"}
+"#;
+
+    let output = r#"{"geometry":{"coordinates":[-118.2,34.3],"type":"Point"},"properties":{"latitude":34.3,"longitude":-118.2,"name":"Horace","pizza":"pie"},"type":"Feature"}
+{"geometry":{"coordinates":[-118.2,34.3],"type":"Point"},"properties":{"lat":34.3,"lon":-118.2,"name":"Horace","pizza":"pie"},"type":"Feature"}
+{"geometry":{"coordinates":[-118.2,34.3],"type":"Point"},"properties":{"latitude":34.3,"lng":-118.2,"name":"Horace","pizza":"pie"},"type":"Feature"}
+"#;
+
+    Assert::main_binary().with_args(&["json", "point"]).stdin(input)
+        .stdout().is(output).unwrap();
+
+    Assert::main_binary().with_args(&["json", "point"])
+        .stdin("pizza").fails().unwrap();
+
+    Assert::main_binary().with_args(&["json", "point"])
+        .stdin("[\"not-json-object\"]").fails().unwrap();
+    Assert::main_binary().with_args(&["json", "point"])
+        .stdin("{\"no-lat-lon\": \"hi\"}").fails().unwrap();
+}

@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate serde_json;
 extern crate clap;
 extern crate geo;
 extern crate geo_types;
@@ -9,7 +11,6 @@ extern crate geoq_wkt;
 extern crate os_type;
 extern crate percent_encoding;
 extern crate regex;
-extern crate serde_json;
 
 mod geoq;
 use geoq::commands;
@@ -26,6 +27,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("gh", Some(m)) => commands::geohash::run(m),
         ("map", Some(_)) => commands::map::run(),
         ("filter", Some(m)) => commands::filter::run(m),
+        ("json", Some(m)) => commands::json::run(m),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -88,6 +90,13 @@ fn main() {
                 )
         );
 
+    let json = SubCommand::with_name("json")
+        .about("Attempt to convert arbitrary geo-oriented JSON into GeoJSON")
+        .subcommand(
+            SubCommand::with_name("point")
+                .about("Attempt to convert arbitrary JSON into a GeoJSON point by checking for common latitude and longitude property names.")
+        );
+
     let matches = App::new("geoq")
         .version(VERSION)
         .about("geoq - GeoSpatial utility belt")
@@ -96,6 +105,7 @@ fn main() {
         .subcommand(SubCommand::with_name("map").about("View entities on a map using geojson.io"))
         .subcommand(geohash)
         .subcommand(geojson)
+        .subcommand(json)
         .subcommand(filter)
         .get_matches();
 
