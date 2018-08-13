@@ -4,3 +4,4 @@ pub mod reader;
 pub mod entity;
 pub mod geohash;
 pub mod commands;
+pub mod text;

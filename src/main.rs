@@ -15,6 +15,7 @@ extern crate regex;
 mod geoq;
 use geoq::commands;
 use geoq::error::Error;
+use geoq::text;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use std::process;
@@ -91,10 +92,11 @@ fn main() {
         );
 
     let json = SubCommand::with_name("json")
-        .about("Attempt to convert arbitrary geo-oriented JSON into GeoJSON")
+        .about("Best-guess conversions for geo-oriented JSON to GeoJSON")
         .subcommand(
             SubCommand::with_name("point")
-                .about("Attempt to convert arbitrary JSON into a GeoJSON point by checking for common latitude and longitude property names.")
+                .about("Attempt to convert arbitrary JSON to a GeoJSON Point.")
+                .after_help(text::JSON_POINT_AFTER_HELP)
         );
 
     let matches = App::new("geoq")
