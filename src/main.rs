@@ -21,7 +21,7 @@ use std::process;
 fn run(matches: ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("wkt", Some(_)) => commands::wkt::run(),
-        ("debug", Some(_m)) => commands::debug::run(),
+        ("debug", Some(_)) => commands::debug::run(),
         ("gj", Some(m)) => commands::geojson::run(m),
         ("gh", Some(m)) => commands::geohash::run(m),
         ("map", Some(_)) => commands::map::run(),

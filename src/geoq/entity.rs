@@ -68,7 +68,7 @@ fn wkt_entities(raw: &String) -> Result<Vec<Entity>, Error> {
                 entities.push(Entity::Wkt(wkt_raw, wkt_geom))
             }
         },
-        Err(e) => {
+        Err(_e) => {
             return Err(Error::InvalidWkt)
         }
     }
