@@ -49,13 +49,13 @@ $ printf "LINESTRING (30 10, 10 30)\n9q5\n" | geoq read
   Geohash: 9q5
 "#;
 
-pub const MAIN_BEFORE_HELP: &str = r#"
+pub const MAIN_AFTER_HELP: &str = r#"
 Geoq is a streaming command-line program for working with
 geospatial data. It combines automatic readers for common
 GIS text formats with interfaces to frequent spatial
 operations and conversions.
 
-See the listing below for available commands, and use
+See the listing above for available commands, and use
 $ geoq <COMMAND> --help
 for additional information on individual commands.
 

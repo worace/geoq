@@ -37,7 +37,7 @@ const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     let geojson = SubCommand::with_name("gj")
-        .about("Output entity as GeoJSON")
+        .about("Output features as GeoJSON")
         .subcommand(SubCommand::with_name("geom").about("Output entity as a GeoJSON geometry"))
         .subcommand(SubCommand::with_name("f").about("Output entity as a GeoJSON Feature"))
         .subcommand(
@@ -46,7 +46,7 @@ fn main() {
         );
 
     let geohash = SubCommand::with_name("gh")
-        .about("Output Geohash representations of entities")
+        .about("Work with geohashes")
         .subcommand(
             SubCommand::with_name("point")
                 .about("Output base 32 Geohash for a given Lat,Lon")
@@ -79,7 +79,7 @@ fn main() {
                          .help("Exclude the given geohash from its neighbors.\nBy default it will be included in the output,\ngiving a 3x3 grid centered on the provided geohash.")));
 
     let filter = SubCommand::with_name("filter")
-        .about("Select a subset of provided entities based on geospatial predicates")
+        .about("Select features based on geospatial predicates")
         .subcommand(
             SubCommand::with_name("intersects")
                 .about("Output only entities (from STDIN) which intersect a QUERY entity (as command-line ARG)")
@@ -92,7 +92,7 @@ fn main() {
         );
 
     let json = SubCommand::with_name("json")
-        .about("Best-guess conversions for geo-oriented JSON to GeoJSON")
+        .about("Best-guess conversions from geo-oriented JSON to GeoJSON")
         .subcommand(
             SubCommand::with_name("point")
                 .about("Attempt to convert arbitrary JSON to a GeoJSON Point.")
@@ -107,9 +107,9 @@ fn main() {
         .version(VERSION)
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .about("geoq - GeoSpatial utility belt")
-        .before_help(text::MAIN_BEFORE_HELP)
-        .subcommand(SubCommand::with_name("wkt").about("Output entity as WKT"))
-        .subcommand(SubCommand::with_name("map").about("View entities on a map using geojson.io"))
+        .after_help(text::MAIN_AFTER_HELP)
+        .subcommand(SubCommand::with_name("wkt").about("Output features as Well-Known Text"))
+        .subcommand(SubCommand::with_name("map").about("View features on a map using geojson.io"))
         .subcommand(read)
         .subcommand(geohash)
         .subcommand(geojson)
