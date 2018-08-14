@@ -5,18 +5,20 @@ use assert_cli::Assert;
 #[test]
 fn it_gets_basic_debug_info_for_inputs() {
     let input = "12,34
+12	34
 9q5
 {\"type\":\"Point\",\"coordinates\":[125.6, 10.1]}
 LINESTRING (30 10, 10 30, 40 40)
 ";
 
     let output = r#"LatLon: 12,34
+LatLon: 12	34
 Geohash: 9q5
 GeoJSON Geometry: {"type":"Point","coordinates":[125.6, 10.1]}
 WKT: LINESTRING(30 10,10 30,40 40)
 "#;
     Assert::main_binary()
-        .with_args(&["debug"])
+        .with_args(&["read"])
         .stdin(input)
         .stdout()
         .contains(output)
@@ -27,7 +29,7 @@ WKT: LINESTRING(30 10,10 30,40 40)
 #[test]
 fn exits_on_invalid_input() {
     Assert::main_binary()
-        .with_args(&["debug"])
+        .with_args(&["read"])
         .stdin("pizza")
         .stderr()
         .contains("UnknownEntityFormat")
@@ -39,7 +41,7 @@ fn exits_on_invalid_input() {
 fn invalid_wkt() {
     let input = "Polygon ((30 10, 10 30, 40 40, 30 10)";
     Assert::main_binary()
-        .with_args(&["debug"])
+        .with_args(&["read"])
         .stdin(input)
         .stderr()
         .is("Application error: InvalidWkt")

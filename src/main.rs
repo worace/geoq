@@ -23,7 +23,7 @@ use std::process;
 fn run(matches: ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("wkt", Some(_)) => commands::wkt::run(),
-        ("debug", Some(_)) => commands::debug::run(),
+        ("read", Some(_)) => commands::read::run(),
         ("gj", Some(m)) => commands::geojson::run(m),
         ("gh", Some(m)) => commands::geohash::run(m),
         ("map", Some(_)) => commands::map::run(),
@@ -99,13 +99,18 @@ fn main() {
                 .after_help(text::JSON_POINT_AFTER_HELP)
         );
 
+    let read = SubCommand::with_name("read")
+        .about("Information about reading inputs with geoq")
+        .after_help(text::READ_AFTER_HELP);
+
     let matches = App::new("geoq")
         .version(VERSION)
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .about("geoq - GeoSpatial utility belt")
+        .before_help(text::MAIN_BEFORE_HELP)
         .subcommand(SubCommand::with_name("wkt").about("Output entity as WKT"))
-        .subcommand(SubCommand::with_name("debug").about("Check the format of an entity"))
         .subcommand(SubCommand::with_name("map").about("View entities on a map using geojson.io"))
+        .subcommand(read)
         .subcommand(geohash)
         .subcommand(geojson)
         .subcommand(json)

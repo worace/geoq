@@ -3,5 +3,5 @@ pub mod geojson;
 pub mod geohash;
 pub mod filter;
 pub mod map;
-pub mod debug;
+pub mod read;
 pub mod json;
