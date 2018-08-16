@@ -5,3 +5,4 @@ pub mod entity;
 pub mod geohash;
 pub mod commands;
 pub mod text;
+pub mod intersection;

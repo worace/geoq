@@ -16,22 +16,13 @@ fn intersects(matches: &ArgMatches) -> Result<(), Error> {
             if query_entities.is_empty() {
                 Err(Error::UnknownEntityFormat)
             } else {
-                let query_geoms = query_entities.into_iter().map(|e| e.geom());
-                let query_polygons: Vec<Polygon<f64>> = query_geoms
-                    .flat_map(|g| match g {
-                        Geometry::Polygon(p) => vec![p],
-                        Geometry::MultiPolygon(mp) => mp.0,
-                        _ => vec![],
-                    })
-                    .collect();
-
+                let query_geoms: Vec<Geometry<f64>> = query_entities.into_iter().map(|e| e.geom()).collect();
 
                 reader::for_entity(|entity| {
                     let output = entity.raw();
-                    // let output = ""; //entity.raw().clone();
                     let geom = entity.geom();
-                    if query_polygons.iter().any(|ref query_poly| {
-                        geoq::geohash::intersects(query_poly, &geom)
+                    if query_geoms.iter().any(|ref query_geom| {
+                        geoq::intersection::intersects(query_geom, &geom)
                     }) {
                         println!("{}", output);
                     }

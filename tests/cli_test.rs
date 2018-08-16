@@ -522,6 +522,21 @@ fn filter_intersects() {
 }
 
 #[test]
+fn filter_intersects_linestring() {
+    let input = r#"{"type":"Feature","properties":{},"geometry":{"type":"LineString","coordinates":[[-18.6328125,32.54681317351514],[33.75,-2.460181181020993]]}}
+"#;
+
+    let filter = r#"{"type":"Feature","properties":{},"geometry":{"type":"LineString","coordinates":[[21.4453125,30.44867367928756],[-1.40625,-9.79567758282973]]}}"#;
+
+    Assert::main_binary()
+        .with_args(&["filter", "intersects", filter])
+        .stdin(input)
+        .stdout()
+        .is(input)
+        .unwrap();
+}
+
+#[test]
 #[ignore]
 fn reading_geojson_feature_without_properties() {
     let input = r#"{"type":"Feature","geometry":{"type":"Point","coordinates":[125.6, 10.1]}}
@@ -535,7 +550,6 @@ fn reading_geojson_feature_without_properties() {
         .is("")
         .unwrap();
 }
-
 
 #[test]
 fn json_point() {

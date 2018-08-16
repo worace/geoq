@@ -5,6 +5,7 @@ extern crate geo;
 use geo_types::{Geometry, Polygon, LineString, Point};
 use geo::algorithm::contains::Contains;
 use geo::algorithm::intersects::Intersects;
+use geoq::intersection;
 
 static BASE_32: [char; 32] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'b', 'c', 'd', 'e', 'f', 'g',
                               'h', 'j', 'k', 'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
@@ -60,25 +61,13 @@ fn contains(outer: &Polygon<f64>, inner: &Geometry<f64>) -> bool {
     }
 }
 
-pub fn intersects(outer: &Polygon<f64>, inner: &Geometry<f64>) -> bool {
-    match *inner {
-        Geometry::Point(ref g) => outer.contains(g),
-        Geometry::LineString(ref g) => outer.intersects(g),
-        Geometry::Polygon(ref g) => outer.intersects(g),
-        Geometry::MultiPolygon(ref g) => {
-            g.0.iter().any(|poly| outer.intersects(poly))
-        },
-        _ => false
-    }
-}
-
 pub fn covering(geom: &Geometry<f64>, level: usize) -> Vec<String> {
     let mut ghs: Vec<String> = vec![];
     let mut queue: Vec<String> = vec!["".to_string()];
     while !queue.is_empty() {
         let gh = queue.pop().unwrap();
         let poly = bbox(&gh);
-        if contains(&poly, &geom) || intersects(&poly, &geom) {
+        if contains(&poly, &geom) || intersection::poly_intersects(&poly, &geom) {
             if gh.len() < level {
                 queue.extend(children(&gh));
             } else {
