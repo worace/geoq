@@ -4,7 +4,6 @@ extern crate geo;
 
 use geo_types::{Geometry, Polygon, LineString, Point};
 use geo::algorithm::contains::Contains;
-use geo::algorithm::intersects::Intersects;
 use geoq::intersection;
 
 static BASE_32: [char; 32] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'b', 'c', 'd', 'e', 'f', 'g',

@@ -5,7 +5,7 @@ use clap::ArgMatches;
 use geoq::error::Error;
 use geoq::entity;
 use geoq::reader;
-use geo_types::{Geometry, Polygon};
+use geo_types::{Geometry};
 use geoq::input;
 
 fn intersects(matches: &ArgMatches) -> Result<(), Error> {
