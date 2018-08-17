@@ -16,7 +16,8 @@ pub enum Error {
     // InputTooLarge,
     IOError,
     JSONParseError,
-    InvalidJSONType
+    InvalidJSONType,
+    PolygonRequired
 }
 
 impl From<io::Error> for Error {
