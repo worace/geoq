@@ -6,3 +6,4 @@ pub mod geohash;
 pub mod commands;
 pub mod text;
 pub mod intersection;
+pub mod contains;

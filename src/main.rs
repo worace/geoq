@@ -85,7 +85,17 @@ fn main() {
                 .about("Output only entities (from STDIN) which intersect a QUERY entity (as command-line ARG)")
                 .arg(
                     Arg::with_name("query")
-                        .help("Entity to check intersections.\nMust be Lat/Lon, Geohash, WKT, or GeoJSON.\nCurrently only POLYGON query geometries are supported.")
+                        .help("Entity to check intersections.\nMust be Lat/Lon, Geohash, WKT, or GeoJSON.")
+                        .required(true)
+                        .index(1),
+                )
+        )
+        .subcommand(
+            SubCommand::with_name("contains")
+                .about("Output only entities (from STDIN) which fall within a QUERY entity (as command-line ARG)")
+                .arg(
+                    Arg::with_name("query")
+                        .help("Entity to check intersections.\nMust be Geohash, WKT, or GeoJSON.\nMust be a POLYGON or MULTIPOLYGON.")
                         .required(true)
                         .index(1),
                 )

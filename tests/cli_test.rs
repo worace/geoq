@@ -574,6 +574,28 @@ fn json_point() {
     Assert::main_binary().with_args(&["json", "point"])
         .stdin("{\"no-lat-lon\": \"hi\"}").fails().unwrap();
 }
+
+#[test]
+fn filter_contains() {
+    let input = r#"{"type": "LineString", "coordinates": [[-44.2529296875, 25.3241665257384], [-42.802734375, 25.502784548755354]]}
+{"type": "LineString", "coordinates": [[-45.41748046875, 24.186847428521244], [-45, 22.004174972902003]]}
+{"type": "Point", "coordinates": [-47.4609375, 21.453068633086783]}
+"#;
+
+    let output = r#"{"type": "LineString", "coordinates": [[-45.41748046875, 24.186847428521244], [-45, 22.004174972902003]]}
+{"type": "Point", "coordinates": [-47.4609375, 21.453068633086783]}
+"#;
+
+    let filter = r#"{"type": "Polygon", "coordinates": [[[-50.185546875, 18.22935133838668], [-43.681640625, 18.22935133838668], [-43.681640625, 26.03704188651584], [-50.185546875, 26.03704188651584], [-50.185546875, 18.22935133838668]]]}"#;
+
+    Assert::main_binary()
+        .with_args(&["filter", "contains", filter])
+        .stdin(input)
+        .stdout()
+        .is(output)
+        .unwrap();
+}
+
 #[test]
 #[ignore]
 fn json_geom() {
