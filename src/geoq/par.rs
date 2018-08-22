@@ -149,7 +149,7 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
     Ok(())
 }
 
-fn it<F>(handler: F) -> Vec<(usize, f32)>
+pub fn it<F>(handler: F) -> Vec<(usize, f32)>
 where F: 'static + Sync + Send + Fn(usize) -> f32
 {
     let num_workers = 4;
