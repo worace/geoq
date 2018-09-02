@@ -7,6 +7,9 @@ use geoq::entity;
 use geoq::reader;
 use geo_types::{Geometry, Polygon};
 use geoq::input;
+use std::io;
+use geoq::reader::Reader;
+use geoq::par;
 
 fn intersects(matches: &ArgMatches) -> Result<(), Error> {
     match matches.value_of("query") {
@@ -18,7 +21,11 @@ fn intersects(matches: &ArgMatches) -> Result<(), Error> {
             } else {
                 let query_geoms: Vec<Geometry<f64>> = query_entities.into_iter().map(|e| e.geom()).collect();
 
-                reader::for_entity(|entity| {
+
+                let stdin = io::stdin();
+                let mut stdin_reader = stdin.lock();
+
+                par::for_entity_par(&mut stdin_reader, move |entity| {
                     let output = entity.raw();
                     let geom = entity.geom();
                     if query_geoms.iter().any(|ref query_geom| {

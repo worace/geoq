@@ -82,7 +82,6 @@ where F: Send + Sync + Fn(Entity) -> Result<(), Error>
                 match input_receiver.recv() {
                     Err(RecvError) => continue,
                     Ok(WorkerInput::Item(line)) => {
-                        println!("worker process line: {}", line);
                         // TODO figure out how to make this work with arc
                         // output_sender.send(WorkerOutput::Item(handle_line(line, *handler)));
 
@@ -101,6 +100,7 @@ where F: Send + Sync + Fn(Entity) -> Result<(), Error>
                                 }
                             }
                         }
+                        output_sender.send(WorkerOutput::Item(Ok(()))).unwrap();
                     }
                     Ok(WorkerInput::Done) => {
                         output_sender.send(WorkerOutput::Done).unwrap();
@@ -115,8 +115,8 @@ where F: Send + Sync + Fn(Entity) -> Result<(), Error>
         threads.push(t);
     });
 
+    // TODO needs to go in separate thread
     for (i, line) in reader.enumerate() {
-        println!("enqueue to worker {}", i % num_workers);
         input_channels[i % num_workers].send(WorkerInput::Item(line)).unwrap();
     }
     (0..num_workers).for_each(|i| input_channels[i].send(WorkerInput::Done).unwrap());
@@ -244,9 +244,23 @@ mod tests {
 
     #[test]
     fn test_par_entities() {
-        let mut input = "9q5\n9q4".as_bytes();
-        let res = for_entity_par(&mut input, |entity| {
-            println!("{}", entity);
+
+        // Problem:
+        // Outputs need to be processed by the single printer
+        // round-robin to preserve ordering
+        // But each input can potentially produce
+        // many outputs
+        // So outputs need to be Result(Vec<String>, Error)
+        // and printer has to round-robin and then print all
+        // outputs from that batch before continuing
+        let mut input = r#"34.2277,-118.2623
+{"type":"Polygon","coordinates":[[[-117.87231445312499,34.77997173591062],[-117.69653320312499,34.77997173591062],[-117.69653320312499,34.90170042871546],[-117.87231445312499,34.90170042871546],[-117.87231445312499,34.77997173591062]]]}
+{"type":"Polygon","coordinates":[[[-118.27880859375001,34.522398580663314],[-117.89154052734375,34.522398580663314],[-117.89154052734375,34.649025753526985],[-118.27880859375001,34.649025753526985],[-118.27880859375001,34.522398580663314]]]}
+"#.as_bytes();
+
+        // let mut input = "9q5\n9q4".as_bytes();
+        let res = for_entity_par(&mut input, move |entity| {
+            println!("handling entity: {}", entity);
             Ok(())
         });
         println!("***");
