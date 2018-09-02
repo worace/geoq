@@ -2,6 +2,7 @@ extern crate deque;
 extern crate rand;
 
 // use self::deque::{Stealer, Stolen};
+use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 use std::sync::mpsc::{sync_channel, SyncSender, Receiver, RecvError};
 
@@ -15,24 +16,32 @@ enum Input {
     Done
 }
 
-fn it() -> Vec<(usize, f32)> {
+fn it<F>(handler: F) -> Vec<(usize, f32)>
+where F: 'static + Sync + Send + Fn(usize) -> f32
+{
     let num_workers = 4;
 
     let mut input_channels: Vec<SyncSender<Input>> = vec![];
     let mut threads: Vec<JoinHandle<_>> = vec![];
     let mut output_channels: Vec<Receiver<Output>> = vec![];
+    let handler_arc = Arc::new(handler);
+
     (0..num_workers).for_each(|i| {
         println!("Start worker {}", i);
         let (input_sender, input_receiver) = sync_channel(50);
         let (output_sender, output_receiver) = sync_channel(50);
 
+        let handler = handler_arc.clone();
         let t = thread::spawn(move|| {
             loop {
                 let work = input_receiver.recv();
                 match work {
                     Err(RecvError) => continue,
                     Ok(Input::Item(i)) => {
-                        output_sender.send(Output::Item((i, rand::random()))).unwrap();
+                        let res = handler(i);
+                        let output = (i, res);
+                        let output_item = Output::Item(output);
+                        output_sender.send(output_item).unwrap();
                     }
                     Ok(Input::Done) => {
                         output_sender.send(Output::Done).unwrap();
@@ -99,10 +108,11 @@ fn it() -> Vec<(usize, f32)> {
 
 #[cfg(test)]
 mod tests {
+    extern crate rand;
     use geoq::par::it;
     #[test]
     fn test_it() {
-        let keys: Vec<usize> = it().iter().map(|p| p.0 ).collect();
+        let keys: Vec<usize> = it(|i| rand::random()).iter().map(|p| p.0 ).collect();
         let exp: Vec<usize> = (1..20).collect();
         assert_eq!(exp, keys);
     }
