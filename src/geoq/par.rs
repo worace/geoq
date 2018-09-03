@@ -17,7 +17,7 @@ enum WorkerInput {
 }
 
 enum WorkerOutput {
-    Item(Result<(), Error>),
+    Item(Result<Vec<String>, Error>),
     Done
 }
 
@@ -62,16 +62,15 @@ where F: Fn(Entity) -> Result<(), Error>
 
 const WORKER_BUF_SIZE: usize = 100;
 pub fn for_entity_par<'a, F: 'static>(input: &'a mut BufRead, handler: F) -> Result<(), Error>
-where F: Send + Sync + Fn(Entity) -> Result<(), Error>
+where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
 {
-    let reader = LineReader::new(input);
     let num_workers = 4;
     let mut input_channels: Vec<SyncSender<WorkerInput>> = vec![];
     let mut threads: Vec<JoinHandle<_>> = vec![];
     let mut output_channels: Vec<Receiver<WorkerOutput>> = vec![];
     let handler_arc = Arc::new(handler);
 
-    (0..num_workers).for_each(|i| {
+    (0..num_workers).for_each(|_| {
         let (input_sender, input_receiver) = sync_channel(WORKER_BUF_SIZE);
         let (output_sender, output_receiver) = sync_channel(WORKER_BUF_SIZE);
 
@@ -85,6 +84,8 @@ where F: Send + Sync + Fn(Entity) -> Result<(), Error>
                         // TODO figure out how to make this work with arc
                         // output_sender.send(WorkerOutput::Item(handle_line(line, *handler)));
 
+                        let mut results = Vec::new();
+
                         match input::read_line(line) {
                             Err(e) => eprintln!("{:?}", e),
                             Ok(input) => {
@@ -92,15 +93,16 @@ where F: Send + Sync + Fn(Entity) -> Result<(), Error>
                                     Err(e) => eprintln!("{:?}", e),
                                     Ok(entities) => {
                                         for e in entities {
-                                            if let Err(e) = handler(e) {
-                                                eprintln!("{:?}", e);
+                                            match handler(e) {
+                                                Err(e) => eprintln!("{:?}", e),
+                                                Ok(lines) => results.extend(lines)
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                        output_sender.send(WorkerOutput::Item(Ok(()))).unwrap();
+                        output_sender.send(WorkerOutput::Item(Ok(results))).unwrap();
                     }
                     Ok(WorkerInput::Done) => {
                         output_sender.send(WorkerOutput::Done).unwrap();
@@ -115,27 +117,34 @@ where F: Send + Sync + Fn(Entity) -> Result<(), Error>
         threads.push(t);
     });
 
-    // TODO needs to go in separate thread
+    let printer_thread = thread::spawn(move|| {
+        while !output_channels.is_empty() {
+            for i in 0..output_channels.len() {
+                let output = output_channels[i].recv();
+                match output {
+                    Err(RecvError) => continue,
+                    Ok(WorkerOutput::Item(Ok(lines))) => {
+                        for l in lines {
+                            println!("{}", l);
+                        }
+                    },
+                    Ok(WorkerOutput::Item(Err(e))) => eprintln!("{:?}", e),
+                    Ok(WorkerOutput::Done) => {
+                        output_channels.remove(i);
+                        break;
+                    }
+                }
+            }
+        }
+    });
+
+    let reader = LineReader::new(input);
     for (i, line) in reader.enumerate() {
         input_channels[i % num_workers].send(WorkerInput::Item(line)).unwrap();
     }
     (0..num_workers).for_each(|i| input_channels[i].send(WorkerInput::Done).unwrap());
 
-
-    while !output_channels.is_empty() {
-        for i in 0..output_channels.len() {
-            let output = output_channels[i].recv();
-            match output {
-                Err(RecvError) => continue,
-                Ok(WorkerOutput::Item(Ok(_))) => (),
-                Ok(WorkerOutput::Item(Err(e))) => eprintln!("{:?}", e),
-                Ok(WorkerOutput::Done) => {
-                    output_channels.remove(i);
-                    break;
-                }
-            }
-        }
-    }
+    printer_thread.join().expect("Couldn't wait for printer thread to complete");
 
     Ok(())
 }
@@ -260,8 +269,7 @@ mod tests {
 
         // let mut input = "9q5\n9q4".as_bytes();
         let res = for_entity_par(&mut input, move |entity| {
-            println!("handling entity: {}", entity);
-            Ok(())
+            Ok(vec![format!("handling entity {}", entity).to_owned()])
         });
         println!("***");
         println!("Res: {:?}", res);
