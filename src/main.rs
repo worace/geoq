@@ -29,6 +29,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("map", Some(_)) => commands::map::run(),
         ("filter", Some(m)) => commands::filter::run(m),
         ("json", Some(m)) => commands::json::run(m),
+        ("centroid", Some(_)) => commands::centroid::run(),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -113,6 +114,10 @@ fn main() {
         .about("Information about reading inputs with geoq")
         .after_help(text::READ_AFTER_HELP);
 
+    let centroid = SubCommand::with_name("centroid")
+        .about(text::CENTROID_ABOUT)
+        .after_help(text::CENTROID_AFTER_HELP);
+
     let matches = App::new("geoq")
         .version(VERSION)
         .setting(AppSettings::SubcommandRequiredElseHelp)
@@ -125,6 +130,7 @@ fn main() {
         .subcommand(geojson)
         .subcommand(json)
         .subcommand(filter)
+        .subcommand(centroid)
         .get_matches();
 
     if let Err(e) = run(matches) {

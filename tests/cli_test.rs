@@ -620,3 +620,23 @@ fn json_geom() {
     Assert::main_binary().with_args(&["json", "point"])
         .stdin("{\"no-lat-lon\": \"hi\"}").fails().unwrap();
 }
+
+#[test]
+fn centroid() {
+    let input = r#"{"type": "LineString", "coordinates": [[-44.2529296875, 25.3241665257384], [-42.802734375, 25.502784548755354]]}
+{"type": "Point", "coordinates": [-47.4609375, 21.453068633086783]}
+Polygon ((30 10, 10 30, 40 40, 30 10))
+"#;
+
+    let output = r#"{"coordinates":[-43.52783203125,25.41347553724687],"type":"Point"}
+{"coordinates":[-47.4609375,21.453068633086784],"type":"Point"}
+{"coordinates":[26.666666666666669,26.666666666666669],"type":"Point"}
+"#;
+
+    Assert::main_binary()
+        .with_args(&["centroid"])
+        .stdin(input)
+        .stdout()
+        .is(output)
+        .unwrap();
+}
