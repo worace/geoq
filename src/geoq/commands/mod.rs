@@ -5,3 +5,4 @@ pub mod filter;
 pub mod map;
 pub mod read;
 pub mod json;
+pub mod centroid;

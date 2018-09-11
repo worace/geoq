@@ -62,3 +62,8 @@ for additional information on individual commands.
 See 'geoq read --help' for more information on supported
 input formats.
 "#;
+
+pub const CENTROID_ABOUT: &str = "Print centroid of the given geometry";
+pub const CENTROID_AFTER_HELP: &str = r"
+Output is given as a GeoJSON Point.
+";

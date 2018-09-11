@@ -8,3 +8,4 @@ pub mod text;
 pub mod intersection;
 pub mod contains;
 pub mod par;
+pub mod centroid;
