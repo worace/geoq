@@ -47,6 +47,14 @@ You'll also need to add Cargo's `bin` directory to your path:
 export PATH="$HOME/.cargo/bin:$PATH"
 ```
 
+### Updating an Existing Installation
+
+To pull and install a newer version from crates.io, run:
+
+```
+cargo install geoq --force
+```
+
 ## Project Status
 
 This library is still in its infancy and there are probably a lot of rough edges.
