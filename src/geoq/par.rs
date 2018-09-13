@@ -149,7 +149,7 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
     Ok(())
 }
 
-pub fn it<F>(handler: F) -> Vec<(usize, f32)>
+pub fn example<F>(handler: F) -> Vec<(usize, f32)>
 where F: 'static + Sync + Send + Fn(usize) -> f32
 {
     let num_workers = 4;
@@ -242,11 +242,11 @@ where F: 'static + Sync + Send + Fn(usize) -> f32
 #[cfg(test)]
 mod tests {
     extern crate rand;
-    use geoq::par::{it, for_entity_par};
+    use geoq::par::{example, for_entity_par};
     #[test]
     #[ignore]
-    fn test_it() {
-        let keys: Vec<usize> = it(|i| rand::random()).iter().map(|p| p.0 ).collect();
+    fn test_example() {
+        let keys: Vec<usize> = example(|i| rand::random()).iter().map(|p| p.0 ).collect();
         let exp: Vec<usize> = (1..20).collect();
         assert_eq!(exp, keys);
     }
