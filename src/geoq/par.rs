@@ -10,6 +10,7 @@ use geoq::error::Error;
 use geoq::reader;
 use geoq::input;
 use geoq::entity::{self, Entity};
+use num_cpus;
 
 enum WorkerInput {
     Item(String),
@@ -64,7 +65,7 @@ const WORKER_BUF_SIZE: usize = 100;
 pub fn for_entity_par<'a, F: 'static>(input: &'a mut BufRead, handler: F) -> Result<(), Error>
 where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
 {
-    let num_workers = 4;
+    let num_workers = num_cpus::get();
     let mut input_channels: Vec<SyncSender<WorkerInput>> = vec![];
     let mut threads: Vec<JoinHandle<_>> = vec![];
     let mut output_channels: Vec<Receiver<WorkerOutput>> = vec![];
@@ -243,6 +244,7 @@ where F: 'static + Sync + Send + Fn(usize) -> f32
 mod tests {
     extern crate rand;
     use geoq::par::{example, for_entity_par};
+    use geoq::entity;
     #[test]
     #[ignore]
     fn test_example() {
