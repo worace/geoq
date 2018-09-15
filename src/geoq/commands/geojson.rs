@@ -2,28 +2,24 @@ extern crate serde_json;
 extern crate geojson;
 extern crate clap;
 
-use clap::ArgMatches;
 use geojson::GeoJson;
-use geoq::error::Error;
 use geoq::reader::Reader;
+use geoq::error::Error;
+use geoq::par;
+use clap::ArgMatches;
 use std::io;
 
-use geoq::reader;
-
-
 fn geom() -> Result<(), Error> {
-    reader::for_entity(|e| {
+    par::for_stdin_entity(|e| {
         let gj_geom = e.geojson_geometry();
-        println!("{}", serde_json::to_string(&gj_geom).unwrap());
-        Ok(())
+        Ok(vec![serde_json::to_string(&gj_geom).unwrap()])
     })
 }
 
 fn feature() -> Result<(), Error> {
-    reader::for_entity(|e| {
+    par::for_stdin_entity(|e| {
         let f = e.geojson_feature();
-        println!("{}", serde_json::to_string(&f).unwrap());
-        Ok(())
+        Ok(vec![serde_json::to_string(&f).unwrap()])
     })
 }
 
