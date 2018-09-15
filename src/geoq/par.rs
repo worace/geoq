@@ -80,25 +80,28 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
                         // TODO figure out how to make this work with arc
                         // output_sender.send(WorkerOutput::Item(handle_line(line, *handler)));
 
-                        let mut results = Vec::new();
 
                         match input::read_line(line) {
-                            Err(e) => eprintln!("{:?}", e),
+                            Err(e) => output_sender.send(WorkerOutput::Item(Err(e))).unwrap(),
                             Ok(input) => {
                                 match entity::from_input(input) {
-                                    Err(e) => eprintln!("{:?}", e),
+                                    Err(e) => output_sender.send(WorkerOutput::Item(Err(e))).unwrap(),
                                     Ok(entities) => {
+                                        let mut results = Vec::new();
                                         for e in entities {
                                             match handler(e) {
-                                                Err(e) => eprintln!("{:?}", e),
+                                                Err(e) => {
+                                                    output_sender.send(WorkerOutput::Item(Err(e))).unwrap();
+                                                    break;
+                                                },
                                                 Ok(lines) => results.extend(lines)
                                             }
                                         }
+                                        output_sender.send(WorkerOutput::Item(Ok(results))).unwrap();
                                     }
                                 }
                             }
                         }
-                        output_sender.send(WorkerOutput::Item(Ok(results))).unwrap();
                     }
                     Ok(WorkerInput::Done) => {
                         output_sender.send(WorkerOutput::Done).unwrap();
@@ -124,7 +127,10 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
                             println!("{}", l);
                         }
                     },
-                    Ok(WorkerOutput::Item(Err(e))) => eprintln!("{:?}", e),
+                    Ok(WorkerOutput::Item(Err(e))) => {
+                        eprintln!("Application error: {:?}", e);
+                        ::std::process::exit(1);
+                    },
                     Ok(WorkerOutput::Done) => {
                         output_channels.remove(i);
                         break;

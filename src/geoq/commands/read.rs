@@ -1,6 +1,6 @@
 use geoq::error::Error;
-use geoq::reader;
+use geoq::par;
 
 pub fn run() -> Result<(), Error> {
-    reader::for_entity(|e| Ok(println!("{}", e)))
+    par::for_stdin_entity(|e| Ok(vec![format!("{}", e)]))
 }
