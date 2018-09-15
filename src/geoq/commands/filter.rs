@@ -1,14 +1,10 @@
-extern crate geo_types;
-
 use geoq;
 use clap::ArgMatches;
 use geoq::error::Error;
 use geoq::entity;
-use geoq::reader;
 use geo_types::{Geometry, Polygon};
 use geoq::input;
 use std::io;
-use geoq::reader::Reader;
 use geoq::par;
 
 fn intersects(matches: &ArgMatches) -> Result<(), Error> {

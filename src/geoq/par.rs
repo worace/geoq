@@ -1,7 +1,3 @@
-extern crate deque;
-extern crate rand;
-
-// use self::deque::{Stealer, Stolen};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 use std::sync::mpsc::{sync_channel, SyncSender, Receiver, RecvError};
@@ -19,16 +15,6 @@ enum WorkerInput {
 
 enum WorkerOutput {
     Item(Result<Vec<String>, Error>),
-    Done
-}
-
-enum Output {
-    Item((usize, f32)),
-    Done
-}
-
-enum Input {
-    Item(usize),
     Done
 }
 
@@ -50,16 +36,16 @@ impl<'a> Iterator for LineReader<'a> {
     }
 }
 
-fn handle_line<F>(line: String, handler: F) -> Result<(), Error>
-where F: Fn(Entity) -> Result<(), Error>
-{
-    let input = try!(input::read_line(line));
-    let entities = try!(entity::from_input(input));
-    for e in entities {
-        try!(handler(e));
-    }
-    Ok(())
-}
+// fn handle_line<F>(line: String, handler: F) -> Result<(), Error>
+// where F: Fn(Entity) -> Result<(), Error>
+// {
+//     let input = try!(input::read_line(line));
+//     let entities = try!(entity::from_input(input));
+//     for e in entities {
+//         try!(handler(e));
+//     }
+//     Ok(())
+// }
 
 const WORKER_BUF_SIZE: usize = 100;
 pub fn for_entity_par<'a, F: 'static>(input: &'a mut BufRead, handler: F) -> Result<(), Error>
@@ -150,112 +136,12 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
     Ok(())
 }
 
-pub fn example<F>(handler: F) -> Vec<(usize, f32)>
-where F: 'static + Sync + Send + Fn(usize) -> f32
-{
-    let num_workers = 4;
-
-    let mut input_channels: Vec<SyncSender<Input>> = vec![];
-    let mut threads: Vec<JoinHandle<_>> = vec![];
-    let mut output_channels: Vec<Receiver<Output>> = vec![];
-    let handler_arc = Arc::new(handler);
-
-    (0..num_workers).for_each(|i| {
-        println!("Start worker {}", i);
-        let (input_sender, input_receiver) = sync_channel(50);
-        let (output_sender, output_receiver) = sync_channel(50);
-
-        let handler = handler_arc.clone();
-        let t = thread::spawn(move|| {
-            loop {
-                let work = input_receiver.recv();
-                match work {
-                    Err(RecvError) => continue,
-                    Ok(Input::Item(i)) => {
-                        let res = handler(i);
-                        let output = (i, res);
-                        let output_item = Output::Item(output);
-                        output_sender.send(output_item).unwrap();
-                    }
-                    Ok(Input::Done) => {
-                        output_sender.send(Output::Done).unwrap();
-                        break;
-                    }
-                }
-            }
-        });
-
-        input_channels.push(input_sender);
-        output_channels.push(output_receiver);
-        threads.push(t);
-    });
-
-    for i in 0..20 {
-        println!("enqueue to worker {}", i % num_workers);
-        input_channels[i % num_workers].send(Input::Item(i)).unwrap();
-    }
-    (0..num_workers).for_each(|i| input_channels[i].send(Input::Done).unwrap() );
-
-    println!("{:?}", threads);
-    println!("{:?}", output_channels);
-    // let last_received = 0;
-    // SPSC approach
-
-    // Workers 1,2,3
-    // SPSC 1 Reader ----> Worker 1
-    // SPSC 2 Reader ----> Worker 2
-    // SPSC 3 Reader ----> Worker 3
-
-    // SPSC 4 Worker 1 ----> Printer
-    // SPSC 5 Worker 2 ----> Printer
-    // SPSC 6 Worker 3 ----> Printer
-
-    // Reader
-    // Enqueue lines in order round-robin 1,2,3,1,2,3
-    // Worker
-    // Push to owned output queue as done
-    // Printer
-    // Round-robin blocking read from worker output queues
-
-    while !output_channels.is_empty() {
-        println!("Printer loop");
-        for i in 0..output_channels.len() {
-            println!("Printer check channel {}", i);
-            let output = output_channels[i].recv();
-            match output {
-                Err(RecvError) => continue,
-                Ok(Output::Item((i, f))) => {
-                    println!("output received ({}, {})", i, f);
-                },
-                Ok(Output::Done) => {
-                    println!("Received done from {}", i);
-                    output_channels.remove(i);
-                    println!("removed channel, num outputs is {}", output_channels.len());
-                    break;
-                }
-            }
-        }
-    }
-
-    (1..20).map(|i| (i, rand::random())).collect()
-}
-
 #[cfg(test)]
 mod tests {
-    extern crate rand;
-    use geoq::par::{example, for_entity_par};
-    use geoq::entity;
-    #[test]
-    #[ignore]
-    fn test_example() {
-        let keys: Vec<usize> = example(|i| rand::random()).iter().map(|p| p.0 ).collect();
-        let exp: Vec<usize> = (1..20).collect();
-        assert_eq!(exp, keys);
-    }
+    use geoq::par::for_entity_par;
 
     #[test]
     fn test_par_entities() {
-
         // Problem:
         // Outputs need to be processed by the single printer
         // round-robin to preserve ordering
@@ -273,7 +159,6 @@ mod tests {
         let res = for_entity_par(&mut input, move |entity| {
             Ok(vec![format!("handling entity {}", entity).to_owned()])
         });
-        println!("***");
-        println!("Res: {:?}", res);
+        assert!(res.is_ok());
     }
 }
