@@ -12,8 +12,6 @@ extern crate os_type;
 extern crate percent_encoding;
 extern crate regex;
 extern crate num_cpus;
-extern crate deque;
-extern crate rand;
 
 mod geoq;
 use geoq::commands;
