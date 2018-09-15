@@ -80,7 +80,6 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
                         // TODO figure out how to make this work with arc
                         // output_sender.send(WorkerOutput::Item(handle_line(line, *handler)));
 
-
                         match input::read_line(line) {
                             Err(e) => output_sender.send(WorkerOutput::Item(Err(e))).unwrap(),
                             Ok(input) => {
