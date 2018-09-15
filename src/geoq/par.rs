@@ -7,6 +7,7 @@ use geoq::reader;
 use geoq::input;
 use geoq::entity::{self, Entity};
 use num_cpus;
+use std::io;
 
 enum WorkerInput {
     Item(String),
@@ -47,7 +48,15 @@ impl<'a> Iterator for LineReader<'a> {
 //     Ok(())
 // }
 
-const WORKER_BUF_SIZE: usize = 100;
+pub fn for_stdin_entity<F: 'static>(handler: F) -> Result<(), Error>
+where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
+{
+    let stdin = io::stdin();
+    let mut stdin_reader = stdin.lock();
+    for_entity_par(&mut stdin_reader, handler)
+}
+
+const WORKER_BUF_SIZE: usize = 5000;
 pub fn for_entity_par<'a, F: 'static>(input: &'a mut BufRead, handler: F) -> Result<(), Error>
 where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
 {

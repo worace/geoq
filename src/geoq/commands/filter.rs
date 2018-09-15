@@ -4,7 +4,6 @@ use geoq::error::Error;
 use geoq::entity;
 use geo_types::{Geometry, Polygon};
 use geoq::input;
-use std::io;
 use geoq::par;
 
 fn intersects(matches: &ArgMatches) -> Result<(), Error> {
@@ -17,11 +16,7 @@ fn intersects(matches: &ArgMatches) -> Result<(), Error> {
             } else {
                 let query_geoms: Vec<Geometry<f64>> = query_entities.into_iter().map(|e| e.geom()).collect();
 
-
-                let stdin = io::stdin();
-                let mut stdin_reader = stdin.lock();
-
-                par::for_entity_par(&mut stdin_reader, move |entity| {
+                par::for_stdin_entity(move |entity| {
                     let output = entity.raw();
                     let geom = entity.geom();
                     if query_geoms.iter().any(|ref query_geom| {
@@ -55,13 +50,10 @@ fn contains(matches: &ArgMatches) -> Result<(), Error> {
                     }
                 }).collect();
 
-                let stdin = io::stdin();
-                let mut stdin_reader = stdin.lock();
-
                 if query_polygons.is_empty() {
                     Err(Error::PolygonRequired)
                 } else {
-                    par::for_entity_par(&mut stdin_reader, move |entity| {
+                    par::for_stdin_entity(move |entity| {
                         let output = entity.raw();
                         let geom = entity.geom();
                         if query_polygons.iter().any(|ref query_poly| {
