@@ -19,7 +19,7 @@ impl<'a> Reader<'a> {
     }
 }
 
-fn read_line(buf_read: &mut BufRead) -> Option<String> {
+pub fn read_line(buf_read: &mut BufRead) -> Option<String> {
     let mut buf = String::new();
     let bytes_read = buf_read.read_line(&mut buf);
     match bytes_read {

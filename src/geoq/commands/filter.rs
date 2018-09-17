@@ -1,12 +1,10 @@
-extern crate geo_types;
-
 use geoq;
 use clap::ArgMatches;
 use geoq::error::Error;
 use geoq::entity;
-use geoq::reader;
 use geo_types::{Geometry, Polygon};
 use geoq::input;
+use geoq::par;
 
 fn intersects(matches: &ArgMatches) -> Result<(), Error> {
     match matches.value_of("query") {
@@ -18,15 +16,16 @@ fn intersects(matches: &ArgMatches) -> Result<(), Error> {
             } else {
                 let query_geoms: Vec<Geometry<f64>> = query_entities.into_iter().map(|e| e.geom()).collect();
 
-                reader::for_entity(|entity| {
+                par::for_stdin_entity(move |entity| {
                     let output = entity.raw();
                     let geom = entity.geom();
                     if query_geoms.iter().any(|ref query_geom| {
                         geoq::intersection::intersects(query_geom, &geom)
                     }) {
-                        println!("{}", output);
+                        Ok(vec![output])
+                    } else {
+                        Ok(vec![])
                     }
-                    Ok(())
                 })
             }
         }
@@ -54,15 +53,16 @@ fn contains(matches: &ArgMatches) -> Result<(), Error> {
                 if query_polygons.is_empty() {
                     Err(Error::PolygonRequired)
                 } else {
-                    reader::for_entity(|entity| {
+                    par::for_stdin_entity(move |entity| {
                         let output = entity.raw();
                         let geom = entity.geom();
                         if query_polygons.iter().any(|ref query_poly| {
                             geoq::contains::contains(query_poly, &geom)
                         }) {
-                            println!("{}", output);
+                            Ok(vec![output])
+                        } else {
+                            Ok(vec![])
                         }
-                        Ok(())
                     })
                 }
             }

@@ -2,7 +2,7 @@ extern crate geo_types;
 extern crate geohash;
 
 use geoq;
-use geoq::reader;
+use geoq::par;
 use geoq::error::Error;
 use geoq::entity::Entity;
 use clap::ArgMatches;
@@ -25,11 +25,10 @@ fn read_level(matches: &ArgMatches) -> Result<usize, Error> {
 fn point(matches: &ArgMatches) -> Result<(), Error> {
     let level = try!(read_level(matches));
 
-    reader::for_entity(|e| {
+    par::for_stdin_entity(move |e| {
         match e.geom() {
             geo_types::Geometry::Point(p) => {
-                println!("{}", geohash::encode(p.0, level));
-                Ok(())
+                Ok(vec![geohash::encode(p.0, level)])
             }
             _ => Err(Error::NotImplemented),
         }
@@ -38,27 +37,25 @@ fn point(matches: &ArgMatches) -> Result<(), Error> {
 
 fn covering(matches: &ArgMatches) -> Result<(), Error> {
     let level = try!(read_level(matches));
-    reader::for_entity(|e| {
-        if matches.is_present("original") {
-            println!("{}", e.raw());
+    let include_original = matches.is_present("original");
+    par::for_stdin_entity(move |e| {
+        if include_original {
+            let mut results = vec![e.raw()];
+            let g = e.geom();
+            results.extend(geoq::geohash::covering(&g, level));
+            Ok(results)
+        } else {
+            let g = e.geom();
+            Ok(geoq::geohash::covering(&g, level))
         }
-
-        let g = e.geom();
-        for gh in geoq::geohash::covering(&g, level) {
-            println!("{}", gh);
-        }
-        Ok(())
     })
 }
 
 fn children() -> Result<(), Error> {
-    reader::for_entity(|e| {
+    par::for_stdin_entity(|e| {
         match e {
             Entity::Geohash(ref raw) => {
-                for gh in geoq::geohash::children(raw) {
-                    println!("{}", gh);
-                }
-                Ok(())
+                Ok(geoq::geohash::children(raw))
             }
             _ => Err(Error::NotImplemented),
         }
@@ -67,13 +64,10 @@ fn children() -> Result<(), Error> {
 
 fn neighbors(matches: &ArgMatches) -> Result<(), Error> {
     let exclude = matches.is_present("exclude");
-    reader::for_entity(|e| {
+    par::for_stdin_entity(move |e| {
         match e {
             Entity::Geohash(ref raw) => {
-                for gh in geoq::geohash::neighbors(raw, !exclude).iter() {
-                    println!("{}", gh);
-                }
-                Ok(())
+                Ok(geoq::geohash::neighbors(raw, !exclude))
             }
             _ => Err(Error::NotImplemented),
         }
