@@ -1,6 +1,6 @@
 [package]
 name = "geoq"
-version = "0.0.8"
+version = "0.0.9"
 authors = ["Horace Williams <horace@worace.works>"]
 license = "MIT"
 description = "Geospatial utility CLI"
