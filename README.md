@@ -79,3 +79,27 @@ echo '{
 }
 ' | jq -c . | geoq map
 ```
+
+## Commands
+
+See the built-in command help using `geoq --help` or `geoq <subcommand> --help` for more detailed information on these:
+
+* `gj` - GeoJSON subcommands
+  * `f` - Output geometry as GeoJSON feature
+  * `geom` - Output geometry as GeoJSON geometry
+  * `fc` - Collect all input geometries into a GeoJSON Feature Collection
+* `centroid` - Cet the centroid of a geometry
+* `filter` - Spatial predicate filtering
+* `gh` - Geohash subcommands
+  * `children` - Get children of a geohash
+  * `covering` - Output geohashes that "cover" a geometry
+  * `neighbors` - Get neighbors of a Geohash
+  * `point` - Output base 32 Geohash for a given Lat,Lon
+* `json` - JSON -> GeoJSON coercion
+  * `point` - Attempt to convert arbitrary JSON to a GeoJSON Point.
+* `map` - Visualization with geojson.io
+* `read` - Debugging / format validation
+* `wkt` - Output geometries as WKT
+
+
+See the [Manual](https://github.com/worace/geoq/blob/master/manual.md) for more examples and available commands.
