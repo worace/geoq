@@ -100,6 +100,7 @@ See the built-in command help using `geoq --help` or `geoq <subcommand> --help` 
 * `map` - Visualization with geojson.io
 * `read` - Debugging / format validation
 * `wkt` - Output geometries as WKT
+* `whereami` - Output IP geolocation-based current lat/lon as GeoJSON
 
 
 See the [Manual](https://github.com/worace/geoq/blob/master/manual.md) for more examples and available commands.
