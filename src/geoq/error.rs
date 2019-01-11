@@ -17,7 +17,9 @@ pub enum Error {
     IOError,
     JSONParseError,
     InvalidJSONType,
-    PolygonRequired
+    PolygonRequired,
+    IPGeolocationError,
+    HTTPError
 }
 
 impl From<io::Error> for Error {
@@ -29,5 +31,11 @@ impl From<io::Error> for Error {
 impl From<serde_json::Error> for Error {
     fn from(_: serde_json::Error) -> Self {
         Error::JSONParseError
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(_: reqwest::Error) -> Self {
+        Error::HTTPError
     }
 }

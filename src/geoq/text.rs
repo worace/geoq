@@ -67,3 +67,14 @@ pub const CENTROID_ABOUT: &str = "Print centroid of the given geometry";
 pub const CENTROID_AFTER_HELP: &str = r"
 Output is given as a GeoJSON Point.
 ";
+
+pub const WHEREAMI_ABOUT: &str = "Get IP-based current lat/lon.";
+pub const WHEREAMI_AFTER_HELP: &str = r"
+Get IP-based current lat/lon.
+
+Location is reported using a free service at ip-api.com.
+
+Rate-limited to 150 requests per minute from a given IP.
+
+Output is given as a GeoJSON Point.
+";

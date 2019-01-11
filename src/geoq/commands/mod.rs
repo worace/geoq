@@ -6,3 +6,4 @@ pub mod map;
 pub mod read;
 pub mod json;
 pub mod centroid;
+pub mod whereami;
