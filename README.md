@@ -90,6 +90,8 @@ See the built-in command help using `geoq --help` or `geoq <subcommand> --help` 
   * `fc` - Collect all input geometries into a GeoJSON Feature Collection
 * `centroid` - Cet the centroid of a geometry
 * `filter` - Spatial predicate filtering
+  * `intersects` - Select features intersecting a given query geometry
+  * `contains` - Select features contained by a given query geometry
 * `gh` - Geohash subcommands
   * `children` - Get children of a geohash
   * `covering` - Output geohashes that "cover" a geometry
@@ -101,6 +103,8 @@ See the built-in command help using `geoq --help` or `geoq <subcommand> --help` 
 * `read` - Debugging / format validation
 * `wkt` - Output geometries as WKT
 * `whereami` - Output IP geolocation-based current lat/lon as GeoJSON
+* `measure` - Measurement subcommands
+  * `distance` - Measure distances between features
 
 
 See the [Manual](https://github.com/worace/geoq/blob/master/manual.md) for more examples and available commands.

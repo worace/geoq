@@ -7,3 +7,4 @@ pub mod read;
 pub mod json;
 pub mod centroid;
 pub mod whereami;
+pub mod measure;

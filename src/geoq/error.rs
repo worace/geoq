@@ -19,7 +19,8 @@ pub enum Error {
     InvalidJSONType,
     PolygonRequired,
     IPGeolocationError,
-    HTTPError
+    HTTPError,
+    TooManyFeatures
 }
 
 impl From<io::Error> for Error {
