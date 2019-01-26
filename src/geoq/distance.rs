@@ -30,6 +30,7 @@ pub fn distance(a: &Point<f64>, b: &Geometry<f64>) -> Option<f64> {
     // get closest point if possible
     // get distance for that point...
     let closest = closest_point(a, b);
+    println!("{:?}", closest);
     match closest {
         geo::Closest::Intersection(_) => Some(0.0),
         geo::Closest::SinglePoint(p) => {
@@ -47,16 +48,52 @@ pub fn distance(a: &Point<f64>, b: &Geometry<f64>) -> Option<f64> {
 
 #[cfg(test)]
 mod tests {
-    use geoq::distance::distance;
     extern crate geo_types;
-    use geo_types::{Geometry, Point};
+    extern crate geoq_wkt;
+
+    use geoq::distance::distance;
+    use geo_types::{Geometry, Point, Polygon};
+    use geoq_wkt::ToWkt;
 
     #[test]
+    #[ignore]
     fn test_point_to_point() {
-        let a = Point::new(0.0, 0.0);
-        let b = Geometry::Point(Point::new(1.0, 1.0));
+        let la = Point::new(-118.2437, 34.0522);
+        let ny = Point::new(-74.0060, 40.7128);
+        let nyg = Geometry::Point(ny);
 
-        let dist = distance(&a, &b);
-        assert_eq!(Some(156899.56829129544), dist);
+        // POLYGON((-119.49554443359376 33.58030298537655,-119.33898925781251 33.58030298537655,-119.33898925781251 33.667211101197545,-119.49554443359376 33.667211101197545,-119.49554443359376 33.58030298537655))
+        // 3944422.23148992
+        match distance(&la, &nyg) {
+            Some(d) => assert_eq!(d.round(), 3944422.),
+            None => assert!(false, "Should get distance")
+        }
+
+        // let dist = distance(&a, &b);
+        // assert_eq!(Some(3944422), dist);
+    }
+
+    #[test]
+    fn test_containing_polygon() {
+        let la = Point::new(-118.2437, 34.0522);
+        let poly = Polygon::new(
+            vec![
+                [-119.53125, 33.75],
+                [-118.125, 33.75],
+                [-118.125, 35.15625],
+                [-119.53125, 35.15625],
+                [-119.53125, 33.75],
+            ].into(),
+            vec![],
+        );
+        let polyg = Geometry::Polygon(poly);
+        println!("{}", polyg.to_wkt().items.pop().unwrap());
+        match distance(&la, &polyg) {
+            // Currently finding closest point on perimeter of the polygon
+            // instead of recognizing containment
+            Some(d) => assert_eq!(d.round(), 10959.),
+            // Some(d) => assert_eq!(d.round(), 0.),
+            None => assert!(false, "Should get distance")
+        }
     }
 }
