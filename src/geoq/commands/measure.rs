@@ -26,12 +26,18 @@ fn distance(matches: &ArgMatches) -> Result<(), Error> {
 
                             match dist {
                                 Some(d) => Ok(vec![format!("{}\t{}", d, output)]),
-                                None => Err(Error::DistanceFailed)
+                                None => {
+                                    eprintln!("Couldn't calculate distance between <query>: {:?} and <input>: {}", query_point, output);
+                                    Err(Error::DistanceFailed)
+                                }
                             }
 
                         })
                     }
-                    _ => Err(Error::PointRequired)
+                    _ => {
+                        eprintln!("<query> argument for measuing distance must be a Point. Got: {}", q);
+                        Err(Error::PointRequired)
+                    }
                 }
 
             }

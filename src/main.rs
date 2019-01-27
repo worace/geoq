@@ -129,6 +129,7 @@ fn main() {
         .about(text::MEASURE_ABOUT)
         .subcommand(SubCommand::with_name("distance")
                     .about(text::DISTANCE_ABOUT)
+                    .after_help(text::DISTANCE_AFTER_HELP)
                     .arg(Arg::with_name("query")
                          .help(text::DISTANCE_QUERY_ARG_HELP)
                          .required(true)
