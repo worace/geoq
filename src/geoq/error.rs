@@ -20,7 +20,9 @@ pub enum Error {
     PolygonRequired,
     IPGeolocationError,
     HTTPError,
-    TooManyFeatures
+    TooManyFeatures,
+    PointRequired,
+    DistanceFailed
 }
 
 impl From<io::Error> for Error {

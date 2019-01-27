@@ -4,6 +4,7 @@ use geoq::entity;
 use geo_types::Geometry;
 use geoq::input;
 use geoq::par;
+use geoq::distance;
 
 fn distance(matches: &ArgMatches) -> Result<(), Error> {
     match matches.value_of("query") {
@@ -15,24 +16,24 @@ fn distance(matches: &ArgMatches) -> Result<(), Error> {
             } else if query_entities.len() > 1 {
                 Err(Error::TooManyFeatures)
             } else {
-                // let query_geoms: Vec<Geometry<f64>> = query_entities.into_iter().map(|e| e.geom()).collect();
-                let query_geom: Geometry<f64> = query_entities.remove(0).geom();
+                match query_entities.remove(0).geom() {
+                    Geometry::Point(query_point) => {
+                        par::for_stdin_entity(move |entity| {
+                            let output = entity.raw();
+                            let geom = entity.geom();
 
-                par::for_stdin_entity(move |entity| {
-                    let output = entity.raw();
-                    let geom = entity.geom();
+                            let dist = distance::distance(&query_point, &geom);
 
-                    println!("{:?}", query_geom);
-                    println!("{:?}", geom);
-                    Ok(vec![])
-                    // if query_geoms.iter().any(|ref query_geom| {
-                    //     geoq::intersection::intersects(query_geom, &geom)
-                    // }) {
-                    //     Ok(vec![output])
-                    // } else {
-                    //     Ok(vec![])
-                    // }
-                })
+                            match dist {
+                                Some(d) => Ok(vec![format!("{}\t{}", d, output)]),
+                                None => Err(Error::DistanceFailed)
+                            }
+
+                        })
+                    }
+                    _ => Err(Error::PointRequired)
+                }
+
             }
         }
         _ => Err(Error::MissingArgument),
