@@ -1,7 +1,8 @@
 extern crate geo_types;
 extern crate geo;
 
-use geo_types::{Geometry, Point, Polygon, MultiPolygon};
+use std::cmp::Ordering::Equal;
+use geo_types::{Geometry, Point, Polygon, MultiPolygon, GeometryCollection};
 use geo::algorithm::closest_point::ClosestPoint;
 use geo::algorithm::vincenty_distance::VincentyDistance;
 use geo::algorithm::contains::Contains;
@@ -24,6 +25,26 @@ fn closest_point_to_multipoly(point: &Point<f64>, mp: &MultiPolygon<f64>) -> geo
     }
 }
 
+fn closest_point_to_geom_coll(point: &Point<f64>, gc: &GeometryCollection<f64>) -> geo::Closest<f64> {
+    if gc.0.len() == 0 {
+        return geo::Closest::Indeterminate;
+    }
+
+    let mut measurements: Vec<(geo::Closest<f64>, f64)> = gc.0.iter()
+        .map(|geom| closest_point(point, geom))
+        .map(|closest| {
+            match closest {
+                geo::Closest::Indeterminate => (closest, std::f64::INFINITY),
+                geo::Closest::Intersection(_) => (closest, 0.0),
+                geo::Closest::SinglePoint(p) => (closest, p.vincenty_distance(point).unwrap_or(std::f64::INFINITY))
+            }
+        }).collect();
+
+    measurements.sort_by(|a,b| a.1.partial_cmp(&b.1).unwrap_or(Equal));
+
+    measurements.remove(0).0
+}
+
 fn closest_point(a: &Point<f64>, b: &Geometry<f64>) -> geo::Closest<f64> {
     match *b {
         Geometry::Point(ref g) => g.closest_point(a),
@@ -33,13 +54,7 @@ fn closest_point(a: &Point<f64>, b: &Geometry<f64>) -> geo::Closest<f64> {
         Geometry::MultiPoint(ref g) => g.closest_point(a),
         Geometry::MultiLineString(ref g) => g.closest_point(a),
         Geometry::MultiPolygon(ref g) => closest_point_to_multipoly(a, g),
-        Geometry::GeometryCollection(ref gc) => {
-            geo::Closest::SinglePoint(Point::new(0.0, 0.0))
-            // 0.0
-            // let distances = gc.0.iter().map(|geom| distance(a, geom));
-            // let sorted = distances.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Equal));
-            // sorted[0]
-        }
+        Geometry::GeometryCollection(ref gc) => closest_point_to_geom_coll(a, gc)
     }
 }
 
