@@ -32,6 +32,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("json", Some(m)) => commands::json::run(m),
         ("centroid", Some(_)) => commands::centroid::run(),
         ("whereami", Some(_)) => commands::whereami::run(),
+        ("measure", Some(m)) => commands::measure::run(m),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -124,6 +125,16 @@ fn main() {
         .about(text::WHEREAMI_ABOUT)
         .after_help(text::WHEREAMI_AFTER_HELP);
 
+    let measure = SubCommand::with_name("measure")
+        .about(text::MEASURE_ABOUT)
+        .subcommand(SubCommand::with_name("distance")
+                    .about(text::DISTANCE_ABOUT)
+                    .after_help(text::DISTANCE_AFTER_HELP)
+                    .arg(Arg::with_name("query")
+                         .help(text::DISTANCE_QUERY_ARG_HELP)
+                         .required(true)
+                         .index(1)));
+
     let matches = App::new("geoq")
         .version(VERSION)
         .setting(AppSettings::SubcommandRequiredElseHelp)
@@ -138,6 +149,7 @@ fn main() {
         .subcommand(filter)
         .subcommand(centroid)
         .subcommand(whereami)
+        .subcommand(measure)
         .get_matches();
 
     if let Err(e) = run(matches) {

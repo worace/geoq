@@ -78,3 +78,32 @@ Rate-limited to 150 requests per minute from a given IP.
 
 Output is given as a GeoJSON Point.
 ";
+
+pub const MEASURE_ABOUT: &str = "Get spatial measurements of or between features.";
+pub const DISTANCE_ABOUT: &str = "Output distance between features (from STDIN) and a QUERY feature (as command-line ARG)";
+pub const DISTANCE_QUERY_ARG_HELP: &str = r"
+Feature to measure from.
+
+Query Feature must be a POINT, and can be provided as
+Lat/Lon, WKT, or GeoJSON.
+";
+
+pub const DISTANCE_AFTER_HELP: &str = r"
+Gives the distance in meters between each input Feature and the given QUERY Feature.
+
+Output is given in the format:
+
+<Distance><TAB><Feature>
+
+e.g.
+
+12.3	LINESTRING (30 10, 10 30, 40 40)
+
+This enables the output to be processed with other unix commands
+like 'sort', 'cut', etc.
+
+Distances will be given between the QUERY point and the closest
+point on each input Feature.
+
+Distance for Features that cover the QUERY point (like a Polygon containing the point) will be 0.
+";

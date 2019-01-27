@@ -9,3 +9,4 @@ pub mod intersection;
 pub mod contains;
 pub mod par;
 pub mod centroid;
+pub mod distance;
