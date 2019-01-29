@@ -22,6 +22,7 @@ percent-encoding = "1.0.1"
 os_type="1.0.0"
 num_cpus = "1.0"
 reqwest = "0.9.7"
+nom = "4.1.1"
 
 [dev-dependencies]
 assert_cli = "0.6.2"

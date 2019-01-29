@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
+extern crate nom;
+#[macro_use]
 extern crate serde_json;
 extern crate clap;
 extern crate geo;
