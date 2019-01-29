@@ -1,6 +1,9 @@
 // fn is_any(a: u8) -> bool { (a as char).is_uppercase() }
 use std::str;
 
+// JSON example from docs:
+// https://github.com/Geal/nom/blob/master/tests/json.rs
+
 named!(parse_features<&str,&str>,
        recognize!(
            delimited!( tag_s!("{"),
