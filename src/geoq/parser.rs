@@ -8,6 +8,34 @@ fn is_non_brace(a: char) -> bool {
     res
 }
 
+macro_rules! debug_tag (
+    ($i:expr, $tag: expr) => (
+        {
+            use std::result::Result::*;
+            use nom::{Err,Needed,IResult,ErrorKind};
+            use nom::{Compare,CompareResult,InputLength,need_more,InputTake};
+
+            println!("checking input: {} for tag: {}", $i, $tag);
+            let res: IResult<_,_> = match ($i).compare($tag) {
+                CompareResult::Ok => {
+                    println!("matched, will consume 1 char");
+                    let blen = $tag.input_len();
+                    Ok($i.take_split(blen))
+                },
+                CompareResult::Incomplete => {
+                    need_more($i, Needed::Size($tag.input_len()))
+                },
+                CompareResult::Error => {
+                    let e:ErrorKind<u32> = ErrorKind::Tag;
+                    Err(Err::Error(nom::Context::Code($i, e)))
+                }
+            };
+            res
+        }
+    );
+);
+
+
 // POINT(...)
 // POLYGON(...)
 
@@ -16,18 +44,23 @@ fn is_non_brace(a: char) -> bool {
 // https://github.com/Geal/nom/blob/master/tests/json.rs
 
 
+named!(json_content<&str, &str>, take_while!(is_non_brace));
+
 // let nested = "{a{b}a}";
+// "{inner}"
 named!(json<&str, &str>,
-       dbg_dmp!(
-           delimited!( tag_s!("{"),
-                       alt!(
-                           take_while!(is_non_brace) | json
-                       ),
-                       // take_until!("}"),
-                       // map_res!(take_while!(nom::is_alphanumeric),
-                       //          str::from_utf8) ,
-                       tag_s!("}")
-           )
+       delimited!( debug_tag!("{"),
+                   // alt!(
+                   //     json_content | json
+                   // ),
+                   // take_while!(|_| false),
+                   fold_many0!(alt!(
+                       take_while!(is_non_brace) | json
+                   ), "", |acc, i| { println!("folding acc: {}, i: {}", acc, i); i }),
+                   // take_until!("}"),
+                   // map_res!(take_while!(nom::is_alphanumeric),
+                   //          str::from_utf8) ,
+                   debug_tag!("}")
        )
 );
 
@@ -38,9 +71,15 @@ mod tests {
 
     #[test]
     fn test_hello() {
+        // println!("{:?}", json("a"));
+        println!("{:?}", json("{}"));
+        println!("{:?}", json("{inner}"));
+        println!("{:?}", json("{in{n}er}"));
         let nested = "{a{b}a}";
         // assert_eq!(Ok(("", nested)), json(nested));
-        println!("{:?}", json(nested));
+        // println!("** Start {{inner}} **");
+        // println!("** Start {} **", nested);
+        // println!("{:?}", json(nested));
 
         // println!("{:?}", json("dfasfas"));
 
