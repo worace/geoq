@@ -74,12 +74,20 @@ fn neighbors(matches: &ArgMatches) -> Result<(), Error> {
     })
 }
 
+fn roots() -> Result<(), Error> {
+    for c in geoq::geohash::BASE_32.iter() {
+        println!("{}", c);
+    }
+    Ok(())
+}
+
 pub fn run(matches: &ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("point", Some(m)) => point(m),
         ("children", Some(_)) => children(),
         ("neighbors", Some(m)) => neighbors(m),
         ("covering", Some(m)) => covering(m),
+        ("roots", Some(_)) => roots(),
         _ => Err(Error::UnknownCommand),
     }
 }

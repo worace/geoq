@@ -640,3 +640,46 @@ Polygon ((30 10, 10 30, 40 40, 30 10))
         .is(output)
         .unwrap();
 }
+
+#[test]
+fn gh_roots() {
+    let output = r#"0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+b
+c
+d
+e
+f
+g
+h
+j
+k
+m
+n
+p
+q
+r
+s
+t
+u
+v
+w
+x
+y
+z
+"#;
+
+    Assert::main_binary()
+        .with_args(&["gh", "roots"])
+        .stdout()
+        .is(output)
+        .unwrap();
+}

@@ -6,8 +6,8 @@ use geo_types::{Geometry, Polygon, LineString, Point};
 use geoq::intersection;
 use geoq::contains;
 
-static BASE_32: [char; 32] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'b', 'c', 'd', 'e', 'f', 'g',
-                              'h', 'j', 'k', 'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+pub const BASE_32: [char; 32] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'b', 'c', 'd', 'e', 'f', 'g',
+                                 'h', 'j', 'k', 'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
 
 pub fn children(gh: &String) -> Vec<String> {
     BASE_32.iter().map(|c| format!("{}{}", gh, c)).collect()

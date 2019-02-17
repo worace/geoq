@@ -63,7 +63,7 @@ fn main() {
         )
         .subcommand(
             SubCommand::with_name("covering")
-                .about("Output the set of geohashes at the given level which covers the given entity")
+                .about("Output the set of geohashes at the given level which covers the given entity.")
                 .arg(
                     Arg::with_name("level")
                         .help("Characters of geohash precision")
@@ -75,6 +75,7 @@ fn main() {
                       .help("Also print the query entity in the output.\nUseful for mapping a geometry along with its covering Geohashes.")),
         )
         .subcommand(SubCommand::with_name("children").about("Get children for the given geohash"))
+        .subcommand(SubCommand::with_name("roots").about("List the Base32 Geohash root characters"))
         .subcommand(SubCommand::with_name("neighbors")
                     .about("Get neighbors of the given Geohash")
                     .arg(Arg::with_name("exclude")
