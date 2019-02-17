@@ -46,6 +46,16 @@ macro_rules! debug_tag (
 
 named!(json_content<&str, &str>, take_while!(is_non_brace));
 
+// named!(
+//     value<JsonValue>,
+//     ws!(alt!(
+//         hash   => { |h|   JsonValue::Object(h)            } |
+//         array  => { |v|   JsonValue::Array(v)             } |
+//         string => { |s|   JsonValue::Str(String::from(s)) } |
+//         float  => { |num| JsonValue::Num(num)             }
+//     ))
+// );
+
 // let nested = "{a{b}a}";
 // "{inner}"
 named!(json<&str, &str>,
@@ -54,10 +64,11 @@ named!(json<&str, &str>,
                    //     json_content | json
                    // ),
                    // take_while!(|_| false),
-                   fold_many0!(alt!(
-                       take_while!(is_non_brace) | json
-                   ), "", |acc, i| { println!("folding acc: {}, i: {}", acc, i); i }),
-                   // take_until!("}"),
+                   // debug_tag!("x"),
+                   // fold_many0!(alt!(
+                   //     json_content
+                   // ), "", |acc, i| { println!("folding acc: {}, i: {}", acc, i); i }),
+                   alt!(json|json_content),
                    // map_res!(take_while!(nom::is_alphanumeric),
                    //          str::from_utf8) ,
                    debug_tag!("}")
@@ -72,10 +83,10 @@ mod tests {
     #[test]
     fn test_hello() {
         // println!("{:?}", json("a"));
-        println!("{:?}", json("{}"));
+        println!("{:?}", json("{x}"));
         println!("{:?}", json("{inner}"));
         println!("{:?}", json("{in{n}er}"));
-        let nested = "{a{b}a}";
+        // let nested = "{a{b}a}";
         // assert_eq!(Ok(("", nested)), json(nested));
         // println!("** Start {{inner}} **");
         // println!("** Start {} **", nested);
