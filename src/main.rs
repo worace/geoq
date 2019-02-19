@@ -85,15 +85,18 @@ fn main() {
 
     let filter = SubCommand::with_name("filter")
         .about("Select features based on geospatial predicates")
+        .arg(Arg::with_name("query-file")
+             .help("Input file for reading query feature(s).")
+             .takes_value(true)
+             .global(true)
+             .long("query-file")
+             .short("q"))
         .subcommand(
             SubCommand::with_name("intersects")
                 .about("Output only entities (from STDIN) which intersect a QUERY entity (as command-line ARG)")
-                .arg(
-                    Arg::with_name("query")
-                        .help("Entity to check intersections.\nMust be Lat/Lon, Geohash, WKT, or GeoJSON.")
-                        .required(true)
-                        .index(1),
-                )
+                .arg(Arg::with_name("query")
+                     .help("Entity to check intersections.\nMust be Lat/Lon, Geohash, WKT, or GeoJSON.")
+                     .index(1))
         )
         .subcommand(
             SubCommand::with_name("contains")
@@ -101,8 +104,7 @@ fn main() {
                 .arg(
                     Arg::with_name("query")
                         .help("Entity to check intersections.\nMust be Geohash, WKT, or GeoJSON.\nMust be a POLYGON or MULTIPOLYGON.")
-                        .required(true)
-                        .index(1),
+                        .index(1)
                 )
         );
 

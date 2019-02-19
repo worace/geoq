@@ -1,73 +1,77 @@
 use geoq;
 use clap::ArgMatches;
 use geoq::error::Error;
-use geoq::entity;
+use geoq::entity::Entity;
 use geo_types::{Geometry, Polygon};
-use geoq::input;
+use geoq::reader::Reader;
 use geoq::par;
+use std::fs::File;
+use std::io::BufReader;
 
-fn intersects(matches: &ArgMatches) -> Result<(), Error> {
-    match matches.value_of("query") {
-        Some(q) => {
-            let query_input = try!(input::read_line(q.to_string()));
-            let query_entities = try!(entity::from_input(query_input));
-            if query_entities.is_empty() {
-                Err(Error::UnknownEntityFormat)
-            } else {
-                let query_geoms: Vec<Geometry<f64>> = query_entities.into_iter().map(|e| e.geom()).collect();
-
-                par::for_stdin_entity(move |entity| {
-                    let output = entity.raw();
-                    let geom = entity.geom();
-                    if query_geoms.iter().any(|ref query_geom| {
-                        geoq::intersection::intersects(query_geom, &geom)
-                    }) {
-                        Ok(vec![output])
-                    } else {
-                        Ok(vec![])
-                    }
-                })
-            }
+fn read_query_geoms(matches: &ArgMatches) -> Result<Vec<Geometry<f64>>, Error> {
+    let f = matches.value_of("query-file");
+    let q = matches.value_of("query");
+    match (f, q) {
+        (Some(path), None) => {
+            let f = try!(File::open(path));
+            let mut f = BufReader::new(f);
+            let reader = Reader::new(&mut f);
+            let entities: Vec<Entity> = try!(reader.into_iter().collect());
+            Ok(entities.into_iter().map(|e| e.geom()).collect())
         }
-        _ => Err(Error::MissingArgument),
+        (None, Some(q)) => {
+            let q_buff = q.as_bytes();
+            let mut f = BufReader::new(q_buff);
+            let reader = Reader::new(&mut f);
+            let entities: Vec<Entity> = try!(reader.into_iter().collect());
+            Ok(entities.into_iter().map(|e| e.geom()).collect())
+        }
+        _ => {
+            eprintln!("Must provide Query Features as either --file or positional argument.");
+            Err(Error::MissingArgument)
+        }
     }
 }
 
-fn contains(matches: &ArgMatches) -> Result<(), Error> {
-    match matches.value_of("query") {
-        Some(q) => {
-            let query_input = try!(input::read_line(q.to_string()));
-            let query_entities = try!(entity::from_input(query_input));
-            if query_entities.is_empty() {
-                Err(Error::UnknownEntityFormat)
-            } else {
-                let query_geoms: Vec<Geometry<f64>> = query_entities.into_iter().map(|e| e.geom()).collect();
-                let query_polygons: Vec<Polygon<f64>> = query_geoms.into_iter().flat_map(|geom| {
-                    match geom {
-                        Geometry::Polygon(poly) => vec![poly],
-                        Geometry::MultiPolygon(mp) => mp.0,
-                        _ => vec![]
-                    }
-                }).collect();
-
-                if query_polygons.is_empty() {
-                    Err(Error::PolygonRequired)
-                } else {
-                    par::for_stdin_entity(move |entity| {
-                        let output = entity.raw();
-                        let geom = entity.geom();
-                        if query_polygons.iter().any(|ref query_poly| {
-                            geoq::contains::contains(query_poly, &geom)
-                        }) {
-                            Ok(vec![output])
-                        } else {
-                            Ok(vec![])
-                        }
-                    })
-                }
-            }
+fn intersects(matches: &ArgMatches) -> Result<(), Error> {
+    let query_geoms = try!(read_query_geoms(matches));
+    par::for_stdin_entity(move |entity| {
+        let output = entity.raw();
+        let geom = entity.geom();
+        if query_geoms.iter().any(|ref query_geom| {
+            geoq::intersection::intersects(query_geom, &geom)
+        }) {
+            Ok(vec![output])
+        } else {
+            Ok(vec![])
         }
-        _ => Err(Error::MissingArgument),
+    })
+}
+
+fn contains(matches: &ArgMatches) -> Result<(), Error> {
+    let query_geoms = try!(read_query_geoms(matches));
+    let query_polygons: Vec<Polygon<f64>> = query_geoms.into_iter().flat_map(|geom| {
+        match geom {
+            Geometry::Polygon(poly) => vec![poly],
+            Geometry::MultiPolygon(mp) => mp.0,
+            _ => vec![]
+        }
+    }).collect();
+
+    if query_polygons.is_empty() {
+        Err(Error::PolygonRequired)
+    } else {
+        par::for_stdin_entity(move |entity| {
+            let output = entity.raw();
+            let geom = entity.geom();
+            if query_polygons.iter().any(|ref query_poly| {
+                geoq::contains::contains(query_poly, &geom)
+            }) {
+                Ok(vec![output])
+            } else {
+                Ok(vec![])
+            }
+        })
     }
 }
 
