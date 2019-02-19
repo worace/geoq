@@ -107,3 +107,26 @@ point on each input Feature.
 
 Distance for Features that cover the QUERY point (like a Polygon containing the point) will be 0.
 ";
+
+pub const FILTER_AFTER_HELP: &str = r"
+Select features based on geospatial predicates
+
+'filter' commands require 1 or more query geometries to
+be used for checking predicates.
+
+Queries can be provided as either a file input using the
+--query-file argument, or as a positional argument on the command line.
+
+The input format for queries is the same as normal geoq inputs.
+(See 'geoq help read' for more info)
+
+For example, to check inputs (via STDIN) against queries from a file:
+
+geoq filter intersects --query-file /path/to/inputs
+
+Or, to check against inputs from the command line:
+
+geoq filter intersects 9q5
+
+geoq filter contains 'Polygon ((30 10, 10 30, 40 40, 30 10))'
+";

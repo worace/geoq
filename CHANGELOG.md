@@ -1,5 +1,9 @@
 ## Changelog
 
+### 0.0.13
+
+Added an additional `--query-file` argument to the `filter` subcommand for specifying query inputs from a file instead of from the command line.
+
 ### 0.0.12
 
 Added `geoq gh roots` command for listing root geohash characters:

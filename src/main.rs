@@ -85,6 +85,7 @@ fn main() {
 
     let filter = SubCommand::with_name("filter")
         .about("Select features based on geospatial predicates")
+        .after_help(text::FILTER_AFTER_HELP)
         .arg(Arg::with_name("query-file")
              .help("Input file for reading query feature(s).")
              .takes_value(true)
