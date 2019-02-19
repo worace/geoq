@@ -522,6 +522,26 @@ fn filter_intersects() {
 }
 
 #[test]
+fn filter_intersects_query_file() {
+    let input = r#"34.2277,-118.2623
+{"type":"Polygon","coordinates":[[[-117.87231445312499,34.77997173591062],[-117.69653320312499,34.77997173591062],[-117.69653320312499,34.90170042871546],[-117.87231445312499,34.90170042871546],[-117.87231445312499,34.77997173591062]]]}
+{"type":"Polygon","coordinates":[[[-118.27880859375001,34.522398580663314],[-117.89154052734375,34.522398580663314],[-117.89154052734375,34.649025753526985],[-118.27880859375001,34.649025753526985],[-118.27880859375001,34.522398580663314]]]}
+"#;
+
+    let output = r#"34.2277,-118.2623
+{"type":"Polygon","coordinates":[[[-118.27880859375001,34.522398580663314],[-117.89154052734375,34.522398580663314],[-117.89154052734375,34.649025753526985],[-118.27880859375001,34.649025753526985],[-118.27880859375001,34.522398580663314]]]}
+"#;
+
+    Assert::main_binary()
+        .with_args(&["filter", "intersects", "--query-file", "./tests/resources/query_file.txt"])
+        .stdin(input)
+        .stdout()
+        .is(output)
+        .unwrap();
+
+}
+
+#[test]
 fn filter_intersects_linestring() {
     let input = r#"{"type":"Feature","properties":{},"geometry":{"type":"LineString","coordinates":[[-18.6328125,32.54681317351514],[33.75,-2.460181181020993]]}}
 "#;
@@ -590,6 +610,25 @@ fn filter_contains() {
 
     Assert::main_binary()
         .with_args(&["filter", "contains", filter])
+        .stdin(input)
+        .stdout()
+        .is(output)
+        .unwrap();
+}
+
+#[test]
+fn filter_contains_file() {
+    let input = r#"{"type": "LineString", "coordinates": [[-44.2529296875, 25.3241665257384], [-42.802734375, 25.502784548755354]]}
+{"type": "LineString", "coordinates": [[-45.41748046875, 24.186847428521244], [-45, 22.004174972902003]]}
+{"type": "Point", "coordinates": [-47.4609375, 21.453068633086783]}
+"#;
+
+    let output = r#"{"type": "LineString", "coordinates": [[-45.41748046875, 24.186847428521244], [-45, 22.004174972902003]]}
+{"type": "Point", "coordinates": [-47.4609375, 21.453068633086783]}
+"#;
+
+    Assert::main_binary()
+        .with_args(&["filter", "contains", "--query-file", "./tests/resources/query_file.txt"])
         .stdin(input)
         .stdout()
         .is(output)
