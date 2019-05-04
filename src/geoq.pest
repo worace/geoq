@@ -16,7 +16,7 @@ polygon = { ^"POLYGON" ~ "(" ~ coord_seq+ ~ ")" }
 wkt = { (point | ls | polygon) }
 
 base32 = { ASCII_DIGIT | 'b'..'h' | 'j'..'k' | 'm'..'n' | 'p'..'z'}
-geohash = { base32+ }
+geohash = @{ base32+ }
 
 json_boolean = { "true" | "false" }
 json_null = { "null" }

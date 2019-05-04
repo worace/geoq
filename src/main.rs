@@ -1,7 +1,10 @@
 #[macro_use]
 extern crate lazy_static;
+extern crate pest;
 #[macro_use]
 extern crate nom;
+#[macro_use]
+extern crate pest_derive;
 #[macro_use]
 extern crate serde_json;
 extern crate clap;
