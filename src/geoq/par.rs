@@ -8,6 +8,7 @@ use geoq::input;
 use geoq::entity::{self, Entity};
 use num_cpus;
 use std::io;
+use geoq::pest_parser;
 
 enum WorkerInput {
     Item(String),
@@ -139,15 +140,42 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
         }
     });
 
-    let reader = LineReader::new(input);
-    for (i, line) in reader.enumerate() {
-        input_channels[i % num_workers].send(WorkerInput::Item(line)).unwrap();
-    }
-    (0..num_workers).for_each(|i| input_channels[i].send(WorkerInput::Done).unwrap());
 
+    let reader = LineReader::new(input);
+    let mut pending_buf = String::new();
+
+    for (i, line) in reader.enumerate() {
+        println!("read line: {}", line);
+        let mut input = String::new();
+        if pending_buf.len() > 0 {
+            input.push_str(&pending_buf);
+        }
+        input.push_str(&line);
+
+        match pest_parser::read_inputs(&input) {
+            Ok(inputs) => {
+                for i in inputs {
+                    println!("** Reader Thread Inputs: **");
+                    println!("{}", i);
+                }
+                pending_buf.clear();
+            },
+            _ => {
+                pending_buf.push_str(&line);
+            }
+        }
+
+        // input_channels[i % num_workers].send(WorkerInput::Item(line)).unwrap();
+    }
+
+    (0..num_workers).for_each(|i| input_channels[i].send(WorkerInput::Done).unwrap());
     printer_thread.join().expect("Couldn't wait for printer thread to complete");
 
-    Ok(())
+    if pending_buf.len() > 0 {
+        Err(Error::UnknownEntityFormat)
+    } else {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -155,7 +183,7 @@ mod tests {
     use geoq::par::for_entity_par;
 
     #[test]
-    fn test_par_entities() {
+    fn test_par_entities_pizza() {
         // Problem:
         // Outputs need to be processed by the single printer
         // round-robin to preserve ordering
@@ -164,9 +192,15 @@ mod tests {
         // So outputs need to be Result(Vec<String>, Error)
         // and printer has to round-robin and then print all
         // outputs from that batch before continuing
+        println!("** START TEST PAR***\n\n");
         let mut input = r#"34.2277,-118.2623
 {"type":"Polygon","coordinates":[[[-117.87231445312499,34.77997173591062],[-117.69653320312499,34.77997173591062],[-117.69653320312499,34.90170042871546],[-117.87231445312499,34.90170042871546],[-117.87231445312499,34.77997173591062]]]}
 {"type":"Polygon","coordinates":[[[-118.27880859375001,34.522398580663314],[-117.89154052734375,34.522398580663314],[-117.89154052734375,34.649025753526985],[-118.27880859375001,34.649025753526985],[-118.27880859375001,34.522398580663314]]]}
+{"type":"Polygon",
+"coordinates":
+[[[-118.27880859375001,34.522398580663314],[-117.89154052734375,34.522398580663314],[-117.89154052734375,34.649025753526985],[-118.27880859375001,34.649025753526985],[-118.27880859375001,34.522398580663314]]]
+} 9q5cd
+
 "#.as_bytes();
 
         // let mut input = "9q5\n9q4".as_bytes();
@@ -174,5 +208,6 @@ mod tests {
             Ok(vec![format!("handling entity {}", entity).to_owned()])
         });
         assert!(res.is_ok());
+        assert!(false);
     }
 }

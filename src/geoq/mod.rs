@@ -11,3 +11,4 @@ pub mod par;
 pub mod centroid;
 pub mod distance;
 pub mod parser;
+pub mod pest_parser;

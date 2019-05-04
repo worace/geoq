@@ -103,7 +103,6 @@ mod tests {
         // let res = json(input);
         // println!("{:?}",res);
         // assert_eq!(Ok(("", "{inner}")), res);
-        assert_eq!(1,0)
 
     }
 
@@ -125,8 +124,6 @@ mod tests {
 
         println!("{:?}", json_str(input.as_bytes()).unwrap().0);
         println!("{:?}", str::from_utf8(json_str(input.as_bytes()).unwrap().1));
-
-        assert_eq!(1,0);
     }
 }
 
