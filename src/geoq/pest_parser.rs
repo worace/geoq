@@ -29,28 +29,6 @@ pub fn read_inputs(text: &str) -> Result<Vec<Input>, pest::error::Error<Rule>> {
     }
 }
 
-        // let mut pointer = "9q5\n9q4".as_bytes();
-        // let mut reader = Reader::new(&mut pointer);
-// fn to_input(Rule::)
-
-
-// pub fn read<'a>(instream: &'a BufRead) -> Iterator<Item = Entity> {
-//     // let pairs = GeoqParser::parse(Rule::geoq, "9q5 {} POINT(0 0)");
-//     vec![].into_iter();
-// }
-
-// pub struct Reader<'a> {
-//     reader: &'a mut BufRead,
-//     entities: VecDeque<Entity>
-// }
-
-// impl<'a> Reader<'a> {
-//     pub fn new(reader: &'a mut BufRead) -> Reader<'a> {
-//         Reader{reader, entities: VecDeque::new()}
-//     }
-// }
-
-
 #[cfg(test)]
 mod tests {
     use geoq::pest_parser::*;
@@ -97,6 +75,6 @@ mod tests {
         //     println!("Text:    {}", pair.as_str());
 
         // }
-        assert_eq!(2,3);
+        // assert_eq!(2,3);
     }
 }

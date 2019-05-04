@@ -9,9 +9,10 @@ use geoq::entity::{self, Entity};
 use num_cpus;
 use std::io;
 use geoq::pest_parser;
+use geoq::input::Input;
 
 enum WorkerInput {
-    Item(String),
+    Item(Input),
     Done
 }
 
@@ -77,29 +78,24 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
             loop {
                 match input_receiver.recv() {
                     Err(RecvError) => continue,
-                    Ok(WorkerInput::Item(line)) => {
+                    Ok(WorkerInput::Item(input)) => {
                         // TODO figure out how to make this work with arc
                         // output_sender.send(WorkerOutput::Item(handle_line(line, *handler)));
 
-                        match input::read_line(line) {
+                        match entity::from_input(input) {
                             Err(e) => output_sender.send(WorkerOutput::Item(Err(e))).unwrap(),
-                            Ok(input) => {
-                                match entity::from_input(input) {
-                                    Err(e) => output_sender.send(WorkerOutput::Item(Err(e))).unwrap(),
-                                    Ok(entities) => {
-                                        let mut results = Vec::new();
-                                        for e in entities {
-                                            match handler(e) {
-                                                Err(e) => {
-                                                    output_sender.send(WorkerOutput::Item(Err(e))).unwrap();
-                                                    break;
-                                                },
-                                                Ok(lines) => results.extend(lines)
-                                            }
-                                        }
-                                        output_sender.send(WorkerOutput::Item(Ok(results))).unwrap();
+                            Ok(entities) => {
+                                let mut results = Vec::new();
+                                for e in entities {
+                                    match handler(e) {
+                                        Err(e) => {
+                                            output_sender.send(WorkerOutput::Item(Err(e))).unwrap();
+                                            break;
+                                        },
+                                        Ok(lines) => results.extend(lines)
                                     }
                                 }
+                                output_sender.send(WorkerOutput::Item(Ok(results))).unwrap();
                             }
                         }
                     }
@@ -143,9 +139,9 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
 
     let reader = LineReader::new(input);
     let mut pending_buf = String::new();
+    let mut input_count = 0;
 
-    for (i, line) in reader.enumerate() {
-        println!("read line: {}", line);
+    for line in reader {
         let mut input = String::new();
         if pending_buf.len() > 0 {
             input.push_str(&pending_buf);
@@ -154,9 +150,9 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
 
         match pest_parser::read_inputs(&input) {
             Ok(inputs) => {
-                for i in inputs {
-                    println!("** Reader Thread Inputs: **");
-                    println!("{}", i);
+                for input in inputs {
+                    input_channels[input_count % num_workers].send(WorkerInput::Item(input)).unwrap();
+                    input_count += 1;
                 }
                 pending_buf.clear();
             },
@@ -165,7 +161,6 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
             }
         }
 
-        // input_channels[i % num_workers].send(WorkerInput::Item(line)).unwrap();
     }
 
     (0..num_workers).for_each(|i| input_channels[i].send(WorkerInput::Done).unwrap());
@@ -192,7 +187,6 @@ mod tests {
         // So outputs need to be Result(Vec<String>, Error)
         // and printer has to round-robin and then print all
         // outputs from that batch before continuing
-        println!("** START TEST PAR***\n\n");
         let mut input = r#"34.2277,-118.2623
 {"type":"Polygon","coordinates":[[[-117.87231445312499,34.77997173591062],[-117.69653320312499,34.77997173591062],[-117.69653320312499,34.90170042871546],[-117.87231445312499,34.90170042871546],[-117.87231445312499,34.77997173591062]]]}
 {"type":"Polygon","coordinates":[[[-118.27880859375001,34.522398580663314],[-117.89154052734375,34.522398580663314],[-117.89154052734375,34.649025753526985],[-118.27880859375001,34.649025753526985],[-118.27880859375001,34.522398580663314]]]}
@@ -208,6 +202,5 @@ mod tests {
             Ok(vec![format!("handling entity {}", entity).to_owned()])
         });
         assert!(res.is_ok());
-        assert!(false);
     }
 }

@@ -1,4 +1,4 @@
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+WHITESPACE = _{ " " | "\r" | "\n" }
 
 number = @{
     "-"?
@@ -38,6 +38,6 @@ json_object = {
 }
 json_pair = { json_string ~ ":" ~ value }
 
-latlon = { number ~ "," ~ number }
+latlon = { number ~ ("," | "\t") ~ number }
 
 geoq = _{ SOI ~ (latlon | wkt | geohash | json_object)* ~ EOI }

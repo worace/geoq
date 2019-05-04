@@ -44,7 +44,7 @@ fn invalid_wkt() {
         .with_args(&["read"])
         .stdin(input)
         .stderr()
-        .is("Application error: InvalidWkt")
+        .is("Application error: UnknownEntityFormat")
         .fails()
         .unwrap();
 }
