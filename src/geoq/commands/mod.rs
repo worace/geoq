@@ -1,5 +1,5 @@
 pub mod wkt;
-pub mod geojson;
+pub mod geojson_cmd;
 pub mod geohash;
 pub mod filter;
 pub mod map;

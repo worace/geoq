@@ -28,7 +28,10 @@ fn point(matches: &ArgMatches) -> Result<(), Error> {
     par::for_stdin_entity(move |e| {
         match e.geom() {
             geo_types::Geometry::Point(p) => {
-                Ok(vec![geohash::encode(p.0, level)])
+                match geohash::encode(p.0, level) {
+                    Ok(gh) => Ok(vec![gh]),
+                    _ => Err(Error::InvalidGeohashPoint)
+                }
             }
             _ => Err(Error::NotImplemented),
         }

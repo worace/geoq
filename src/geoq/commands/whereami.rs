@@ -1,6 +1,5 @@
 use geoq::error::Error;
 use serde_json;
-use serde_json::Value;
 use geo_types::Geometry;
 use geo_types::Point;
 
@@ -25,7 +24,7 @@ fn get_ip_geolocation() -> Result<(), Error> {
         return Err(Error::IPGeolocationError);
     }
 
-    let json: Value = json_res.unwrap();
+    let json: serde_json::Value = json_res.unwrap();
     let lat = json["lat"].as_f64();
     let lon = json["lon"].as_f64();
 

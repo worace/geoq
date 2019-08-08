@@ -78,11 +78,11 @@ pub fn distance(a: &Point<f64>, b: &Geometry<f64>) -> Option<f64> {
 #[cfg(test)]
 mod tests {
     extern crate geo_types;
-    extern crate geoq_wkt;
+    extern crate wkt;
 
     use geoq::distance::distance;
     use geo_types::{Geometry, Point, Polygon};
-    use geoq_wkt::ToWkt;
+    use wkt::ToWkt;
 
     #[test]
     fn test_point_to_point() {

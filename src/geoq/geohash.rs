@@ -2,7 +2,7 @@ extern crate geohash;
 extern crate geo_types;
 extern crate geo;
 
-use geo_types::{Geometry, Polygon, LineString, Point};
+use geo_types::{Geometry, Polygon, LineString, Point, Coordinate};
 use geoq::intersection;
 use geoq::contains;
 
@@ -24,7 +24,7 @@ pub fn neighbors(gh: &String, include_self: bool) -> Vec<String> {
         output.push(gh.clone());
     }
 
-    let neighbs = geohash::neighbors(gh);
+    let neighbs = geohash::neighbors(gh).unwrap();
     output.push(neighbs.n);
     output.push(neighbs.ne);
     output.push(neighbs.e);
@@ -36,16 +36,22 @@ pub fn neighbors(gh: &String, include_self: bool) -> Vec<String> {
     output
 }
 
-pub fn bbox(gh: &str) -> Polygon<f64> {
-    let (bl, tr) = geohash::decode_bbox(gh);
-    let outer = LineString(vec![
-        Point::new(bl.x, bl.y),
-        Point::new(tr.x, bl.y),
-        Point::new(tr.x, tr.y),
-        Point::new(bl.x, tr.y),
-        Point::new(bl.x, bl.y),
-    ]);
-    Polygon::new(outer, Vec::new())
+pub fn bbox(gh: &str) -> Option<Polygon<f64>> {
+    match geohash::decode_bbox(gh) {
+        Ok(rect) => {
+            let bl = rect.min;
+            let tr = rect.max;
+            let outer = LineString(vec![
+                Coordinate::from((bl.x, bl.y)),
+                Coordinate::from((tr.x, bl.y)),
+                Coordinate::from((tr.x, tr.y)),
+                Coordinate::from((bl.x, tr.y)),
+                Coordinate::from((bl.x, bl.y)),
+            ]);
+            Some(Polygon::new(outer, Vec::new()))
+        }
+        _ => None
+    }
 }
 
 pub fn covering(geom: &Geometry<f64>, level: usize) -> Vec<String> {
@@ -53,15 +59,18 @@ pub fn covering(geom: &Geometry<f64>, level: usize) -> Vec<String> {
     let mut queue: Vec<String> = vec!["".to_string()];
     while !queue.is_empty() {
         let gh = queue.pop().unwrap();
-        let poly = bbox(&gh);
-        if contains::contains(&poly, &geom) || intersection::poly_intersects(&poly, &geom) {
-            if gh.len() < level {
-                queue.extend(children(&gh));
-            } else {
-                ghs.push(gh);
+        match bbox(&gh) {
+            Some(poly) => {
+                if contains::contains(&poly, &geom) || intersection::poly_intersects(&poly, &geom) {
+                    if gh.len() < level {
+                        queue.extend(children(&gh));
+                    } else {
+                        ghs.push(gh);
+                    }
+                }
             }
+            None => ()
         }
     }
-
     ghs
 }
