@@ -2,18 +2,17 @@ extern crate geo_types;
 extern crate geohash;
 extern crate geojson;
 extern crate regex;
-extern crate geoq_wkt;
+extern crate wkt;
 
-use geo_types::{Geometry, LineString, Point, Polygon};
+use geo_types::{Geometry, LineString, Point, Polygon, Coordinate};
 use geoq::error::Error;
-use geojson::conversion::*;
 use geojson::GeoJson;
 use geoq::input::Input;
 use regex::Regex;
 use serde_json;
-use geoq_wkt::ToGeo;
-use geoq_wkt::ToWkt;
+use wkt::ToWkt;
 use std::fmt;
+use std::convert::TryInto;
 
 lazy_static! {
     static ref LATLON_SPLIT: Regex = Regex::new(",|\t").unwrap();
@@ -22,7 +21,7 @@ lazy_static! {
 pub enum Entity {
     LatLon(String),
     Geohash(String),
-    Wkt(String, geoq_wkt::Geometry<f64>),
+    Wkt(String, wkt::Geometry),
     GeoJsonFeature(String, geojson::Feature),
     GeoJsonGeometry(String, geojson::Geometry),
 }
@@ -47,19 +46,21 @@ fn latlon_geom(raw: &String) -> geo_types::Geometry<f64> {
 }
 
 fn geohash_geom(raw: &String) -> geo_types::Geometry<f64> {
-    let (bl, tr) = geohash::decode_bbox(raw);
+    let rect = geohash::decode_bbox(raw).expect("Invalid geohash");
+    let bl = rect.min;
+    let tr = rect.max;
     let outer = LineString(vec![
-        Point::new(bl.x, bl.y),
-        Point::new(tr.x, bl.y),
-        Point::new(tr.x, tr.y),
-        Point::new(bl.x, tr.y),
-        Point::new(bl.x, bl.y),
+        Coordinate::from((bl.x, bl.y)),
+        Coordinate::from((tr.x, bl.y)),
+        Coordinate::from((tr.x, tr.y)),
+        Coordinate::from((bl.x, tr.y)),
+        Coordinate::from((bl.x, bl.y)),
     ]);
     Geometry::Polygon(Polygon::new(outer, Vec::new()))
 }
 
 fn wkt_entities(raw: &String) -> Result<Vec<Entity>, Error> {
-    let wkt_res: Result<geoq_wkt::Wkt<f64>, &str> = geoq_wkt::Wkt::from_str(&raw);
+    let wkt_res: Result<wkt::Wkt, &str> = wkt::Wkt::from_str(&raw);
     let mut entities = Vec::new();
     match wkt_res {
         Ok(wkts) => {
@@ -105,7 +106,7 @@ impl Entity {
         match self {
             Entity::LatLon(ref raw) => latlon_geom(raw),
             Entity::Geohash(ref raw) => geohash_geom(raw),
-            Entity::Wkt(_, ref wkt_geom) => wkt_geom.to_geo().unwrap(),
+            Entity::Wkt(_, ref wkt_geom) => wkt::conversion::try_into_geometry(wkt_geom).unwrap(),
             Entity::GeoJsonGeometry(_, gj_geom) => gj_geom.value.try_into().unwrap(),
             Entity::GeoJsonFeature(_, gj_feature) => {
                 gj_feature.geometry.unwrap().value.try_into().unwrap()
@@ -113,7 +114,7 @@ impl Entity {
         }
     }
 
-    pub fn wkt(self) -> geoq_wkt::Geometry<f64> {
+    pub fn wkt(self) -> wkt::Geometry {
         let geom = self.geom();
         let mut wkt = geom.to_wkt();
         wkt.items.pop().unwrap()
@@ -172,9 +173,9 @@ pub fn from_input(i: Input) -> Result<Vec<Entity>, Error> {
 #[cfg(test)]
 mod tests {
     extern crate serde_json;
-    extern crate geoq_wkt;
+    extern crate wkt;
 
-    use geo_types::{Geometry, LineString, Point, Polygon};
+    use geo_types::{Geometry, LineString, Point, Polygon, Coordinate};
     use geoq::entity::{self, Entity};
     use geoq::input::Input;
     use serde_json::{Map as JMap};
@@ -259,9 +260,9 @@ mod tests {
     fn entities_for_wkt() {
         let exp_geom = LineString(
             vec![
-                Point::new(30.0, 10.0),
-                Point::new(10.0, 30.0),
-                Point::new(40.0, 40.0),
+                Coordinate::from((30.0, 10.0)),
+                Coordinate::from((10.0, 30.0)),
+                Coordinate::from((40.0, 40.0)),
             ].into(),
         );
         check(Input::WKT("LINESTRING (30 10, 10 30, 40 40)".to_string()),
@@ -277,9 +278,9 @@ mod tests {
     fn entities_for_geojson_geometry() {
         let exp_geom = LineString(
             vec![
-                Point::new(-26.01, 59.17),
-                Point::new(-15.46, 45.58),
-                Point::new(0.35, 35.74),
+                Coordinate::from((-26.01, 59.17)),
+                Coordinate::from((-15.46, 45.58)),
+                Coordinate::from((0.35, 35.74)),
             ].into(),
         );
         let raw = "{\"type\": \"LineString\", \"coordinates\": [[-26.01, 59.17], [-15.46, 45.58], [0.35, 35.74]]}";
@@ -300,9 +301,9 @@ mod tests {
         let i = Input::GeoJSON(raw.to_string());
         let exp_geom = LineString(
             vec![
-                Point::new(-26.01, 59.17),
-                Point::new(-15.46, 45.58),
-                Point::new(0.35, 35.74),
+                Coordinate::from((-26.01, 59.17)),
+                Coordinate::from((-15.46, 45.58)),
+                Coordinate::from((0.35, 35.74)),
             ].into(),
         );
 

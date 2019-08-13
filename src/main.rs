@@ -7,7 +7,7 @@ extern crate geo;
 extern crate geo_types;
 extern crate geohash;
 extern crate geojson;
-extern crate geoq_wkt;
+extern crate wkt;
 extern crate os_type;
 extern crate percent_encoding;
 extern crate regex;
@@ -25,7 +25,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("wkt", Some(_)) => commands::wkt::run(),
         ("read", Some(_)) => commands::read::run(),
-        ("gj", Some(m)) => commands::geojson::run(m),
+        ("gj", Some(m)) => commands::geojson_cmd::run(m),
         ("gh", Some(m)) => commands::geohash::run(m),
         ("map", Some(_)) => commands::map::run(),
         ("filter", Some(m)) => commands::filter::run(m),

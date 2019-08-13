@@ -22,7 +22,8 @@ pub enum Error {
     HTTPError,
     TooManyFeatures,
     PointRequired,
-    DistanceFailed
+    DistanceFailed,
+    InvalidGeohashPoint
 }
 
 impl From<io::Error> for Error {
