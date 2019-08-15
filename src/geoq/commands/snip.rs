@@ -40,7 +40,7 @@ pub fn run() -> Result<(), Error> {
         let client = reqwest::Client::builder()
             .redirect(reqwest::RedirectPolicy::none())
             .build()?;
-        let resp = client.post("https://contourdb.com/scratchpad")
+        let resp = client.post("https://contour.app/scratchpad")
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .body(fc_json)
             .send()?;
