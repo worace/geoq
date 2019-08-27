@@ -59,32 +59,76 @@ fn coord_ring<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<Co
     )(i)
 }
 
-fn point<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
-    map(context("Point",
-                delimited(
-                    char('{'),
-                    alt(
-                        (map(separated_pair(
-                            tag("\"type\":\"Point\""),
-                            char(','),
-                            preceded(
-                                tag("\"coordinates\":"),
-                                coord_pair
-                            )
-                        ), |(_, coords)| coords),
-                         map(separated_pair(
-                             preceded(
-                                 tag("\"coordinates\":"),
-                                 coord_pair
-                             ),
-                             char(','),
-                             tag("\"type\":\"Point\"")
-                         ), |(coords, _)| coords))
-                    ),
-                    char('}')
-                )
-    ), Geometry::Point)(i)
+type Parser<'a, T, E: ParseError<&'a str>> = dyn Fn(&'a str) -> IResult<&'a str, T, E>;
 
+// pub fn pair<I, O1, O2, E: ParseError<I>, F, G>(first: F, second: G) -> impl Fn(I) -> IResult<I, (O1, O2), E>
+// where
+//   F: Fn(I) -> IResult<I, O1, E>,
+//   G: Fn(I) -> IResult<I, O2, E>,
+// {
+//   move |input: I| {
+//     let (input, o1) = first(input)?;
+//     second(input).map(|(i, o2)| (i, (o1, o2)))
+//   }
+// }
+
+
+fn geometry<'a, T, E: ParseError<&'a str>>(type_parser: &'a T) -> impl Fn(&'a str) -> IResult<&'a str, Coordinates, E>
+    where T: Fn(&'a str) -> IResult<&'a str, &'a str, E>,
+{
+    context("Point",
+            delimited(
+                char('{'),
+                alt(
+                    (map(separated_pair(
+                        type_parser,
+                        char(','),
+                        preceded(
+                            tag("\"coordinates\":"),
+                            coord_pair
+                        )
+                    ), |(_, coords)| coords),
+                     map(separated_pair(
+                         preceded(
+                             tag("\"coordinates\":"),
+                             coord_pair
+                         ),
+                         char(','),
+                         type_parser,
+                     ), |(coords, _)| coords))
+                ),
+                char('}')
+            )
+    )
+}
+
+fn point<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
+    let type_parser = tag("\"type\":\"Point\"");
+    map(geometry(&type_parser), Geometry::Point)(i)
+    // map(context("Point",
+    //             delimited(
+    //                 char('{'),
+    //                 alt(
+    //                     (map(separated_pair(
+    //                         tag("\"type\":\"Point\""),
+    //                         char(','),
+    //                         preceded(
+    //                             tag("\"coordinates\":"),
+    //                             coord_pair
+    //                         )
+    //                     ), |(_, coords)| coords),
+    //                      map(separated_pair(
+    //                          preceded(
+    //                              tag("\"coordinates\":"),
+    //                              coord_pair
+    //                          ),
+    //                          char(','),
+    //                          tag("\"type\":\"Point\"")
+    //                      ), |(coords, _)| coords))
+    //                 ),
+    //                 char('}')
+    //             )
+    // ), Geometry::Point)(i)
 }
 
 fn linestring<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
