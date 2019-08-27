@@ -1,10 +1,10 @@
-use nom::{Err, IResult,
-          bytes::streaming::take_while,
+use nom::{ IResult,
+           branch::alt,
+          bytes::streaming::{take_while, tag},
           number::streaming::double,
           character::streaming::char,
-          separated_pair,
           combinator::map,
-          error::{context, convert_error, ErrorKind, ParseError,VerboseError},
+          error::{context, ErrorKind, ParseError},
           sequence::{delimited, preceded, separated_pair, terminated}
 };
 
@@ -25,11 +25,14 @@ fn sp<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
 // {"type": "Point", "coordinates": [0,0]}
 
 #[derive(Debug, PartialEq)]
+pub struct Coordinates(f64, f64);
+
+#[derive(Debug, PartialEq)]
 pub enum Geometry {
-    Coordinates((f64, f64))
+    Point(Coordinates)
 }
 
-fn coordinates<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
+fn coordinates<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Coordinates, E> {
     map(context(
         "coordinates",
         preceded(
@@ -39,14 +42,42 @@ fn coordinates<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geome
                 char(']')
             )
         )),
-        Geometry::Coordinates
+        |(x,y)| Coordinates(x,y)
     )(i)
+}
+
+fn point<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
+    map(context("point",
+                delimited(
+                    char('{'),
+                    alt(
+                        (map(separated_pair(
+                            tag("\"type\":\"Point\""),
+                            char(','),
+                            preceded(
+                                tag("\"coordinates\":"),
+                                coordinates
+                            )
+                        ), |(_, coords)| coords),
+                         map(separated_pair(
+                             preceded(
+                                 tag("\"coordinates\":"),
+                                 coordinates
+                             ),
+                             char(','),
+                             tag("\"type\":\"Point\"")
+                         ), |(coords, _)| coords))
+                    ),
+                    char('}')
+                )
+    ), Geometry::Point)(i)
+
 }
 
 fn root<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
     preceded(
         sp,
-        coordinates
+        point
     )(i)
 }
 
@@ -57,7 +88,8 @@ mod tests {
     use geoq::parser::*;
     #[test]
     fn test_parser_hello() {
-        assert_eq!(root::<(&str, ErrorKind)>("[0.0,0.0]\n"), Ok(("\n", Geometry::Coordinates((0.0, 0.0)))));
+        assert_eq!(root::<(&str, ErrorKind)>("{\"type\":\"Point\",\"coordinates\":[0.0,0.0]}\n"), Ok(("\n", Geometry::Point(Coordinates(0.0, 0.0)))));
+        assert_eq!(root::<(&str, ErrorKind)>("{\"coordinates\":[0.0,0.0],\"type\":\"Point\"}\n"), Ok(("\n", Geometry::Point(Coordinates(0.0, 0.0)))));
         assert_eq!(1, 1);
     }
 }
