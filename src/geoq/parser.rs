@@ -1,11 +1,12 @@
 use nom::{ IResult,
            branch::alt,
-          bytes::streaming::{take_while, tag},
-          number::streaming::double,
-          character::streaming::char,
-          combinator::map,
-          error::{context, ErrorKind, ParseError},
-          sequence::{delimited, preceded, separated_pair, terminated}
+           bytes::streaming::{take_while, tag},
+           multi::separated_list,
+           number::streaming::double,
+           character::streaming::char,
+           combinator::map,
+           error::{context, ErrorKind, ParseError},
+           sequence::{delimited, preceded, separated_pair, terminated}
 };
 
 // rustup doc
@@ -24,15 +25,16 @@ fn sp<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
 
 // {"type": "Point", "coordinates": [0,0]}
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Coordinates(f64, f64);
 
 #[derive(Debug, PartialEq)]
 pub enum Geometry {
-    Point(Coordinates)
+    Point(Coordinates),
+    LineString(Vec<Coordinates>)
 }
 
-fn coordinates<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Coordinates, E> {
+fn coord_pair<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Coordinates, E> {
     map(context(
         "coordinates",
         preceded(
@@ -46,8 +48,19 @@ fn coordinates<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Coord
     )(i)
 }
 
+fn coord_ring<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<Coordinates>, E> {
+    context(
+        "coordinate ring",
+        delimited(
+            char('['),
+            separated_list(char(','), coord_pair),
+            char(']')
+        )
+    )(i)
+}
+
 fn point<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
-    map(context("point",
+    map(context("Point",
                 delimited(
                     char('{'),
                     alt(
@@ -56,13 +69,13 @@ fn point<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E
                             char(','),
                             preceded(
                                 tag("\"coordinates\":"),
-                                coordinates
+                                coord_pair
                             )
                         ), |(_, coords)| coords),
                          map(separated_pair(
                              preceded(
                                  tag("\"coordinates\":"),
-                                 coordinates
+                                 coord_pair
                              ),
                              char(','),
                              tag("\"type\":\"Point\"")
@@ -74,22 +87,68 @@ fn point<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E
 
 }
 
-fn root<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
-    preceded(
-        sp,
-        point
-    )(i)
+fn linestring<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
+    map(context("LineString",
+                delimited(
+                    char('{'),
+                    alt(
+                        (map(separated_pair(
+                            tag("\"type\":\"LineString\""),
+                            char(','),
+                            preceded(
+                                tag("\"coordinates\":"),
+                                coord_ring
+                            )
+                        ), |(_, coords)| coords),
+                         map(separated_pair(
+                             preceded(
+                                 tag("\"coordinates\":"),
+                                 coord_ring
+                             ),
+                             char(','),
+                             tag("\"type\":\"LineString\"")
+                         ), |(coords, _)| coords))
+                    ),
+                    char('}')
+                )
+    ), Geometry::LineString)(i)
+
 }
 
-
+fn root<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
+    alt(
+        (point,
+         linestring)
+    )(i)
+}
 
 #[cfg(test)]
 mod tests {
     use geoq::parser::*;
     #[test]
-    fn test_parser_hello() {
+    fn test_coord_pair() {
+        assert_eq!(coord_pair::<(&str, ErrorKind)>("[0.0,0.0]"), Ok(("", Coordinates(0.0, 0.0))));
+    }
+
+    #[test]
+    fn test_coord_ring() {
+        assert_eq!(coord_ring::<(&str, ErrorKind)>("[[0.0,0.0],[1.0,2.0]]"),
+                   Ok(("", vec![Coordinates(0.0, 0.0), Coordinates(1.0, 2.0)]))
+        );
+    }
+
+    #[test]
+    fn test_point() {
         assert_eq!(root::<(&str, ErrorKind)>("{\"type\":\"Point\",\"coordinates\":[0.0,0.0]}\n"), Ok(("\n", Geometry::Point(Coordinates(0.0, 0.0)))));
         assert_eq!(root::<(&str, ErrorKind)>("{\"coordinates\":[0.0,0.0],\"type\":\"Point\"}\n"), Ok(("\n", Geometry::Point(Coordinates(0.0, 0.0)))));
-        assert_eq!(1, 1);
+    }
+
+    #[test]
+    fn test_linestring() {
+        let coords = vec![Coordinates(0.0, 0.0), Coordinates(1.0, 2.0)];
+        assert_eq!(root::<(&str, ErrorKind)>("{\"type\":\"LineString\",\"coordinates\":[[0.0,0.0],[1.0,2.0]]}\n"),
+                   Ok(("\n", Geometry::LineString(coords.clone()))));
+        assert_eq!(root::<(&str, ErrorKind)>("{\"coordinates\":[[0.0,0.0],[1.0,2.0]],\"type\":\"LineString\"}\n"),
+                   Ok(("\n", Geometry::LineString(coords.clone()))));
     }
 }
