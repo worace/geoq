@@ -12,6 +12,7 @@ extern crate os_type;
 extern crate percent_encoding;
 extern crate regex;
 extern crate num_cpus;
+extern crate nom;
 
 mod geoq;
 use geoq::commands;

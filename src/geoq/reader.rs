@@ -9,17 +9,17 @@ use std::collections::VecDeque;
 use std::iter::FromIterator;
 
 pub struct Reader<'a> {
-    reader: &'a mut BufRead,
+    reader: &'a mut dyn BufRead,
     entities: VecDeque<Entity>
 }
 
 impl<'a> Reader<'a> {
-    pub fn new(reader: &'a mut BufRead) -> Reader<'a> {
+    pub fn new(reader: &'a mut dyn BufRead) -> Reader<'a> {
         Reader{reader, entities: VecDeque::new()}
     }
 }
 
-pub fn read_line(buf_read: &mut BufRead) -> Option<String> {
+pub fn read_line(buf_read: &mut dyn BufRead) -> Option<String> {
     let mut buf = String::new();
     let bytes_read = buf_read.read_line(&mut buf);
     match bytes_read {
@@ -66,7 +66,7 @@ impl<'a> Iterator for Reader<'a> {
 }
 
 pub fn entities<F>(handler: F) -> Result<(), Error>
-where F: Fn(&mut Iterator<Item = Result<Entity, Error>>) -> Result<(), Error>
+where F: Fn(&mut dyn Iterator<Item = Result<Entity, Error>>) -> Result<(), Error>
 {
     let stdin = io::stdin();
     let mut stdin_reader = stdin.lock();

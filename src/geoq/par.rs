@@ -20,11 +20,11 @@ enum WorkerOutput {
 }
 
 pub struct LineReader<'a> {
-    reader: &'a mut BufRead
+    reader: &'a mut dyn BufRead
 }
 
 impl<'a> LineReader<'a> {
-    pub fn new(reader: &'a mut BufRead) -> LineReader<'a> {
+    pub fn new(reader: &'a mut dyn BufRead) -> LineReader<'a> {
         LineReader{reader}
     }
 }
@@ -57,7 +57,7 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
 }
 
 const WORKER_BUF_SIZE: usize = 5000;
-pub fn for_entity_par<'a, F: 'static>(input: &'a mut BufRead, handler: F) -> Result<(), Error>
+pub fn for_entity_par<'a, F: 'static>(input: &'a mut dyn BufRead, handler: F) -> Result<(), Error>
 where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
 {
     let num_workers = num_cpus::get();

@@ -2,7 +2,7 @@ extern crate geohash;
 extern crate geo_types;
 extern crate geo;
 
-use geo_types::{Geometry, Polygon, LineString, Point, Coordinate};
+use geo_types::{Geometry, Polygon, LineString, Coordinate};
 use geoq::intersection;
 use geoq::contains;
 
