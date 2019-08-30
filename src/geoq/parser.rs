@@ -59,7 +59,7 @@ fn coord_ring<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<Co
     )(i)
 }
 
-type Parser<'a, T, E: ParseError<&'a str>> = dyn Fn(&'a str) -> IResult<&'a str, T, E>;
+// type Parser<'a, T, E: ParseError<&'a str>> = dyn Fn(&'a str) -> IResult<&'a str, T, E>;
 
 // pub fn pair<I, O1, O2, E: ParseError<I>, F, G>(first: F, second: G) -> impl Fn(I) -> IResult<I, (O1, O2), E>
 // where
@@ -73,8 +73,8 @@ type Parser<'a, T, E: ParseError<&'a str>> = dyn Fn(&'a str) -> IResult<&'a str,
 // }
 
 
-fn geometry<'a, T, E: ParseError<&'a str>>(type_parser: &'a T) -> impl Fn(&'a str) -> IResult<&'a str, Coordinates, E>
-    where T: Fn(&'a str) -> IResult<&'a str, &'a str, E>,
+fn geometry<'a, F, Error: ParseError<&'a str>>(type_parser: F, type_parser_2: F) -> impl Fn(&'a str) -> IResult<&'a str, Coordinates, Error>
+where F: Fn(&'a str) -> IResult<&'a str, &'a str, Error>,
 {
     context("Point",
             delimited(
@@ -94,7 +94,7 @@ fn geometry<'a, T, E: ParseError<&'a str>>(type_parser: &'a T) -> impl Fn(&'a st
                              coord_pair
                          ),
                          char(','),
-                         type_parser,
+                         type_parser_2,
                      ), |(coords, _)| coords))
                 ),
                 char('}')
@@ -103,8 +103,10 @@ fn geometry<'a, T, E: ParseError<&'a str>>(type_parser: &'a T) -> impl Fn(&'a st
 }
 
 fn point<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
-    let type_parser = tag("\"type\":\"Point\"");
-    map(geometry(&type_parser), Geometry::Point)(i)
+    let type_parser = tag::<'a, &'a str, &'a str, E>("\"type\":\"Point\"");
+    let type_parser_2 = tag::<'a, &'a str, &'a str, E>("\"type\":\"Point\"");
+    map(geometry(type_parser, type_parser_2), Geometry::Point)(i)
+
     // map(context("Point",
     //             delimited(
     //                 char('{'),
