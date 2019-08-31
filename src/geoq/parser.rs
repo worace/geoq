@@ -72,31 +72,34 @@ fn coord_ring<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<Co
 //   }
 // }
 
+fn type_parser<'a, Error: ParseError<&'a str>>(type_name: &'a str) -> impl Fn(&'a str) -> IResult<&'a str, &'a str, Error> {
+    preceded(tag("\"type\":"), delimited(char('"'), tag(type_name), char('"')))
+}
 
-fn geometry<'a, TP, CoordT, CoordP, Error: ParseError<&'a str>>(type_parser: TP, type_parser_2: TP, coord_parser_1: CoordP, coord_parser_2: CoordP) -> impl Fn(&'a str) -> IResult<&'a str, CoordT, Error>
-where TP: Fn(&'a str) -> IResult<&'a str, &'a str, Error>,
-      CoordP: Fn(&'a str) -> IResult<&'a str, CoordT, Error>,
-      CoordT: std::marker::Sized
+fn geometry<'a, CoordT, Error: ParseError<&'a str>>(type_name: &'static str, coord_parser: fn(&'a str) -> IResult<&'a str, CoordT, Error>) -> impl Fn(&'a str) -> IResult<&'a str, CoordT, Error>
+where CoordT: std::marker::Sized
 {
-    context("Point",
+    let tp1 = type_parser(type_name);
+    let tp2 = type_parser(type_name);
+    context(type_name,
             delimited(
                 char('{'),
                 alt(
                     (map(separated_pair(
-                        type_parser,
+                        tp1,
                         char(','),
                         preceded(
                             tag("\"coordinates\":"),
-                            coord_parser_1
+                            coord_parser
                         )
                     ), |(_, coords)| coords),
                      map(separated_pair(
                          preceded(
                              tag("\"coordinates\":"),
-                             coord_parser_2
+                             coord_parser
                          ),
                          char(','),
-                         type_parser_2,
+                         tp2,
                      ), |(coords, _)| coords))
                 ),
                 char('}')
@@ -105,16 +108,11 @@ where TP: Fn(&'a str) -> IResult<&'a str, &'a str, Error>,
 }
 
 fn point<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
-    let type_parser = tag::<'a, &'a str, &'a str, E>("\"type\":\"Point\"");
-    let type_parser_2 = tag::<'a, &'a str, &'a str, E>("\"type\":\"Point\"");
-    // q: u can do &coord_pair ?
-    map(geometry(type_parser, type_parser_2, &coord_pair, &coord_pair), Geometry::Point)(i)
+    map(geometry("Point", coord_pair), Geometry::Point)(i)
 }
 
 fn linestring<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
-    let type_parser = tag::<'a, &'a str, &'a str, E>("\"type\":\"LineString\"");
-    let type_parser_2 = tag::<'a, &'a str, &'a str, E>("\"type\":\"LineString\"");
-    map(geometry(type_parser, type_parser_2, &coord_ring, &coord_ring), Geometry::LineString)(i)
+    map(geometry("LineString", coord_ring), Geometry::LineString)(i)
 }
 
 fn root<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
