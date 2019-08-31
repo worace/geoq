@@ -18,6 +18,26 @@ use nom::{ IResult,
 // http://localhost:4000/Users/worace/code/nom/doc/upgrading_to_nom_5.md
 // http://localhost:4000/Users/worace/code/nom/doc/choosing_a_combinator.md
 
+
+// JSON Spacing
+// https://tools.ietf.org/html/rfc4627
+// These are the six structural characters:
+
+//    begin-array     = ws %x5B ws  ; [ left square bracket
+//    begin-object    = ws %x7B ws  ; { left curly bracket
+//    end-array       = ws %x5D ws  ; ] right square bracket
+//    end-object      = ws %x7D ws  ; } right curly bracket
+//    name-separator  = ws %x3A ws  ; : colon
+//    value-separator = ws %x2C ws  ; , comma
+
+// Insignificant whitespace is allowed before or after any of the six
+// structural characters.
+//    ws = *(
+//              %x20 /              ; Space
+//              %x09 /              ; Horizontal tab
+//              %x0A /              ; Line feed or New line
+//              %x0D                ; Carriage return
+//          )
 fn sp<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
   let chars = " \t\r\n";
   take_while(move |c| chars.contains(c))(i)
@@ -115,7 +135,7 @@ fn linestring<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geomet
     map(geometry("LineString", coord_ring), Geometry::LineString)(i)
 }
 
-fn root<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
+pub fn root<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
     alt(
         (point,
          linestring)
