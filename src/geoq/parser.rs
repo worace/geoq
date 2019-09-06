@@ -15,7 +15,10 @@ pub struct Coordinates(f64, f64);
 pub enum Geometry {
     Point(Coordinates),
     MultiPoint(Vec<Coordinates>),
-    LineString(Vec<Coordinates>)
+    LineString(Vec<Coordinates>),
+    MultiLineString(Vec<Vec<Coordinates>>),
+    Polygon(Vec<Vec<Coordinates>>),
+    MultiPolygon(Vec<Vec<Vec<Coordinates>>>)
 }
 
 fn coord_pair<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Coordinates, E> {
@@ -32,7 +35,7 @@ fn coord_pair<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Coordi
     )(i)
 }
 
-fn coord_sequence<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<Coordinates>, E> {
+fn coord_seq<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<Coordinates>, E> {
     context(
         "coordinate ring",
         delimited(
@@ -43,6 +46,27 @@ fn coord_sequence<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Ve
     )(i)
 }
 
+fn coord_seq_seq<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<Vec<Coordinates>>, E> {
+    context(
+        "coordinate sequence sequence",
+        delimited(
+            spaced(char('[')),
+            separated_list(spaced(char(',')), coord_seq),
+            spaced(char(']'))
+        )
+    )(i)
+}
+
+fn coord_seq_seq_seq<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<Vec<Vec<Coordinates>>>, E> {
+    context(
+        "coordinate sequence sequence sequence",
+        delimited(
+            spaced(char('[')),
+            separated_list(spaced(char(',')), coord_seq_seq),
+            spaced(char(']'))
+        )
+    )(i)
+}
 
 fn spaced<'a, T, Error: ParseError<&'a str>>(inner: impl Fn(&'a str) -> IResult<&'a str, T, Error>) -> impl Fn(&'a str) -> IResult<&'a str, T, Error>
 where T: std::marker::Sized
@@ -104,16 +128,28 @@ fn point<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E
 }
 
 fn linestring<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
-    map(geometry("LineString", coord_sequence), Geometry::LineString)(i)
+    map(geometry("LineString", coord_seq), Geometry::LineString)(i)
 }
 
 fn multipoint<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
-    map(geometry("MultiPoint", coord_sequence), Geometry::MultiPoint)(i)
+    map(geometry("MultiPoint", coord_seq), Geometry::MultiPoint)(i)
+}
+
+fn multilinestring<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
+    map(geometry("MultiLineString", coord_seq_seq), Geometry::MultiLineString)(i)
+}
+
+fn polygon<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
+    map(geometry("Polygon", coord_seq_seq), Geometry::Polygon)(i)
+}
+
+fn multipolygon<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
+    map(geometry("MultiPolygon", coord_seq_seq_seq), Geometry::MultiPolygon)(i)
 }
 
 pub fn root<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
     alt(
-        (point, multipoint, linestring)
+        (point, multipoint, linestring, multilinestring, polygon, multipolygon)
     )(i)
 }
 
@@ -128,9 +164,17 @@ mod tests {
     }
 
     #[test]
-    fn test_coord_sequence() {
-        assert_eq!(coord_sequence::<(&str, ErrorKind)>("[[0.0,0.0],[1.0,2.0]]"),
+    fn test_coord_seq() {
+        assert_eq!(coord_seq::<(&str, ErrorKind)>("[[0.0,0.0],[1.0,2.0]]"),
                    Ok(("", vec![Coordinates(0.0, 0.0), Coordinates(1.0, 2.0)]))
+        );
+    }
+
+    #[test]
+    fn test_coord_seq_seq() {
+        assert_eq!(coord_seq_seq::<(&str, ErrorKind)>("[[[0.0,0],[1.0,-2.0]],[[3.567,4.0],[5.0,6.0]]]"),
+                   Ok(("", vec![vec![Coordinates(0.0, 0.0), Coordinates(1.0, -2.0)],
+                                vec![Coordinates(3.567, 4.0), Coordinates(5.0, 6.0)]]))
         );
     }
 
@@ -157,6 +201,55 @@ mod tests {
                    Ok(("", Geometry::MultiPoint(coords.clone()))));
         assert_eq!(root::<(&str, ErrorKind)>("{\"coordinates\":[[0.0,0.0],[1.0,2.0]],\"type\":\"MultiPoint\"}"),
                    Ok(("", Geometry::MultiPoint(coords.clone()))));
+    }
+
+    #[test]
+    fn test_multilinestring() {
+        let coords = vec![vec![Coordinates(0.0, 0.0), Coordinates(1.0, 2.0)],
+                          vec![Coordinates(3.0, 4.0), Coordinates(5.0, 6.0)]];
+        assert_eq!(root::<(&str, ErrorKind)>("{\"type\":\"MultiLineString\",\"coordinates\":[[[0.0,0.0],[1.0,2.0]],[[3.0,4.0],[5.0,6.0]]]}"),
+                   Ok(("", Geometry::MultiLineString(coords.clone()))));
+        assert_eq!(root::<(&str, ErrorKind)>("{\"coordinates\":[[[0.0,0.0],[1.0,2.0]],[[3.0,4.0],[5.0,6.0]]],\"type\":\"MultiLineString\"}"),
+                   Ok(("", Geometry::MultiLineString(coords.clone()))));
+    }
+
+    #[test]
+    fn test_polygon() {
+        let poly_str = r#"
+          {
+            "type": "Polygon",
+            "coordinates": [
+                [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ],
+                [ [100.2, 0.2], [100.8, 0.2], [100.8, 0.8], [100.2, 0.8], [100.2, 0.2] ]
+            ]
+          }"#;
+
+        let coords = vec![vec![Coordinates(100.0, 0.0), Coordinates(101.0, 0.0), Coordinates(101.0, 1.0), Coordinates(100.0, 1.0), Coordinates(100.0, 0.0)],
+                          vec![Coordinates(100.2, 0.2), Coordinates(100.8, 0.2), Coordinates(100.8, 0.8), Coordinates(100.2, 0.8), Coordinates(100.2, 0.2)]];
+        assert_eq!(root::<(&str, ErrorKind)>(poly_str), Ok(("", Geometry::Polygon(coords.clone()))));
+    }
+
+    #[test]
+    fn test_multipolygon() {
+        let mp_str = r#"
+        {
+          "type": "MultiPolygon",
+          "coordinates": [
+              [
+                  [ [102.0, 2.0], [103.0, 2.0], [103.0, 3.0], [102.0, 3.0], [102.0, 2.0] ]
+              ],
+              [
+                  [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ],
+                  [ [100.2, 0.2], [100.8, 0.2], [100.8, 0.8], [100.2, 0.8], [100.2, 0.2] ]
+              ]
+          ]
+        }"#;
+        let coords = vec![
+            vec![vec![Coordinates(102.0, 2.0), Coordinates(103.0, 2.0), Coordinates(103.0, 3.0), Coordinates(102.0, 3.0), Coordinates(102.0, 2.0)]],
+            vec![vec![Coordinates(100.0, 0.0), Coordinates(101.0, 0.0), Coordinates(101.0, 1.0), Coordinates(100.0, 1.0), Coordinates(100.0, 0.0)],
+                 vec![Coordinates(100.2, 0.2), Coordinates(100.8, 0.2), Coordinates(100.8, 0.8), Coordinates(100.2, 0.8), Coordinates(100.2, 0.2)]]
+        ];
+        assert_eq!(root::<(&str, ErrorKind)>(mp_str), Ok(("", Geometry::MultiPolygon(coords.clone()))));
     }
 }
 
