@@ -18,7 +18,8 @@ pub enum Geometry {
     LineString(Vec<Coordinates>),
     MultiLineString(Vec<Vec<Coordinates>>),
     Polygon(Vec<Vec<Coordinates>>),
-    MultiPolygon(Vec<Vec<Vec<Coordinates>>>)
+    MultiPolygon(Vec<Vec<Vec<Coordinates>>>),
+    GeometryCollection(Vec<Geometry>)
 }
 
 fn coord_pair<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Coordinates, E> {
@@ -147,9 +148,52 @@ fn multipolygon<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geom
     map(geometry("MultiPolygon", coord_seq_seq_seq), Geometry::MultiPolygon)(i)
 }
 
+fn geometry_collection<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
+    let tp1 = type_parser("GeometryCollection");
+    let tp2 = type_parser("GeometryCollection");
+    let geoms_1 = delimited(
+        spaced(char('[')),
+        separated_list(spaced(char(',')), primitive_geometry),
+        spaced(char(']'))
+    );
+    let geoms_2 = delimited(
+        spaced(char('[')),
+        separated_list(spaced(char(',')), primitive_geometry),
+        spaced(char(']'))
+    );
+    context("GeometryCollection",
+            map(delimited(
+                spaced(char('{')),
+                alt(
+                    (map(separated_pair(
+                        tp1,
+                        spaced(char(',')),
+                        preceded(
+                            preceded(spaced(tag("\"geometries\"")), spaced(char(':'))),
+                            geoms_1
+                        )
+                    ), |(_, coords)| coords),
+                     map(separated_pair(
+                         preceded(
+                             preceded(spaced(tag("\"geometries\"")), spaced(char(':'))),
+                             geoms_2
+                         ),
+                         spaced(char(',')),
+                         tp2,
+                     ), |(coords, _)| coords))
+                ),
+                spaced(char('}'))
+            ), Geometry::GeometryCollection)
+    )(i)
+}
+
+pub fn primitive_geometry<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
+    alt((point, multipoint, linestring, multilinestring, polygon, multipolygon))(i)
+}
+
 pub fn root<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
     alt(
-        (point, multipoint, linestring, multilinestring, polygon, multipolygon)
+        (geometry_collection, primitive_geometry)
     )(i)
 }
 
@@ -250,6 +294,23 @@ mod tests {
                  vec![Coordinates(100.2, 0.2), Coordinates(100.8, 0.2), Coordinates(100.8, 0.8), Coordinates(100.2, 0.8), Coordinates(100.2, 0.2)]]
         ];
         assert_eq!(root::<(&str, ErrorKind)>(mp_str), Ok(("", Geometry::MultiPolygon(coords.clone()))));
+    }
+
+    #[test]
+    fn test_geometry_collection() {
+        let gc_str = r#"
+        {
+          "type": "GeometryCollection",
+          "geometries": [
+              {"type": "Point", "coordinates": [100.0, 0.0]},
+              {"type": "LineString", "coordinates": [[101.0, 0.0], [102.0, 1.0]]}
+          ]
+        }"#;
+        let geoms = vec![
+            Geometry::Point(Coordinates(100.0, 0.0)),
+            Geometry::LineString(vec![Coordinates(101.0, 0.0), Coordinates(102.0, 1.0)]),
+        ];
+        assert_eq!(root::<(&str, ErrorKind)>(gc_str), Ok(("", Geometry::GeometryCollection(geoms))));
     }
 }
 
