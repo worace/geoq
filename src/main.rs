@@ -35,6 +35,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("centroid", Some(_)) => commands::centroid::run(),
         ("whereami", Some(_)) => commands::whereami::run(),
         ("measure", Some(m)) => commands::measure::run(m),
+        ("parse", Some(_)) => commands::parse::run(),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -148,6 +149,7 @@ fn main() {
         .after_help(text::MAIN_AFTER_HELP)
         .subcommand(SubCommand::with_name("wkt").about("Output features as Well-Known Text"))
         .subcommand(SubCommand::with_name("map").about("View features on a map using geojson.io"))
+        .subcommand(SubCommand::with_name("parse").about("parse"))
         .subcommand(read)
         .subcommand(geohash)
         .subcommand(geojson)

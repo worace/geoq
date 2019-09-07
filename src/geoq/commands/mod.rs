@@ -8,3 +8,4 @@ pub mod json;
 pub mod centroid;
 pub mod whereami;
 pub mod measure;
+pub mod parse;
