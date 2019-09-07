@@ -22,51 +22,39 @@ pub enum Geometry {
     GeometryCollection(Vec<Geometry>)
 }
 
+
+fn json_arr_of<'a, T, Error: ParseError<&'a str>>(elem: impl Fn(&'a str) -> IResult<&'a str, T, Error>) -> impl Fn(&'a str) -> IResult<&'a str, Vec<T>, Error>
+where T: std::marker::Sized
+{
+    delimited(
+        spaced(char('[')),
+        separated_list(spaced(char(',')), elem),
+        spaced(char(']'))
+    )
+}
+
 fn coord_pair<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Coordinates, E> {
     map(context(
         "coordinates",
-        preceded(
+        delimited(
             spaced(char('[')),
-            terminated(
-                separated_pair(spaced(double), spaced(char(',')), spaced(double)),
-                spaced(char(']'))
-            )
+            separated_pair(spaced(double), spaced(char(',')), spaced(double)),
+            spaced(char(']'))
         )),
         |(x,y)| Coordinates(x,y)
     )(i)
 }
 
 fn coord_seq<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<Coordinates>, E> {
-    context(
-        "coordinate ring",
-        delimited(
-            spaced(char('[')),
-            separated_list(spaced(char(',')), coord_pair),
-            spaced(char(']'))
-        )
-    )(i)
+    context("coordinate ring", json_arr_of(coord_pair))(i)
 }
 
 fn coord_seq_seq<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<Vec<Coordinates>>, E> {
-    context(
-        "coordinate sequence sequence",
-        delimited(
-            spaced(char('[')),
-            separated_list(spaced(char(',')), coord_seq),
-            spaced(char(']'))
-        )
-    )(i)
+    context("coordinate sequence sequence", json_arr_of(coord_seq))(i)
 }
 
 fn coord_seq_seq_seq<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<Vec<Vec<Coordinates>>>, E> {
-    context(
-        "coordinate sequence sequence sequence",
-        delimited(
-            spaced(char('[')),
-            separated_list(spaced(char(',')), coord_seq_seq),
-            spaced(char(']'))
-        )
-    )(i)
+    context("coordinate sequence sequence sequence", json_arr_of(coord_seq_seq))(i)
 }
 
 fn spaced<'a, T, Error: ParseError<&'a str>>(inner: impl Fn(&'a str) -> IResult<&'a str, T, Error>) -> impl Fn(&'a str) -> IResult<&'a str, T, Error>
@@ -84,13 +72,22 @@ where T: std::marker::Sized
     )
 }
 
-fn type_parser<'a, Error: ParseError<&'a str>>(type_name: &'a str) -> impl Fn(&'a str) -> IResult<&'a str, &'a str, Error> {
+fn json_string<'a, Error: ParseError<&'a str>>(string: &'a str) -> impl Fn(&'a str) -> IResult<&'a str, &'a str, Error> {
+    delimited(char('"'), tag(string), char('"'))
+}
+
+fn json_key_with_value<'a, T, Error: ParseError<&'a str>>(key: &'a str, value: impl Fn(&'a str) -> IResult<&'a str, T, Error>) -> impl Fn(&'a str) -> IResult<&'a str, T, Error>
+where T: std::marker::Sized
+{
     preceded(
-        preceded(spaced(tag("\"type\"")),
-                 spaced(tag(":"))
-        ),
-        spaced(delimited(char('"'), tag(type_name), char('"')))
+        preceded(spaced(json_string(key)),
+                 spaced(char(':'))),
+        spaced(value)
     )
+}
+
+fn type_parser<'a, Error: ParseError<&'a str>>(type_name: &'a str) -> impl Fn(&'a str) -> IResult<&'a str, &'a str, Error> {
+    json_key_with_value("type", delimited(char('"'), tag(type_name), char('"')))
 }
 
 fn geometry<'a, CoordT, Error: ParseError<&'a str>>(type_name: &'static str, coord_parser: fn(&'a str) -> IResult<&'a str, CoordT, Error>) -> impl Fn(&'a str) -> IResult<&'a str, CoordT, Error>
@@ -105,16 +102,10 @@ where CoordT: std::marker::Sized
                     (map(separated_pair(
                         tp1,
                         spaced(char(',')),
-                        preceded(
-                            preceded(spaced(tag("\"coordinates\"")), spaced(char(':'))),
-                            coord_parser
-                        )
+                        json_key_with_value("coordinates", coord_parser)
                     ), |(_, coords)| coords),
                      map(separated_pair(
-                         preceded(
-                             preceded(spaced(tag("\"coordinates\"")), spaced(char(':'))),
-                             coord_parser
-                         ),
+                         json_key_with_value("coordinates", coord_parser),
                          spaced(char(',')),
                          tp2,
                      ), |(coords, _)| coords))
@@ -151,16 +142,8 @@ fn multipolygon<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geom
 fn geometry_collection<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry, E> {
     let tp1 = type_parser("GeometryCollection");
     let tp2 = type_parser("GeometryCollection");
-    let geoms_1 = delimited(
-        spaced(char('[')),
-        separated_list(spaced(char(',')), primitive_geometry),
-        spaced(char(']'))
-    );
-    let geoms_2 = delimited(
-        spaced(char('[')),
-        separated_list(spaced(char(',')), primitive_geometry),
-        spaced(char(']'))
-    );
+    let geoms_1 = json_arr_of(primitive_geometry);
+    let geoms_2 = json_arr_of(primitive_geometry);
     context("GeometryCollection",
             map(delimited(
                 spaced(char('{')),
@@ -168,16 +151,10 @@ fn geometry_collection<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a st
                     (map(separated_pair(
                         tp1,
                         spaced(char(',')),
-                        preceded(
-                            preceded(spaced(tag("\"geometries\"")), spaced(char(':'))),
-                            geoms_1
-                        )
+                        json_key_with_value("geometries", geoms_1)
                     ), |(_, coords)| coords),
                      map(separated_pair(
-                         preceded(
-                             preceded(spaced(tag("\"geometries\"")), spaced(char(':'))),
-                             geoms_2
-                         ),
+                         json_key_with_value("geometries", geoms_2),
                          spaced(char(',')),
                          tp2,
                      ), |(coords, _)| coords))
