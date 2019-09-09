@@ -6,7 +6,7 @@ use nom::{ IResult,
            character::streaming::char,
            combinator::map,
            error::{context, ErrorKind, ParseError},
-           sequence::{delimited, preceded, separated_pair, terminated}
+           sequence::{delimited, preceded, separated_pair}
 };
 #[derive(Debug, PartialEq, Clone)]
 pub struct Coordinates(f64, f64);
@@ -177,6 +177,8 @@ pub fn root<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Geometry
 #[cfg(test)]
 mod tests {
     use geoq::parser::*;
+    use nom::Err::Incomplete;
+    use nom::Needed::Size;
     #[test]
     fn test_coord_pair() {
         assert_eq!(coord_pair::<(&str, ErrorKind)>("[0.0,0.0]"), Ok(("", Coordinates(0.0, 0.0))));
@@ -288,6 +290,35 @@ mod tests {
             Geometry::LineString(vec![Coordinates(101.0, 0.0), Coordinates(102.0, 1.0)]),
         ];
         assert_eq!(root::<(&str, ErrorKind)>(gc_str), Ok(("", Geometry::GeometryCollection(geoms))));
+    }
+
+    #[test]
+    fn test_partial_input() {
+        let p1 = "{\"type\":\"Point\",\"coordi";
+
+        assert_eq!(root::<(&str, ErrorKind)>(p1), Err(Incomplete(Size(11))));
+    }
+
+    #[test]
+    fn test_multiple_partial_input() {
+        // https://github.com/rust-bakery/generator_nom/blob/master/src/main.rs
+        // https://docs.rs/nom/5.0.0-beta2/nom/combinator/fn.iterator.html
+        // https://docs.rs/circular/0.3.0/circular/
+        let p1 = "{\"type\":\"Point\",\"coordinates\":[0.0,0.0]} {\"type\":\"Point\",\"coord";
+        let p2 = "inates\":[0.0,0.0]}";
+        let mut it = nom::combinator::iterator(p1, root::<(&str, ErrorKind)>);
+        let results = it.collect::<Vec<_>>();
+        assert_eq!(results, vec![Geometry::Point(Coordinates(0.0, 0.0))]);
+        let parser_result: IResult<_, _> = it.finish();
+        assert_eq!(Err(Incomplete(Size(11))), parser_result);
+        // match parser_result {
+        //     Err(Incomplete(Size(_))) => assert_eq!(true, true),
+        //     Ok((remaining_input, ())) => assert_eq!(true, true),
+        //         _ => assert_eq!(false, true)
+        // };
+        // let (remaining_input, ()) = parser_result.unwrap();
+        // assert_eq!(root::<(&str, ErrorKind)>(p1), Ok((" {\"type\":\"Point\",\"coord", Geometry::Point(Coordinates(0.0, 0.0)))));
+        // assert_eq!(root::<(&str, ErrorKind)>("{\"type\":\"Point\",\"coordinates\":[0.0,0.0]}"), Ok(("", Geometry::Point(Coordinates(0.0, 0.0)))));
     }
 }
 
