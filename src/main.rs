@@ -76,6 +76,7 @@ fn main() {
         )
         .subcommand(SubCommand::with_name("children").about("Get children for the given geohash"))
         .subcommand(SubCommand::with_name("roots").about("List the Base32 Geohash root characters"))
+        .subcommand(SubCommand::with_name("encode-long").about("Convert a 64 bit geohash from Base 10 numeric representation to Base 32."))
         .subcommand(SubCommand::with_name("neighbors")
                     .about("Get neighbors of the given Geohash")
                     .arg(Arg::with_name("exclude")
