@@ -138,4 +138,6 @@ From here you can view and edit features, and optionally save
 the data to a Contour collection.
 
 Limited to 10mb of output.
+
+If not explicitly saved via the UI, snippets will be deleted after 10 minutes.
 ";
