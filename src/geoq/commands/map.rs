@@ -2,9 +2,9 @@ extern crate geojson;
 extern crate serde_json;
 extern crate os_type;
 
-use std::process::Command;
 use std::io;
 use geojson::GeoJson;
+use geoq::browser_open;
 use geoq::reader::Reader;
 use geoq::error::Error;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
@@ -19,18 +19,6 @@ static GEOJSON_IO_HTML_P2: &'static [u8] = include_bytes!("../../../resources/ge
 fn timestamp() -> u64 {
     let start = SystemTime::now();
     start.duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs()
-}
-
-fn open(media: String) -> () {
-    let open_command = match os_type::current_platform().os_type {
-        os_type::OSType::OSX => "open",
-        _ => "xdg-open"
-    };
-
-    Command::new(open_command)
-        .arg(media.clone())
-        .status()
-        .expect(&format!("Failed to open media: {}", media));
 }
 
 pub fn run() -> Result<(), Error> {
@@ -57,7 +45,7 @@ pub fn run() -> Result<(), Error> {
     if fc_json.len() < GEOJSON_IO_URL_LIMIT {
         let encoded = utf8_percent_encode(&fc_json, DEFAULT_ENCODE_SET);
         let url = format!("http://geojson.io#data=data:application/json,{}", encoded);
-        open(url);
+        browser_open::open(url);
 
         Ok(())
     } else {
@@ -68,7 +56,7 @@ pub fn run() -> Result<(), Error> {
         try!(file.write_all(GEOJSON_IO_HTML_P1));
         try!(file.write_all(fc_json.as_bytes()));
         try!(file.write_all(GEOJSON_IO_HTML_P2));
-        open(tmpfile);
+        browser_open::open(tmpfile);
 
         Ok(())
     }

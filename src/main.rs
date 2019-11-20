@@ -28,6 +28,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("gj", Some(m)) => commands::geojson_cmd::run(m),
         ("gh", Some(m)) => commands::geohash::run(m),
         ("map", Some(_)) => commands::map::run(),
+        ("snip", Some(_)) => commands::snip::run(),
         ("filter", Some(m)) => commands::filter::run(m),
         ("json", Some(m)) => commands::json::run(m),
         ("centroid", Some(_)) => commands::centroid::run(),
@@ -140,6 +141,10 @@ fn main() {
                          .required(true)
                          .index(1)));
 
+    let snip = SubCommand::with_name("snip")
+        .about("View features in the contour.app scratchpad")
+        .after_help(text::SNIP_AFTER_HELP);
+
     let matches = App::new("geoq")
         .version(VERSION)
         .setting(AppSettings::SubcommandRequiredElseHelp)
@@ -147,6 +152,7 @@ fn main() {
         .after_help(text::MAIN_AFTER_HELP)
         .subcommand(SubCommand::with_name("wkt").about("Output features as Well-Known Text"))
         .subcommand(SubCommand::with_name("map").about("View features on a map using geojson.io"))
+        .subcommand(snip)
         .subcommand(read)
         .subcommand(geohash)
         .subcommand(geojson)

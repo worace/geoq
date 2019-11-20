@@ -13,7 +13,7 @@ pub enum Error {
     InvalidWkt,
     MissingArgument,
     InvalidNumberFormat,
-    // InputTooLarge,
+    InputTooLarge,
     IOError,
     JSONParseError,
     InvalidJSONType,

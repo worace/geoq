@@ -130,3 +130,14 @@ geoq filter intersects 9q5
 
 geoq filter contains 'Polygon ((30 10, 10 30, 40 40, 30 10))'
 ";
+
+pub const SNIP_AFTER_HELP: &str = r"
+Upload features to the contour.app scratchpad, similar to geojson.io.
+
+From here you can view and edit features, and optionally save
+the data to a Contour collection.
+
+Limited to 10mb of output.
+
+If not explicitly saved via the UI, snippets will be deleted after 10 minutes.
+";
