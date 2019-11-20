@@ -6,6 +6,8 @@ use geoq::par;
 use geoq::error::Error;
 use geoq::entity::Entity;
 use clap::ArgMatches;
+use std::io;
+use std::io::prelude::*;
 
 fn read_level(matches: &ArgMatches) -> Result<usize, Error> {
     let level_arg = matches.value_of("level");
@@ -84,6 +86,22 @@ fn roots() -> Result<(), Error> {
     Ok(())
 }
 
+fn encode_long() -> Result<(), Error> {
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        match line {
+            Ok(l) => {
+                match l.parse::<u64>() {
+                    Ok(gh_num) => println!("{}", geoq::geohash::encode_long(gh_num)),
+                    _ => return Err(Error::InvalidNumberFormat)
+                }
+            },
+            _ => return Err(Error::IOError)
+        }
+    }
+    Ok(())
+}
+
 pub fn run(matches: &ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("point", Some(m)) => point(m),
@@ -91,6 +109,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), Error> {
         ("neighbors", Some(m)) => neighbors(m),
         ("covering", Some(m)) => covering(m),
         ("roots", Some(_)) => roots(),
+        ("encode-long", Some(_)) => encode_long(),
         _ => Err(Error::UnknownCommand),
     }
 }

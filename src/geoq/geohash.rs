@@ -5,6 +5,7 @@ extern crate geo;
 use geo_types::{Geometry, Polygon, LineString, Point, Coordinate};
 use geoq::intersection;
 use geoq::contains;
+use std::str;
 
 pub const BASE_32: [char; 32] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'b', 'c', 'd', 'e', 'f', 'g',
                                  'h', 'j', 'k', 'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
@@ -73,4 +74,22 @@ pub fn covering(geom: &Geometry<f64>, level: usize) -> Vec<String> {
         }
     }
     ghs
+}
+
+
+// Copied from https://github.com/tidwall/geohash-rs/blob/master/src/base32.rs
+// TODO: Move remaining geohash usage to this crate, but for now I just
+// wanted the encoding stuff without importing 2 separate geohash libs
+const BASE32_ENCODING: [u8; 32] = [
+    b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'b', b'c', b'd', b'e', b'f', b'g',
+    b'h', b'j', b'k', b'm', b'n', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
+];
+
+pub fn encode_long(mut x: u64) -> String {
+    let mut bytes = [0u8; 12];
+    for i in 0..12 {
+        bytes[11 - i] = BASE32_ENCODING[x as usize & 0x1f];
+        x >>= 5;
+    }
+    str::from_utf8(&bytes).unwrap().to_string()
 }
