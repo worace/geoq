@@ -108,3 +108,19 @@ See the built-in command help using `geoq --help` or `geoq <subcommand> --help` 
 
 
 See the [Manual](https://github.com/worace/geoq/blob/master/manual.md) for more examples and available commands.
+
+## Development
+
+### Running Tests
+
+```
+cargo test
+```
+
+### Building / Releasing
+
+```
+cargo publish
+git tag release/<VERSION>
+git push origin release/<VERSION>
+```
