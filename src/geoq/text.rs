@@ -141,3 +141,19 @@ Limited to 10mb of output.
 
 If not explicitly saved via the UI, snippets will be deleted after 10 minutes.
 ";
+
+pub const SIMPLIFY_ABOUT: &str = "Simplify geometries.";
+
+pub const SIMPLIFY_AFTER_HELP: &str = r"Reads features from STDIN.
+
+Uses the Visvalingham-Whyatt topology-preserving simplification algorithm.
+(https://www.jasondavies.com/simplify/)
+
+Only (Multi-)LineStrings and (Multi-)Polygons will be affected.
+
+Takes Epsilon as a command-line parameter
+";
+
+pub const SIMPLIFY_EPSILON_ARG_HELP: &str = r"
+Simplification epsilon as float, e.g 0.001.
+";
