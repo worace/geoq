@@ -11,3 +11,4 @@ pub mod par;
 pub mod centroid;
 pub mod distance;
 pub mod browser_open;
+pub mod simplify;

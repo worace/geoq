@@ -33,6 +33,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("json", Some(m)) => commands::json::run(m),
         ("centroid", Some(_)) => commands::centroid::run(),
         ("whereami", Some(_)) => commands::whereami::run(),
+        ("simplify", Some(m)) => commands::simplify::run(m),
         ("measure", Some(m)) => commands::measure::run(m),
         _ => Err(Error::UnknownCommand),
     }
@@ -141,6 +142,14 @@ fn main() {
                          .required(true)
                          .index(1)));
 
+    let simplify = SubCommand::with_name("simplify")
+        .about(text::SIMPLIFY_ABOUT)
+        .after_help(text::SIMPLIFY_AFTER_HELP)
+        .arg(Arg::with_name("epsilon")
+             .help(text::SIMPLIFY_EPSILON_ARG_HELP)
+             .required(true)
+             .index(1));
+
     let snip = SubCommand::with_name("snip")
         .about("View features in the contour.app scratchpad")
         .after_help(text::SNIP_AFTER_HELP);
@@ -161,6 +170,7 @@ fn main() {
         .subcommand(centroid)
         .subcommand(whereami)
         .subcommand(measure)
+        .subcommand(simplify)
         .get_matches();
 
     if let Err(e) = run(matches) {

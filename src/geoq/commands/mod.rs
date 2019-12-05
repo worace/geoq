@@ -9,3 +9,4 @@ pub mod centroid;
 pub mod whereami;
 pub mod measure;
 pub mod snip;
+pub mod simplify;
