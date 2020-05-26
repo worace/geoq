@@ -1,16 +1,11 @@
-extern crate geojson;
-extern crate serde_json;
-extern crate os_type;
-
-use std::io;
+use crate::geoq::{browser_open, error::Error, reader::Reader};
 use geojson::GeoJson;
-use geoq::browser_open;
-use geoq::reader::Reader;
-use geoq::error::Error;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
-use std::time::{SystemTime, UNIX_EPOCH};
-use std::fs::File;
-use std::io::prelude::*;
+use std::{
+    fs::File,
+    io::{self, prelude::*},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 const GEOJSON_IO_URL_LIMIT: usize = 27000;
 static GEOJSON_IO_HTML_P1: &'static [u8] = include_bytes!("../../../resources/geojsonio_p1.html");
@@ -18,7 +13,10 @@ static GEOJSON_IO_HTML_P2: &'static [u8] = include_bytes!("../../../resources/ge
 
 fn timestamp() -> u64 {
     let start = SystemTime::now();
-    start.duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs()
+    start
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_secs()
 }
 
 pub fn run() -> Result<(), Error> {
@@ -31,7 +29,7 @@ pub fn run() -> Result<(), Error> {
     for e_res in reader {
         match e_res {
             Ok(entity) => features.push(entity.geojson_feature()),
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         }
     }
 
@@ -50,12 +48,12 @@ pub fn run() -> Result<(), Error> {
         Ok(())
     } else {
         let tmpfile = format!("/tmp/geoq_map_{}.html", timestamp());
-        let mut file = try!(File::create(tmpfile.clone()));
+        let mut file = File::create(tmpfile.clone())?;
         eprintln!("Opening geojson.io map file: {}", tmpfile);
 
-        try!(file.write_all(GEOJSON_IO_HTML_P1));
-        try!(file.write_all(fc_json.as_bytes()));
-        try!(file.write_all(GEOJSON_IO_HTML_P2));
+        file.write_all(GEOJSON_IO_HTML_P1)?;
+        file.write_all(fc_json.as_bytes())?;
+        file.write_all(GEOJSON_IO_HTML_P2)?;
         browser_open::open(tmpfile);
 
         Ok(())

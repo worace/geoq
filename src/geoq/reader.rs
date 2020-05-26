@@ -1,33 +1,34 @@
 extern crate geo_types;
 
+use crate::geoq::entity::{self, Entity};
+use crate::geoq::error::Error;
+use crate::geoq::input;
+use std::collections::VecDeque;
 use std::io;
 use std::io::BufRead;
-use geoq::input;
-use geoq::entity::{self, Entity};
-use geoq::error::Error;
-use std::collections::VecDeque;
 use std::iter::FromIterator;
 
 pub struct Reader<'a> {
-    reader: &'a mut BufRead,
-    entities: VecDeque<Entity>
+    reader: &'a mut dyn BufRead,
+    entities: VecDeque<Entity>,
 }
 
 impl<'a> Reader<'a> {
-    pub fn new(reader: &'a mut BufRead) -> Reader<'a> {
-        Reader{reader, entities: VecDeque::new()}
+    pub fn new(reader: &'a mut dyn BufRead) -> Reader<'a> {
+        Reader {
+            reader,
+            entities: VecDeque::new(),
+        }
     }
 }
 
-pub fn read_line(buf_read: &mut BufRead) -> Option<String> {
+pub fn read_line(buf_read: &mut dyn BufRead) -> Option<String> {
     let mut buf = String::new();
     let bytes_read = buf_read.read_line(&mut buf);
     match bytes_read {
         Ok(0) => None,
-        Ok(_) => {
-            Some(buf.trim().to_string())
-        },
-        _ => None
+        Ok(_) => Some(buf.trim().to_string()),
+        _ => None,
     }
 }
 
@@ -41,20 +42,18 @@ impl<'a> Iterator for Reader<'a> {
 
         while let Some(line) = read_line(&mut *self.reader) {
             match input::read_line(line) {
-                Ok(i) => {
-                    match entity::from_input(i) {
-                        Ok(e_vec) => {
-                            let mut entities = VecDeque::from_iter(e_vec);
-                            if entities.is_empty() {
-                                continue;
-                            } else {
-                                self.entities.append(&mut entities);
-                                let e = self.entities.pop_front().unwrap();
-                                return Some(Ok(e));
-                            }
-                        },
-                        Err(e) => return Some(Err(e))
+                Ok(i) => match entity::from_input(i) {
+                    Ok(e_vec) => {
+                        let mut entities = VecDeque::from_iter(e_vec);
+                        if entities.is_empty() {
+                            continue;
+                        } else {
+                            self.entities.append(&mut entities);
+                            let e = self.entities.pop_front().unwrap();
+                            return Some(Ok(e));
+                        }
                     }
+                    Err(e) => return Some(Err(e)),
                 },
                 Err(e) => {
                     return Some(Err(e));
@@ -66,7 +65,8 @@ impl<'a> Iterator for Reader<'a> {
 }
 
 pub fn entities<F>(handler: F) -> Result<(), Error>
-where F: Fn(&mut Iterator<Item = Result<Entity, Error>>) -> Result<(), Error>
+where
+    F: Fn(&mut dyn Iterator<Item = Result<Entity, Error>>) -> Result<(), Error>,
 {
     let stdin = io::stdin();
     let mut stdin_reader = stdin.lock();
@@ -75,7 +75,8 @@ where F: Fn(&mut Iterator<Item = Result<Entity, Error>>) -> Result<(), Error>
 }
 
 pub fn for_entity<F>(handler: F) -> Result<(), Error>
-where F: Fn(Entity) -> Result<(), Error>
+where
+    F: Fn(Entity) -> Result<(), Error>,
 {
     entities(|e_iter| {
         for e_res in e_iter {
@@ -94,7 +95,7 @@ where F: Fn(Entity) -> Result<(), Error>
 
 #[cfg(test)]
 mod tests {
-    use geoq::reader::Reader;
+    use crate::geoq::reader::Reader;
 
     #[test]
     fn test_reading_empty_string() {

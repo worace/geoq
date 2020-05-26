@@ -1,7 +1,7 @@
-use geoq::error::Error;
-use serde_json;
+use crate::geoq::error::Error;
 use geo_types::Geometry;
 use geo_types::Point;
+use serde_json;
 
 fn get_ip_geolocation() -> Result<(), Error> {
     let resp = reqwest::get("http://ip-api.com/json");
@@ -35,7 +35,7 @@ fn get_ip_geolocation() -> Result<(), Error> {
             let geojson = serde_json::to_string(&gj_point).unwrap();
             println!("{}", geojson);
         }
-        _ => eprintln!("Invalid IP location response: {}", json)
+        _ => eprintln!("Invalid IP location response: {}", json),
     }
     Ok(())
 }

@@ -1,19 +1,14 @@
-extern crate geo_types;
-extern crate geojson;
-extern crate geohash;
-
-use geoq::error::Error;
+use crate::geoq::error::Error;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::fmt;
 
-lazy_static! {
-    static ref LATLON: Regex = Regex::new(r"^-?\d+\.?\d*[,\t]-?\d+\.?\d*$").unwrap();
-    static ref GH: Regex = Regex::new(r"(?i)^[0-9a-z--a--i--l--o]+$").unwrap();
-    static ref JSON: Regex = Regex::new(r"\{").unwrap();
-    static ref WKT: Regex = Regex::new(
-        r"(?ix)^point|linestring|polygon|multipoint|multilinestring|multipolygon"
-    ).unwrap();
-}
+static LATLON: Lazy<Regex> = Lazy::new(|| Regex::new(r"^-?\d+\.?\d*[,\t]-?\d+\.?\d*$").unwrap());
+static GH: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?i)^[0-9a-z--a--i--l--o]+$").unwrap());
+static JSON: Lazy<Regex> = Lazy::new(|| Regex::new(r"\{").unwrap());
+static WKT: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?ix)^point|linestring|polygon|multipoint|multilinestring|multipolygon").unwrap()
+});
 
 #[derive(Debug, Clone)]
 pub enum Input {
@@ -52,10 +47,10 @@ pub fn read_line(line: String) -> Result<Input, Error> {
 fn reading_input_formats() {
     match read_line("12,34".to_string()) {
         Ok(Input::LatLon(_)) => assert!(true),
-        _ => assert!(false)
+        _ => assert!(false),
     }
     match read_line("12\t34".to_string()) {
         Ok(Input::LatLon(_)) => assert!(true),
-        _ => assert!(false)
+        _ => assert!(false),
     }
 }

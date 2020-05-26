@@ -1,17 +1,6 @@
-extern crate geojson;
-extern crate serde_json;
-extern crate os_type;
-
-use std::process::Command;
-use std::io;
+use crate::geoq::{browser_open, error::Error, reader::Reader};
 use geojson::GeoJson;
-use geoq::reader::Reader;
-use geoq::error::Error;
-use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
-use std::time::{SystemTime, UNIX_EPOCH};
-use std::fs::File;
-use std::io::prelude::*;
-use geoq::browser_open;
+use std::io;
 
 const SNIP_LIMIT: usize = 10000000; // 10mb
 
@@ -25,7 +14,7 @@ pub fn run() -> Result<(), Error> {
     for e_res in reader {
         match e_res {
             Ok(entity) => features.push(entity.geojson_feature()),
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         }
     }
 
@@ -40,7 +29,8 @@ pub fn run() -> Result<(), Error> {
         let client = reqwest::Client::builder()
             .redirect(reqwest::RedirectPolicy::none())
             .build()?;
-        let resp = client.post("https://contour.app/scratchpad")
+        let resp = client
+            .post("https://contour.app/scratchpad")
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .body(fc_json)
             .send()?;

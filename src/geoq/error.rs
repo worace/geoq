@@ -1,7 +1,4 @@
-extern crate serde_json;
-
-use std::io;
-use std::convert::From;
+use std::{convert::From, io};
 
 #[derive(Debug)]
 pub enum Error {
@@ -23,7 +20,7 @@ pub enum Error {
     TooManyFeatures,
     PointRequired,
     DistanceFailed,
-    InvalidGeohashPoint
+    InvalidGeohashPoint,
 }
 
 impl From<io::Error> for Error {
