@@ -12,6 +12,6 @@ pub fn centroid(geom: &Geometry<f64>) -> Option<Point<f64>> {
         // Geometry::MultiLineString(ref g) => g.centroid(),
         Geometry::MultiPolygon(ref g) => g.centroid(),
         // Geometry::GeometryCollection(ref gc) => g.centroid()
-        _ => None
+        _ => None,
     }
 }

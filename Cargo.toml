@@ -7,11 +7,12 @@ description = "Geospatial utility CLI"
 homepage = "https://github.com/worace/geoq"
 repository = "https://github.com/worace/geoq"
 documentation = "https://github.com/worace/geoq/blob/master/manual.md"
+edition = "2018"
 
 [dependencies]
 clap = "2.31.2"
 regex = "1.0.0"
-lazy_static = "1.0.1"
+once_cell = "1.4.0"
 geo = "0.12.2"
 geo-types = "0.4.3"
 geohash = "0.9.0"
@@ -19,7 +20,7 @@ wkt = "0.5.0"
 geojson = { version =  "0.16.0", features=["geo-types"] }
 serde_json = "1.0.22"
 percent-encoding = "1.0.1"
-os_type="1.0.0"
+os_info = "2.0.6"
 num_cpus = "1.0"
 reqwest = "0.9.19"
 

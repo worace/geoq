@@ -1,14 +1,11 @@
-extern crate geohash;
-extern crate geo_types;
-extern crate geo;
-
-use geo_types::{Geometry, Polygon, LineString, Point, Coordinate};
-use geoq::intersection;
-use geoq::contains;
+use crate::geoq::{contains, intersection};
+use geo_types::{Coordinate, Geometry, LineString, Polygon};
 use std::str;
 
-pub const BASE_32: [char; 32] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'b', 'c', 'd', 'e', 'f', 'g',
-                                 'h', 'j', 'k', 'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+pub const BASE_32: [char; 32] = [
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k',
+    'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+];
 
 pub fn children(gh: &String) -> Vec<String> {
     BASE_32.iter().map(|c| format!("{}{}", gh, c)).collect()
@@ -51,7 +48,7 @@ pub fn bbox(gh: &str) -> Option<Polygon<f64>> {
             ]);
             Some(Polygon::new(outer, Vec::new()))
         }
-        _ => None
+        _ => None,
     }
 }
 
@@ -70,12 +67,11 @@ pub fn covering(geom: &Geometry<f64>, level: usize) -> Vec<String> {
                     }
                 }
             }
-            None => ()
+            None => (),
         }
     }
     ghs
 }
-
 
 // Copied from https://github.com/tidwall/geohash-rs/blob/master/src/base32.rs
 // TODO: Move remaining geohash usage to this crate, but for now I just

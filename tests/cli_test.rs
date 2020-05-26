@@ -25,7 +25,6 @@ WKT: LINESTRING(30 10,10 30,40 40)
         .unwrap();
 }
 
-
 #[test]
 fn exits_on_invalid_input() {
     Assert::main_binary()
@@ -498,7 +497,6 @@ fn gj_geom_edge_case() {
         .stdout()
         .is(input)
         .unwrap();
-
 }
 
 #[test]
@@ -518,7 +516,6 @@ fn filter_intersects() {
         .stdout()
         .is(output)
         .unwrap();
-
 }
 
 #[test]
@@ -533,12 +530,16 @@ fn filter_intersects_query_file() {
 "#;
 
     Assert::main_binary()
-        .with_args(&["filter", "intersects", "--query-file", "./tests/resources/query_file.txt"])
+        .with_args(&[
+            "filter",
+            "intersects",
+            "--query-file",
+            "./tests/resources/query_file.txt",
+        ])
         .stdin(input)
         .stdout()
         .is(output)
         .unwrap();
-
 }
 
 #[test]
@@ -583,16 +584,29 @@ fn json_point() {
 {"geometry":{"coordinates":[-118.2,34.3],"type":"Point"},"properties":{"latitude":34.3,"lng":-118.2,"name":"Horace","pizza":"pie"},"type":"Feature"}
 "#;
 
-    Assert::main_binary().with_args(&["json", "point"]).stdin(input)
-        .stdout().is(output).unwrap();
+    Assert::main_binary()
+        .with_args(&["json", "point"])
+        .stdin(input)
+        .stdout()
+        .is(output)
+        .unwrap();
 
-    Assert::main_binary().with_args(&["json", "point"])
-        .stdin("pizza").fails().unwrap();
+    Assert::main_binary()
+        .with_args(&["json", "point"])
+        .stdin("pizza")
+        .fails()
+        .unwrap();
 
-    Assert::main_binary().with_args(&["json", "point"])
-        .stdin("[\"not-json-object\"]").fails().unwrap();
-    Assert::main_binary().with_args(&["json", "point"])
-        .stdin("{\"no-lat-lon\": \"hi\"}").fails().unwrap();
+    Assert::main_binary()
+        .with_args(&["json", "point"])
+        .stdin("[\"not-json-object\"]")
+        .fails()
+        .unwrap();
+    Assert::main_binary()
+        .with_args(&["json", "point"])
+        .stdin("{\"no-lat-lon\": \"hi\"}")
+        .fails()
+        .unwrap();
 }
 
 #[test]
@@ -628,7 +642,12 @@ fn filter_contains_file() {
 "#;
 
     Assert::main_binary()
-        .with_args(&["filter", "contains", "--query-file", "./tests/resources/query_file.txt"])
+        .with_args(&[
+            "filter",
+            "contains",
+            "--query-file",
+            "./tests/resources/query_file.txt",
+        ])
         .stdin(input)
         .stdout()
         .is(output)
@@ -648,16 +667,29 @@ fn json_geom() {
 {"geometry":{"coordinates":[-118.2,34.3],"type":"Point"},"properties":{"latitude":34.3,"lng":-118.2,"name":"Horace","pizza":"pie"},"type":"Feature"}
 "#;
 
-    Assert::main_binary().with_args(&["json", "point"]).stdin(input)
-        .stdout().is(output).unwrap();
+    Assert::main_binary()
+        .with_args(&["json", "point"])
+        .stdin(input)
+        .stdout()
+        .is(output)
+        .unwrap();
 
-    Assert::main_binary().with_args(&["json", "point"])
-        .stdin("pizza").fails().unwrap();
+    Assert::main_binary()
+        .with_args(&["json", "point"])
+        .stdin("pizza")
+        .fails()
+        .unwrap();
 
-    Assert::main_binary().with_args(&["json", "point"])
-        .stdin("[\"not-json-object\"]").fails().unwrap();
-    Assert::main_binary().with_args(&["json", "point"])
-        .stdin("{\"no-lat-lon\": \"hi\"}").fails().unwrap();
+    Assert::main_binary()
+        .with_args(&["json", "point"])
+        .stdin("[\"not-json-object\"]")
+        .fails()
+        .unwrap();
+    Assert::main_binary()
+        .with_args(&["json", "point"])
+        .stdin("{\"no-lat-lon\": \"hi\"}")
+        .fails()
+        .unwrap();
 }
 
 #[test]

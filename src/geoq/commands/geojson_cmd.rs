@@ -1,12 +1,6 @@
-extern crate serde_json;
-extern crate geojson;
-extern crate clap;
-
-use geojson::GeoJson;
-use geoq::reader::Reader;
-use geoq::error::Error;
-use geoq::par;
+use crate::geoq::{error::Error, par, reader::Reader};
 use clap::ArgMatches;
+use geojson::GeoJson;
 use std::io;
 
 fn geom() -> Result<(), Error> {
@@ -32,7 +26,7 @@ fn feature_collection() -> Result<(), Error> {
     for e_res in reader {
         match e_res {
             Err(e) => return Err(e),
-            Ok(e) => features.push(e.geojson_feature())
+            Ok(e) => features.push(e.geojson_feature()),
         }
     }
 

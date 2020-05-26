@@ -1,5 +1,4 @@
-use geoq::error::Error;
-use geoq::{self, reader};
+use crate::geoq::{self, error::Error, reader};
 use geo_types::{Geometry, Point};
 use geojson;
 use serde_json;
@@ -16,7 +15,7 @@ pub fn run() -> Result<(), Error> {
         let g = e.geom();
         match geoq::centroid::centroid(&g) {
             Some(point) => println!("{}", gj_point(point)),
-            None => eprintln!("Could not calculate centroid for geom: {}", raw)
+            None => eprintln!("Could not calculate centroid for geom: {}", raw),
         }
         Ok(())
     })

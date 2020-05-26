@@ -1,11 +1,10 @@
-extern crate os_type;
-
+use os_info::Type;
 use std::process::Command;
 
 pub fn open(media: String) -> () {
-    let open_command = match os_type::current_platform().os_type {
-        os_type::OSType::OSX => "open",
-        _ => "xdg-open"
+    let open_command = match os_info::get().os_type() {
+        Type::Macos => "open",
+        _ => "xdg-open",
     };
 
     Command::new(open_command)

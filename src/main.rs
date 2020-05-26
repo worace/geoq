@@ -1,24 +1,9 @@
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate serde_json;
-extern crate clap;
-extern crate geo;
-extern crate geo_types;
-extern crate geohash;
-extern crate geojson;
-extern crate wkt;
-extern crate os_type;
-extern crate percent_encoding;
-extern crate regex;
-extern crate num_cpus;
-
 mod geoq;
 use geoq::commands;
 use geoq::error::Error;
 use geoq::text;
 
-use clap::{App, Arg, ArgMatches, SubCommand, AppSettings};
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::process;
 
 fn run(matches: ArgMatches) -> Result<(), Error> {
@@ -117,7 +102,7 @@ fn main() {
         .subcommand(
             SubCommand::with_name("point")
                 .about("Attempt to convert arbitrary JSON to a GeoJSON Point.")
-                .after_help(text::JSON_POINT_AFTER_HELP)
+                .after_help(text::JSON_POINT_AFTER_HELP),
         );
 
     let read = SubCommand::with_name("read")
@@ -134,21 +119,27 @@ fn main() {
 
     let measure = SubCommand::with_name("measure")
         .about(text::MEASURE_ABOUT)
-        .subcommand(SubCommand::with_name("distance")
-                    .about(text::DISTANCE_ABOUT)
-                    .after_help(text::DISTANCE_AFTER_HELP)
-                    .arg(Arg::with_name("query")
-                         .help(text::DISTANCE_QUERY_ARG_HELP)
-                         .required(true)
-                         .index(1)));
+        .subcommand(
+            SubCommand::with_name("distance")
+                .about(text::DISTANCE_ABOUT)
+                .after_help(text::DISTANCE_AFTER_HELP)
+                .arg(
+                    Arg::with_name("query")
+                        .help(text::DISTANCE_QUERY_ARG_HELP)
+                        .required(true)
+                        .index(1),
+                ),
+        );
 
     let simplify = SubCommand::with_name("simplify")
         .about(text::SIMPLIFY_ABOUT)
         .after_help(text::SIMPLIFY_AFTER_HELP)
-        .arg(Arg::with_name("epsilon")
-             .help(text::SIMPLIFY_EPSILON_ARG_HELP)
-             .required(true)
-             .index(1));
+        .arg(
+            Arg::with_name("epsilon")
+                .help(text::SIMPLIFY_EPSILON_ARG_HELP)
+                .required(true)
+                .index(1),
+        );
 
     let snip = SubCommand::with_name("snip")
         .about("View features in the contour.app scratchpad")

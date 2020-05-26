@@ -80,7 +80,8 @@ Output is given as a GeoJSON Point.
 ";
 
 pub const MEASURE_ABOUT: &str = "Get spatial measurements of or between features.";
-pub const DISTANCE_ABOUT: &str = "Output distance between features (from STDIN) and a QUERY feature (as command-line ARG)";
+pub const DISTANCE_ABOUT: &str =
+    "Output distance between features (from STDIN) and a QUERY feature (as command-line ARG)";
 pub const DISTANCE_QUERY_ARG_HELP: &str = r"
 Feature to measure from.
 

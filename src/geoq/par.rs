@@ -1,31 +1,36 @@
-use std::sync::Arc;
-use std::thread::{self, JoinHandle};
-use std::sync::mpsc::{sync_channel, SyncSender, Receiver, RecvError};
-use std::io::BufRead;
-use geoq::error::Error;
-use geoq::reader;
-use geoq::input;
-use geoq::entity::{self, Entity};
+use crate::geoq::{
+    entity::{self, Entity},
+    error::Error,
+    input, reader,
+};
 use num_cpus;
 use std::io;
+use std::{
+    io::BufRead,
+    sync::{
+        mpsc::{sync_channel, Receiver, RecvError, SyncSender},
+        Arc,
+    },
+    thread::{self, JoinHandle},
+};
 
 enum WorkerInput {
     Item(String),
-    Done
+    Done,
 }
 
 enum WorkerOutput {
     Item(Result<Vec<String>, Error>),
-    Done
+    Done,
 }
 
 pub struct LineReader<'a> {
-    reader: &'a mut BufRead
+    reader: &'a mut dyn BufRead,
 }
 
 impl<'a> LineReader<'a> {
-    pub fn new(reader: &'a mut BufRead) -> LineReader<'a> {
-        LineReader{reader}
+    pub fn new(reader: &'a mut dyn BufRead) -> LineReader<'a> {
+        LineReader { reader }
     }
 }
 
@@ -49,7 +54,8 @@ impl<'a> Iterator for LineReader<'a> {
 // }
 
 pub fn for_stdin_entity<F: 'static>(handler: F) -> Result<(), Error>
-where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
+where
+    F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>,
 {
     let stdin = io::stdin();
     let mut stdin_reader = stdin.lock();
@@ -57,8 +63,9 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
 }
 
 const WORKER_BUF_SIZE: usize = 5000;
-pub fn for_entity_par<'a, F: 'static>(input: &'a mut BufRead, handler: F) -> Result<(), Error>
-where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
+pub fn for_entity_par<'a, F: 'static>(input: &'a mut dyn BufRead, handler: F) -> Result<(), Error>
+where
+    F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>,
 {
     let num_workers = num_cpus::get();
     let mut input_channels: Vec<SyncSender<WorkerInput>> = vec![];
@@ -72,7 +79,7 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
 
         let handler = handler_arc.clone();
 
-        let t = thread::spawn(move|| {
+        let t = thread::spawn(move || {
             loop {
                 match input_receiver.recv() {
                     Err(RecvError) => continue,
@@ -82,24 +89,24 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
 
                         match input::read_line(line) {
                             Err(e) => output_sender.send(WorkerOutput::Item(Err(e))).unwrap(),
-                            Ok(input) => {
-                                match entity::from_input(input) {
-                                    Err(e) => output_sender.send(WorkerOutput::Item(Err(e))).unwrap(),
-                                    Ok(entities) => {
-                                        let mut results = Vec::new();
-                                        for e in entities {
-                                            match handler(e) {
-                                                Err(e) => {
-                                                    output_sender.send(WorkerOutput::Item(Err(e))).unwrap();
-                                                    break;
-                                                },
-                                                Ok(lines) => results.extend(lines)
+                            Ok(input) => match entity::from_input(input) {
+                                Err(e) => output_sender.send(WorkerOutput::Item(Err(e))).unwrap(),
+                                Ok(entities) => {
+                                    let mut results = Vec::new();
+                                    for e in entities {
+                                        match handler(e) {
+                                            Err(e) => {
+                                                output_sender
+                                                    .send(WorkerOutput::Item(Err(e)))
+                                                    .unwrap();
+                                                break;
                                             }
+                                            Ok(lines) => results.extend(lines),
                                         }
-                                        output_sender.send(WorkerOutput::Item(Ok(results))).unwrap();
                                     }
+                                    output_sender.send(WorkerOutput::Item(Ok(results))).unwrap();
                                 }
-                            }
+                            },
                         }
                     }
                     Ok(WorkerInput::Done) => {
@@ -115,7 +122,7 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
         threads.push(t);
     });
 
-    let printer_thread = thread::spawn(move|| {
+    let printer_thread = thread::spawn(move || {
         while !output_channels.is_empty() {
             for i in 0..output_channels.len() {
                 let output = output_channels[i].recv();
@@ -125,11 +132,11 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
                         for l in lines {
                             println!("{}", l);
                         }
-                    },
+                    }
                     Ok(WorkerOutput::Item(Err(e))) => {
                         eprintln!("Application error: {:?}", e);
                         ::std::process::exit(1);
-                    },
+                    }
                     Ok(WorkerOutput::Done) => {
                         output_channels.remove(i);
                         break;
@@ -141,18 +148,22 @@ where F: Send + Sync + Fn(Entity) -> Result<Vec<String>, Error>
 
     let reader = LineReader::new(input);
     for (i, line) in reader.enumerate() {
-        input_channels[i % num_workers].send(WorkerInput::Item(line)).unwrap();
+        input_channels[i % num_workers]
+            .send(WorkerInput::Item(line))
+            .unwrap();
     }
     (0..num_workers).for_each(|i| input_channels[i].send(WorkerInput::Done).unwrap());
 
-    printer_thread.join().expect("Couldn't wait for printer thread to complete");
+    printer_thread
+        .join()
+        .expect("Couldn't wait for printer thread to complete");
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use geoq::par::for_entity_par;
+    use crate::geoq::par::for_entity_par;
 
     #[test]
     fn test_par_entities() {

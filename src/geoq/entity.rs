@@ -1,22 +1,13 @@
-extern crate geo_types;
-extern crate geohash;
-extern crate geojson;
-extern crate regex;
-extern crate wkt;
-
-use geo_types::{Geometry, LineString, Point, Polygon, Coordinate};
-use geoq::error::Error;
+use crate::geoq::{error::Error, input::Input};
+use geo_types::{Coordinate, Geometry, LineString, Point, Polygon};
 use geojson::GeoJson;
-use geoq::input::Input;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde_json;
+use std::{convert::TryInto, fmt};
 use wkt::ToWkt;
-use std::fmt;
-use std::convert::TryInto;
 
-lazy_static! {
-    static ref LATLON_SPLIT: Regex = Regex::new(",|\t").unwrap();
-}
+static LATLON_SPLIT: Lazy<Regex> = Lazy::new(|| Regex::new(",|\t").unwrap());
 
 pub enum Entity {
     LatLon(String),
@@ -68,10 +59,8 @@ fn wkt_entities(raw: &String) -> Result<Vec<Entity>, Error> {
                 let wkt_raw = wkt_geom.to_string();
                 entities.push(Entity::Wkt(wkt_raw, wkt_geom))
             }
-        },
-        Err(_e) => {
-            return Err(Error::InvalidWkt)
         }
+        Err(_e) => return Err(Error::InvalidWkt),
     }
     Ok(entities)
 }
@@ -166,43 +155,45 @@ pub fn from_input(i: Input) -> Result<Vec<Entity>, Error> {
         Input::LatLon(raw) => Ok(vec![Entity::LatLon(raw)]),
         Input::Geohash(raw) => Ok(vec![Entity::Geohash(raw)]),
         Input::WKT(raw) => wkt_entities(&raw),
-        Input::GeoJSON(raw) => geojson_entities(raw)
+        Input::GeoJSON(raw) => geojson_entities(raw),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    extern crate serde_json;
-    extern crate wkt;
-
-    use geo_types::{Geometry, LineString, Point, Polygon, Coordinate};
-    use geoq::entity::{self, Entity};
-    use geoq::input::Input;
-    use serde_json::{Map as JMap};
-    use serde_json::value::{Value as JValue};
+    use crate::geoq::entity::{self, Entity};
+    use crate::geoq::input::Input;
+    use geo_types::{Coordinate, Geometry, LineString, Point, Polygon};
+    use serde_json::value::Value as JValue;
+    use serde_json::Map as JMap;
 
     fn entities(i: &Input) -> Vec<Entity> {
         entity::from_input(i.clone()).expect(&format!("Should get entities from input {}", i))
     }
 
-    fn check(input: Input,
-             exp_raw: Vec<&str>,
-             exp_geoms: Vec<Geometry<f64>>,
-             exp_wkts: Vec<&str>,
-             exp_gj_geoms: Vec<&str>,
-             exp_gj_properties: Vec<JMap<String, JValue>>,
-             exp_gj_features: Vec<&str>) {
-
+    fn check(
+        input: Input,
+        exp_raw: Vec<&str>,
+        exp_geoms: Vec<Geometry<f64>>,
+        exp_wkts: Vec<&str>,
+        exp_gj_geoms: Vec<&str>,
+        exp_gj_properties: Vec<JMap<String, JValue>>,
+        exp_gj_features: Vec<&str>,
+    ) {
         let res_raw: Vec<String> = entities(&input).iter().map(|e| e.raw()).collect();
         assert_eq!(exp_raw, res_raw);
 
         let res_raw: Vec<String> = entities(&input).iter().map(|e| e.raw()).collect();
         assert_eq!(exp_raw, res_raw);
 
-        let res_geoms: Vec<Geometry<f64>> = entities(&input).into_iter().map(|e| e.geom()).collect();
+        let res_geoms: Vec<Geometry<f64>> =
+            entities(&input).into_iter().map(|e| e.geom()).collect();
         assert_eq!(exp_geoms, res_geoms);
 
-        let res_wkts: Vec<String> = entities(&input).into_iter().map(|e| e.wkt().to_string()).collect();
+        let res_wkts: Vec<String> = entities(&input)
+            .into_iter()
+            .map(|e| e.wkt().to_string())
+            .collect();
         assert_eq!(exp_wkts, res_wkts);
 
         let res_gj_geoms: Vec<String> = entities(&input)
@@ -212,7 +203,10 @@ mod tests {
             .collect();
         assert_eq!(exp_gj_geoms, res_gj_geoms);
 
-        let res_gj_properties: Vec<JMap<String, JValue>> = entities(&input).into_iter().map(|e| e.geojson_properties()).collect();
+        let res_gj_properties: Vec<JMap<String, JValue>> = entities(&input)
+            .into_iter()
+            .map(|e| e.geojson_properties())
+            .collect();
         assert_eq!(exp_gj_properties, res_gj_properties);
 
         let res_gj_features: Vec<String> = entities(&input)
@@ -244,7 +238,8 @@ mod tests {
                 [-118.125, 35.15625],
                 [-119.53125, 35.15625],
                 [-119.53125, 33.75],
-            ].into(),
+            ]
+            .into(),
             vec![],
         );
         check(Input::Geohash("9q5".to_string()),
@@ -263,7 +258,8 @@ mod tests {
                 Coordinate::from((30.0, 10.0)),
                 Coordinate::from((10.0, 30.0)),
                 Coordinate::from((40.0, 40.0)),
-            ].into(),
+            ]
+            .into(),
         );
         check(Input::WKT("LINESTRING (30 10, 10 30, 40 40)".to_string()),
               vec!["LINESTRING(30 10,10 30,40 40)"],
@@ -281,7 +277,8 @@ mod tests {
                 Coordinate::from((-26.01, 59.17)),
                 Coordinate::from((-15.46, 45.58)),
                 Coordinate::from((0.35, 35.74)),
-            ].into(),
+            ]
+            .into(),
         );
         let raw = "{\"type\": \"LineString\", \"coordinates\": [[-26.01, 59.17], [-15.46, 45.58], [0.35, 35.74]]}";
         check(Input::GeoJSON(raw.to_string()),
@@ -304,7 +301,8 @@ mod tests {
                 Coordinate::from((-26.01, 59.17)),
                 Coordinate::from((-15.46, 45.58)),
                 Coordinate::from((0.35, 35.74)),
-            ].into(),
+            ]
+            .into(),
         );
 
         let mut exp_properties = serde_json::Map::new();
@@ -323,8 +321,10 @@ mod tests {
     fn entities_for_geojson_feature_collection() {
         let raw = r#"{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"a":"b"},"geometry":{"type":"Point","coordinates":[34.0,12.0]}},{"type":"Feature","properties":{"c":1},"geometry":{"type":"Point","coordinates":[78.0,56.0]}}]}"#;
         let i = Input::GeoJSON(raw.to_string());
-        let geoms = vec![Geometry::Point(Point::new(34.0, 12.0)),
-                         Geometry::Point(Point::new(78.0, 56.0))];
+        let geoms = vec![
+            Geometry::Point(Point::new(34.0, 12.0)),
+            Geometry::Point(Point::new(78.0, 56.0)),
+        ];
         let mut props1 = serde_json::Map::new();
         props1.insert(String::from("a"), serde_json::to_value("b").unwrap());
         let mut props2 = serde_json::Map::new();
