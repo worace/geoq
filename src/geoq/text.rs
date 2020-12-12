@@ -158,3 +158,8 @@ Takes Epsilon as a command-line parameter
 pub const SIMPLIFY_EPSILON_ARG_HELP: &str = r"
 Simplification epsilon as float, e.g 0.001.
 ";
+
+pub const MEASURE_COORDS_ABOUT: &str =
+    "Count number of total coordinates/vertices in each feature. Use --geojson to get results embedded in a GeoJSON Feature as a property.";
+pub const MEASURE_COORDS_GEOJSON_ARG_HELP: &str =
+    "Give result as an embedded property in a GeoJSON feature, rather than as a single number.";

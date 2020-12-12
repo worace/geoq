@@ -129,6 +129,17 @@ fn main() {
                         .required(true)
                         .index(1),
                 ),
+        )
+        .subcommand(
+            SubCommand::with_name("coords")
+                .about(text::MEASURE_COORDS_ABOUT)
+                .arg(
+                    Arg::with_name("geojson")
+                        .long("geojson")
+                        .required(false)
+                        .takes_value(false)
+                        .help(text::MEASURE_COORDS_GEOJSON_ARG_HELP),
+                ),
         );
 
     let simplify = SubCommand::with_name("simplify")
