@@ -3,6 +3,7 @@ pub mod centroid;
 pub mod commands;
 pub mod contains;
 pub mod distance;
+pub mod coord_count;
 pub mod entity;
 pub mod error;
 pub mod geohash;

@@ -9,10 +9,11 @@ use wkt::ToWkt;
 
 static LATLON_SPLIT: Lazy<Regex> = Lazy::new(|| Regex::new(",|\t").unwrap());
 
+#[derive(Clone)]
 pub enum Entity {
     LatLon(String),
     Geohash(String),
-    Wkt(String, wkt::Geometry),
+    Wkt(String, geo_types::Geometry<f64>),
     GeoJsonFeature(String, geojson::Feature),
     GeoJsonGeometry(String, geojson::Geometry),
 }
@@ -57,7 +58,8 @@ fn wkt_entities(raw: &String) -> Result<Vec<Entity>, Error> {
         Ok(wkts) => {
             for wkt_geom in wkts.items {
                 let wkt_raw = wkt_geom.to_string();
-                entities.push(Entity::Wkt(wkt_raw, wkt_geom))
+                let geom = wkt::conversion::try_into_geometry(&wkt_geom).unwrap();
+                entities.push(Entity::Wkt(wkt_raw, geom))
             }
         }
         Err(_e) => return Err(Error::InvalidWkt),
@@ -95,7 +97,7 @@ impl Entity {
         match self {
             Entity::LatLon(ref raw) => latlon_geom(raw),
             Entity::Geohash(ref raw) => geohash_geom(raw),
-            Entity::Wkt(_, ref wkt_geom) => wkt::conversion::try_into_geometry(wkt_geom).unwrap(),
+            Entity::Wkt(_, ref geom) => geom.clone(),
             Entity::GeoJsonGeometry(_, gj_geom) => gj_geom.value.try_into().unwrap(),
             Entity::GeoJsonFeature(_, gj_feature) => {
                 gj_feature.geometry.unwrap().value.try_into().unwrap()
