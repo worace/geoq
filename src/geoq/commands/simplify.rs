@@ -1,11 +1,32 @@
-use crate::geoq::{error::Error, par, simplify};
+use crate::geoq::{error::Error, par, simplify, coord_count};
 use clap::ArgMatches;
 use std::str::FromStr;
 
-fn simplify(epsilon: f64) -> Result<(), Error> {
+const MAX_ITERS: i32 = 20;
+
+fn simplify(epsilon: f64, coords_target: Option<usize>) -> Result<(), Error> {
     par::for_stdin_entity(move |e| {
         let props = e.geojson_properties();
-        let simplified = simplify::simplify(e.geom(), epsilon);
+        let geom = e.geom();
+        let simplified = match coords_target {
+            None => simplify::simplify(geom, epsilon),
+            Some(target) => {
+                if coord_count::coord_count(&geom) <= target {
+                    geom
+                } else {
+                    let mut eps = epsilon;
+                    let mut simp = geom;
+                    let mut iters = 0;
+                    while coord_count::coord_count(&simp) > target  && iters < MAX_ITERS {
+                        simp = simplify::simplify(simp, eps);
+                        eps = eps * 2.0;
+                        iters += 1;
+                    }
+                    simp
+                }
+            }
+        };
+
         let gj_geom = geojson::Geometry::new(geojson::Value::from(&simplified));
         let feature = geojson::Feature {
             bbox: None,
@@ -19,9 +40,9 @@ fn simplify(epsilon: f64) -> Result<(), Error> {
 }
 
 pub fn run(matches: &ArgMatches) -> Result<(), Error> {
-    match matches.value_of("epsilon") {
+    let eps = match matches.value_of("epsilon") {
         Some(arg) => match f64::from_str(arg) {
-            Ok(eps) => simplify(eps),
+            Ok(eps) => Ok(eps),
             Err(_) => {
                 eprintln!(
                     "Invalid Epsilon: {:?} - must be floating point number, e.g. 0.001.",
@@ -31,5 +52,26 @@ pub fn run(matches: &ArgMatches) -> Result<(), Error> {
             }
         },
         _ => Err(Error::MissingArgument),
-    }
+    };
+
+    let target = match matches.value_of("to_coord_count") {
+        Some(target) => {
+            let parsed = target.parse::<usize>();
+            if parsed.is_err() {
+                eprintln!(
+                    "Invalid to-size coordinate value: {:?} - must be a positive integer",
+                    target
+                );
+                None
+            } else {
+                parsed.ok()
+            }
+        }
+        _ => None
+    };
+
+    eps.and_then(|eps| {
+        simplify(eps, target)
+    })
+
 }

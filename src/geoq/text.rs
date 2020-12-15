@@ -153,10 +153,22 @@ Uses the Visvalingham-Whyatt topology-preserving simplification algorithm.
 Only (Multi-)LineStrings and (Multi-)Polygons will be affected.
 
 Takes Epsilon as a command-line parameter
+
+If the optional --to-size arg is given, geoq will iteratively simplify each
+given geometry until it is under this target number of vertices, starting
+from the provided epsilon and doubling on each attempt.
+
+The iterative simplification will stop after 20 attempts, so it's still
+good to check the coord-count of each geometry afterward to determine
+if any rows were unable to be simplified under the desired threshold.
 ";
 
 pub const SIMPLIFY_EPSILON_ARG_HELP: &str = r"
 Simplification epsilon as float, e.g 0.001.
+";
+
+pub const SIMPLIFY_TO_COORD_COUNT_ARG_HELP: &str = r"
+Target number of coords to simplify to.
 ";
 
 pub const MEASURE_COORDS_ABOUT: &str =
