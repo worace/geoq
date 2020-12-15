@@ -66,7 +66,7 @@ fn coords(matches: &ArgMatches) -> Result<(), Error> {
 pub fn run(matches: &ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("distance", Some(m)) => distance(m),
-        ("coords", Some(m)) => coords(m),
+        ("coord-count", Some(m)) => coords(m),
         _ => Err(Error::UnknownCommand),
     }
 }

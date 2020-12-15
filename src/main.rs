@@ -131,7 +131,7 @@ fn main() {
                 ),
         )
         .subcommand(
-            SubCommand::with_name("coords")
+            SubCommand::with_name("coord-count")
                 .about(text::MEASURE_COORDS_ABOUT)
                 .arg(
                     Arg::with_name("geojson")
@@ -150,6 +150,12 @@ fn main() {
                 .help(text::SIMPLIFY_EPSILON_ARG_HELP)
                 .required(true)
                 .index(1),
+        ).arg(
+            Arg::with_name("to_coord_count")
+                .long("to-coord-count")
+                .required(false)
+                .takes_value(true)
+                .help(text::SIMPLIFY_TO_COORD_COUNT_ARG_HELP),
         );
 
     let snip = SubCommand::with_name("snip")
