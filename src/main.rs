@@ -1,3 +1,4 @@
+#![feature(try_blocks)]
 mod geoq;
 use geoq::commands;
 use geoq::error::Error;
