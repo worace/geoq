@@ -101,9 +101,9 @@ fn main() {
     let json = SubCommand::with_name("json")
         .about("Best-guess conversions from geo-oriented JSON to GeoJSON")
         .subcommand(
-            SubCommand::with_name("point")
-                .about("Attempt to convert arbitrary JSON to a GeoJSON Point.")
-                .after_help(text::JSON_POINT_AFTER_HELP),
+            SubCommand::with_name("munge")
+                .about("Attempt to convert arbitrary JSON to a GeoJSON Feature.")
+                .after_help(text::JSON_MUNGE_AFTER_HELP),
         );
 
     let read = SubCommand::with_name("read")

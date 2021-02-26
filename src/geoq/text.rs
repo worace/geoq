@@ -1,17 +1,20 @@
-pub const JSON_POINT_AFTER_HELP: &str = r#"
-Create a GeoJSON Point from arbitrary JSON by searching for common
-latitude and longitude property names.
+pub const JSON_MUNGE_AFTER_HELP: &str = r#"
+Create a GeoJSON Feature from arbitrary JSON by checking some common
+patterns used for embedding geo data in JSON objects.
 
-Latitude keys are 'latitude' and 'lat'.
-Longitude keys are 'longitude', 'lon', and 'lng'.
+The checks include:
 
-The original JSON object will be embedded in the GeoJSON 'properties' key.
+* latitude and longitude under the lat, latitude, lon, longitude, or lng keys
+* WKT strings under the geometry or wkt keys
+* GeoJSON geometries as strings under the geometry or geojson keys
+* GeoJSON geometries as objects under the geometry or geojson keys
+
+The original JSON object, minus the matched geometry keys, will be embedded in the GeoJSON 'properties' key.
 
 Example:
 
-$ echo '{"latitude":12.0,"longitude":34.0,"key":"val"}' | geoq json point
-  {"geometry":{"coordinates":[34.0,12.0],"type":"Point"},
-   "properties":{"key":"val","latitude":12.0,"longitude":34.0},"type":"Feature"}
+$ echo '{"latitude":12.0,"longitude":34.0,"key":"val"}' | geoq json munge
+{"geometry":{"coordinates":[34.0,12.0],"type":"Point"}, "properties":{"key":"val"},"type":"Feature"}
 "#;
 
 pub const READ_AFTER_HELP: &str = r#"
