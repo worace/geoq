@@ -573,26 +573,28 @@ fn reading_geojson_feature_without_properties() {
 }
 
 #[test]
-fn json_point() {
+fn json_munge() {
     let input = r#"{"latitude": 34.3, "longitude": -118.2, "name": "Horace", "pizza": "pie"}
 {"lat": 34.3, "lon": -118.2, "name": "Horace", "pizza": "pie"}
 {"latitude": 34.3, "lng": -118.2, "name": "Horace", "pizza": "pie"}
+{"name": "Horace", "pizza": "pie", "wkt":"POINT(-118.3991 33.9924)"}
 "#;
 
-    let output = r#"{"geometry":{"coordinates":[-118.2,34.3],"type":"Point"},"properties":{"latitude":34.3,"longitude":-118.2,"name":"Horace","pizza":"pie"},"type":"Feature"}
-{"geometry":{"coordinates":[-118.2,34.3],"type":"Point"},"properties":{"lat":34.3,"lon":-118.2,"name":"Horace","pizza":"pie"},"type":"Feature"}
-{"geometry":{"coordinates":[-118.2,34.3],"type":"Point"},"properties":{"latitude":34.3,"lng":-118.2,"name":"Horace","pizza":"pie"},"type":"Feature"}
+    let output = r#"{"geometry":{"coordinates":[-118.2,34.3],"type":"Point"},"properties":{"name":"Horace","pizza":"pie"},"type":"Feature"}
+{"geometry":{"coordinates":[-118.2,34.3],"type":"Point"},"properties":{"name":"Horace","pizza":"pie"},"type":"Feature"}
+{"geometry":{"coordinates":[-118.2,34.3],"type":"Point"},"properties":{"name":"Horace","pizza":"pie"},"type":"Feature"}
+{"geometry":{"coordinates":[-118.3991,33.9924],"type":"Point"},"properties":{"name":"Horace","pizza":"pie"},"type":"Feature"}
 "#;
 
     Assert::main_binary()
-        .with_args(&["json", "point"])
+        .with_args(&["json", "munge"])
         .stdin(input)
         .stdout()
         .is(output)
         .unwrap();
 
     Assert::main_binary()
-        .with_args(&["json", "point"])
+        .with_args(&["json", "munge"])
         .stdin("pizza")
         .fails()
         .unwrap();
