@@ -3,7 +3,7 @@ use geo_types::{Geometry, Point};
 use geojson::GeoJson;
 use clap::ArgMatches;
 use serde_json;
-use serde_json::{json, Map, Number, Value};
+use serde_json::{json, Map, Value};
 use std::{convert::TryInto};
 use std::io::{self, BufRead};
 
@@ -59,7 +59,7 @@ fn wkt_geom(v: &Map<String, Value>) -> Option<(Geom, Vec<String>)> {
     let str_opt_with_key = find_string(v, &vec!["geometry", "wkt"]);
     str_opt_with_key.and_then(|(k, v)| wkt::Wkt::from_str(&v).ok().map(|wkt| (k, wkt)))
         .and_then(|(k,wkt)| {
-            if (wkt.items.is_empty()) {
+            if wkt.items.is_empty() {
                 None
             } else {
                 // TODO what to do with multiple wkt geoms
