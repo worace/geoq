@@ -98,7 +98,7 @@ See the built-in command help using `geoq --help` or `geoq <subcommand> --help` 
   * `neighbors` - Get neighbors of a Geohash
   * `point` - Output base 32 Geohash for a given Lat,Lon
 * `json` - JSON -> GeoJSON coercion
-  * `point` - Attempt to convert arbitrary JSON to a GeoJSON Point.
+  * `munge` - Attempt to convert arbitrary JSON to a GeoJSON Feature.
 * `map` - Visualization with geojson.io
 * `read` - Debugging / format validation
 * `wkt` - Output geometries as WKT
