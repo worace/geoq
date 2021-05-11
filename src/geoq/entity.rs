@@ -111,6 +111,13 @@ impl Entity {
         wkt.items.pop().unwrap()
     }
 
+    pub fn bbox(self) -> geo::Rect<f64> {
+        let geom = self.geom();
+        // let bboxOpt = geom.bounding_rect();
+        let p = geo::Coordinate {x: 0.0, y: 0.0};
+        geo::Rect {min: p, max: p}
+    }
+
     pub fn geojson_geometry(self) -> geojson::Geometry {
         let geom = self.geom();
         geojson::Geometry::new(geojson::Value::from(&geom))
