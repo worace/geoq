@@ -7,12 +7,14 @@ trait OptRectHelper: Debug {
     fn or_zero(self) -> geo::Rect<f64>;
 }
 
+fn zero_rect() -> geo::Rect<f64> {
+    let p = geo::Coordinate {x: 0.0, y: 0.0};
+    geo::Rect {min: p, max: p}
+}
+
 impl OptRectHelper for Option<geo::Rect<f64>> {
     fn or_zero(self) -> geo::Rect<f64> {
-        self.unwrap_or_else(|| {
-            let p = geo::Coordinate {x: 0.0, y: 0.0};
-            geo::Rect {min: p, max: p}
-        })
+        self.unwrap_or_else(|| zero_rect())
     }
 }
 
@@ -37,7 +39,7 @@ fn max(a: f64, b: f64) -> f64 {
     }
 }
 
-fn merge(a: geo::Rect<f64>, b: geo::Rect<f64>) -> geo::Rect<f64> {
+fn merge(a: geo::Rect<f64>, b: &geo::Rect<f64>) -> geo::Rect<f64> {
     let min = geo::Coordinate {
         x: min(a.min.x, b.min.x),
         y: min(a.min.y, b.min.y)
@@ -62,9 +64,7 @@ pub fn bbox(geom: &Geometry<f64>) -> geo::Rect<f64> {
         Geometry::GeometryCollection(ref gc) => {
             let rects: Vec<geo::Rect<f64>> = gc.0.iter().map(|geom| bbox(geom)).collect();
 
-            rects.iter()
-                .reduce(|a, b| merge(a, b))
-                .or_zero()
+            rects.iter().fold(zero_rect(), |a, b| merge(a, b))
         }
     }
 }
