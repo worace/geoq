@@ -1,4 +1,4 @@
-use crate::geoq::{error::Error, input::Input};
+use crate::geoq::{error::Error, input::Input, bbox};
 use geo_types::{Coordinate, Geometry, LineString, Point, Polygon};
 use geojson::GeoJson;
 use once_cell::sync::Lazy;
@@ -93,32 +93,30 @@ fn geojson_entities(raw: String) -> Result<Vec<Entity>, Error> {
 }
 
 impl Entity {
-    pub fn geom(self) -> geo_types::Geometry<f64> {
+    pub fn geom(&self) -> geo_types::Geometry<f64> {
         match self {
             Entity::LatLon(ref raw) => latlon_geom(raw),
             Entity::Geohash(ref raw) => geohash_geom(raw),
             Entity::Wkt(_, ref geom) => geom.clone(),
-            Entity::GeoJsonGeometry(_, gj_geom) => gj_geom.value.try_into().unwrap(),
+            Entity::GeoJsonGeometry(_, gj_geom) => gj_geom.value.clone().try_into().unwrap(),
             Entity::GeoJsonFeature(_, gj_feature) => {
-                gj_feature.geometry.unwrap().value.try_into().unwrap()
+                gj_feature.clone().geometry.unwrap().value.try_into().unwrap()
             }
         }
     }
 
-    pub fn wkt(self) -> wkt::Geometry {
+    pub fn wkt(&self) -> wkt::Geometry {
         let geom = self.geom();
         let mut wkt = geom.to_wkt();
         wkt.items.pop().unwrap()
     }
 
-    pub fn bbox(self) -> geo::Rect<f64> {
+    pub fn bbox(&self) -> geo::Rect<f64> {
         let geom = self.geom();
-        // let bboxOpt = geom.bounding_rect();
-        let p = geo::Coordinate {x: 0.0, y: 0.0};
-        geo::Rect {min: p, max: p}
+        bbox::bbox(&geom)
     }
 
-    pub fn geojson_geometry(self) -> geojson::Geometry {
+    pub fn geojson_geometry(&self) -> geojson::Geometry {
         let geom = self.geom();
         geojson::Geometry::new(geojson::Value::from(&geom))
     }
@@ -136,7 +134,7 @@ impl Entity {
         }
     }
 
-    pub fn geojson_feature(self) -> geojson::Feature {
+    pub fn geojson_feature(&self) -> geojson::Feature {
         let props = self.geojson_properties();
         let geom = self.geojson_geometry();
         geojson::Feature {

@@ -1,8 +1,13 @@
-use crate::geoq::{error::Error, par, bbox};
+use crate::geoq::{error::Error, par, bbox::BBoxToPoly};
 
+// Options
+// --fold (combine all into 1 bbox)
+// --embed (embed as bbox member of geojson feature)
 pub fn run() -> Result<(), Error> {
     par::for_stdin_entity(|e| {
-        // bbox::bbox(e.)
-        Ok(vec![format!("{}", e.wkt())])
+        let bbox = e.bbox();
+        let poly = bbox.to_polygon();
+        let gj = geojson::Geometry::new(geojson::Value::from(&poly));
+        Ok(vec![format!("{}", serde_json::to_string(&gj).unwrap())])
     })
 }

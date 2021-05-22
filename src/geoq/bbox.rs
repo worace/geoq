@@ -2,7 +2,6 @@ use std::fmt::Debug;
 use geo_types::*;
 use std::cmp::Ordering;
 
-// TODO Handle additional Multi* geometry types
 trait OptRectHelper: Debug {
     fn or_zero(self) -> geo::Rect<f64>;
 }
@@ -48,7 +47,7 @@ fn merge(a: geo::Rect<f64>, b: &geo::Rect<f64>) -> geo::Rect<f64> {
         x: max(a.max.x, b.max.x),
         y: max(a.max.y, b.max.y)
     };
-    geo::Rect{min: min, max: max}
+    geo::Rect{min, max}
 }
 
 pub fn bbox(geom: &Geometry<f64>) -> geo::Rect<f64> {
@@ -66,5 +65,25 @@ pub fn bbox(geom: &Geometry<f64>) -> geo::Rect<f64> {
 
             rects.iter().fold(zero_rect(), |a, b| merge(a, b))
         }
+    }
+}
+
+pub trait BBoxToPoly {
+    fn to_polygon(&self) -> geo_types::Polygon<f64>;
+}
+
+
+impl BBoxToPoly for geo::Rect<f64> {
+    fn to_polygon(&self) -> geo_types::Polygon<f64> {
+        Polygon::new(
+            LineString::from(vec![
+                self.max.x_y(),
+                (self.max.x, self.min.y),
+                (self.min.x, self.min.y),
+                (self.min.x, self.max.y),
+                self.max.x_y()
+            ]),
+            vec![],
+        )
     }
 }
