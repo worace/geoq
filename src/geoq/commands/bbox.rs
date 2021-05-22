@@ -1,4 +1,4 @@
-use crate::geoq::{error::Error, par, bbox::BBoxToPoly};
+use crate::geoq::{bbox::BBoxToPoly, error::Error, par};
 
 // Options
 // --fold (combine all into 1 bbox)
