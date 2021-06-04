@@ -21,7 +21,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("whereami", Some(_)) => commands::whereami::run(),
         ("simplify", Some(m)) => commands::simplify::run(m),
         ("measure", Some(m)) => commands::measure::run(m),
-        ("bbox", Some(_)) => commands::bbox::run(),
+        ("bbox", Some(m)) => commands::bbox::run(m),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -162,6 +162,10 @@ fn main() {
 
     let bbox = SubCommand::with_name("bbox")
         .about("Generate bounding boxes for geometries")
+        .arg(Arg::with_name("embed")
+             .long("embed")
+             .short("e")
+             .help("Print inputs as GeoJSON features and include the bbox in the GeoJSON bbox field"))
         .after_help(text::BBOX_AFTER_HELP);
 
     let matches = App::new("geoq")
