@@ -21,6 +21,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("whereami", Some(_)) => commands::whereami::run(),
         ("simplify", Some(m)) => commands::simplify::run(m),
         ("measure", Some(m)) => commands::measure::run(m),
+        ("bbox", Some(m)) => commands::bbox::run(m),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -159,9 +160,17 @@ fn main() {
                 .help(text::SIMPLIFY_TO_COORD_COUNT_ARG_HELP),
         );
 
-    let snip = SubCommand::with_name("snip")
-        .about("View features in the contour.app scratchpad")
-        .after_help(text::SNIP_AFTER_HELP);
+    let bbox = SubCommand::with_name("bbox")
+        .about("Generate bounding boxes for geometries")
+        .arg(Arg::with_name("embed")
+             .long("embed")
+             .short("e")
+             .help("Print inputs as GeoJSON features and include the bbox in the GeoJSON bbox field"))
+        .arg(Arg::with_name("all")
+             .long("all")
+             .short("a")
+             .help("Give a single bbox for all input geometries rather than 1 bbox per input"))
+        .after_help(text::BBOX_AFTER_HELP);
 
     let matches = App::new("geoq")
         .version(VERSION)
@@ -170,7 +179,6 @@ fn main() {
         .after_help(text::MAIN_AFTER_HELP)
         .subcommand(SubCommand::with_name("wkt").about("Output features as Well-Known Text"))
         .subcommand(SubCommand::with_name("map").about("View features on a map using geojson.io"))
-        .subcommand(snip)
         .subcommand(read)
         .subcommand(geohash)
         .subcommand(geojson)
@@ -180,6 +188,7 @@ fn main() {
         .subcommand(whereami)
         .subcommand(measure)
         .subcommand(simplify)
+        .subcommand(bbox)
         .get_matches();
 
     if let Err(e) = run(matches) {

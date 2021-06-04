@@ -10,3 +10,4 @@ pub mod simplify;
 pub mod snip;
 pub mod whereami;
 pub mod wkt;
+pub mod bbox;

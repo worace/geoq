@@ -21,6 +21,7 @@ pub enum Error {
     PointRequired,
     DistanceFailed,
     InvalidGeohashPoint,
+    NoInputGiven
 }
 
 impl From<io::Error> for Error {

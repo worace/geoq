@@ -13,3 +13,4 @@ pub mod par;
 pub mod reader;
 pub mod simplify;
 pub mod text;
+pub mod bbox;
