@@ -64,9 +64,9 @@ impl<'a> Iterator for Reader<'a> {
     }
 }
 
-pub fn entities<F>(handler: F) -> Result<(), Error>
+pub fn entities<F>(mut handler: F) -> Result<(), Error>
 where
-    F: Fn(&mut dyn Iterator<Item = Result<Entity, Error>>) -> Result<(), Error>,
+    F: FnMut(&mut dyn Iterator<Item = Result<Entity, Error>>) -> Result<(), Error>,
 {
     let stdin = io::stdin();
     let mut stdin_reader = stdin.lock();
@@ -74,9 +74,9 @@ where
     handler(&mut reader)
 }
 
-pub fn for_entity<F>(handler: F) -> Result<(), Error>
+pub fn for_entity<F>(mut handler: F) -> Result<(), Error>
 where
-    F: Fn(Entity) -> Result<(), Error>,
+    F: FnMut(Entity) -> Result<(), Error>,
 {
     entities(|e_iter| {
         for e_res in e_iter {

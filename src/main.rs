@@ -166,6 +166,10 @@ fn main() {
              .long("embed")
              .short("e")
              .help("Print inputs as GeoJSON features and include the bbox in the GeoJSON bbox field"))
+        .arg(Arg::with_name("all")
+             .long("all")
+             .short("a")
+             .help("Give a single bbox for all input geometries rather than 1 bbox per input"))
         .after_help(text::BBOX_AFTER_HELP);
 
     let matches = App::new("geoq")
