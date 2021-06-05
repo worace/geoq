@@ -21,7 +21,9 @@ pub enum Error {
     PointRequired,
     DistanceFailed,
     InvalidGeohashPoint,
-    NoInputGiven
+    NoInputGiven,
+    ShapefileReaderError,
+    ProgramError(String)
 }
 
 impl From<io::Error> for Error {
