@@ -14,6 +14,7 @@ pub fn find_number(v: &Map<String, Value>, keys: &Vec<&'static str>) -> Option<(
         }
         match v[*k] {
             Value::Number(ref n) => return n.as_f64().map(|f| (*k, f)),
+            Value::String(ref str) => return str.parse::<f64>().ok().map(|f| (*k, f)),
             _ => continue,
         }
     }
