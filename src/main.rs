@@ -82,6 +82,11 @@ fn main() {
              .global(true)
              .long("query-file")
              .short("q"))
+        .arg(Arg::with_name("negate")
+             .help("Negate the filter, so intersects becomes 'not intersects', etc.")
+             .global(true)
+             .long("negate")
+             .short("n"))
         .subcommand(
             SubCommand::with_name("intersects")
                 .about("Output only entities (from STDIN) which intersect a QUERY entity (as command-line ARG)")

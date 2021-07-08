@@ -28,15 +28,15 @@ fn read_query_geoms(matches: &ArgMatches) -> Result<Vec<Geometry<f64>>, Error> {
     }
 }
 
-fn intersects(matches: &ArgMatches) -> Result<(), Error> {
+fn intersects(matches: &ArgMatches, negate: bool) -> Result<(), Error> {
     let query_geoms = read_query_geoms(matches)?;
     par::for_stdin_entity(move |entity| {
         let output = entity.raw();
         let geom = entity.geom();
-        if query_geoms
+        let is_match: bool = query_geoms
             .iter()
-            .any(|ref query_geom| geoq::intersection::intersects(query_geom, &geom))
-        {
+            .any(|ref query_geom| geoq::intersection::intersects(query_geom, &geom));
+        if is_match ^ negate {
             Ok(vec![output])
         } else {
             Ok(vec![])
@@ -44,7 +44,7 @@ fn intersects(matches: &ArgMatches) -> Result<(), Error> {
     })
 }
 
-fn contains(matches: &ArgMatches) -> Result<(), Error> {
+fn contains(matches: &ArgMatches, negate: bool) -> Result<(), Error> {
     let query_geoms = read_query_geoms(matches)?;
     let query_polygons: Vec<Polygon<f64>> = query_geoms
         .into_iter()
@@ -61,10 +61,10 @@ fn contains(matches: &ArgMatches) -> Result<(), Error> {
         par::for_stdin_entity(move |entity| {
             let output = entity.raw();
             let geom = entity.geom();
-            if query_polygons
+            let is_match = query_polygons
                 .iter()
-                .any(|ref query_poly| geoq::contains::contains(query_poly, &geom))
-            {
+                .any(|ref query_poly| geoq::contains::contains(query_poly, &geom));
+            if is_match ^ negate {
                 Ok(vec![output])
             } else {
                 Ok(vec![])
@@ -74,9 +74,19 @@ fn contains(matches: &ArgMatches) -> Result<(), Error> {
 }
 
 pub fn run(matches: &ArgMatches) -> Result<(), Error> {
+    // allow --negate to be passed either before or after the subcommand
+    // geoq filter --negate intersects
+    // OR
+    // geoq filter intersects --negate
+    let negate = matches
+        .args
+        .get("negate")
+        .or(matches.subcommand().1.and_then(|m| (*m).args.get("negate")))
+        .is_some();
+
     match matches.subcommand() {
-        ("intersects", Some(m)) => intersects(m),
-        ("contains", Some(m)) => contains(m),
+        ("intersects", Some(m)) => intersects(m, negate),
+        ("contains", Some(m)) => contains(m, negate),
         _ => Err(Error::UnknownCommand),
     }
 }
