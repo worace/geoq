@@ -23,7 +23,7 @@ percent-encoding = "1.0.1"
 os_info = "2.0.6"
 num_cpus = "1.0"
 reqwest = "0.9.19"
-shapefile = "0.3.0"
+shapefile = { version = "0.3.0", features=["geo-types"]}
 dbase = "0.2.0"
 
 [dev-dependencies]

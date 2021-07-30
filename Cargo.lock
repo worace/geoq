@@ -1326,6 +1326,7 @@ checksum = "e994bc4cd40414ab22428916b1ef418b1ac864c98978358982f29e310e56348d"
 dependencies = [
  "byteorder",
  "dbase",
+ "geo-types",
 ]
 
 [[package]]
