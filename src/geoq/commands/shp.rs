@@ -1,4 +1,6 @@
-use crate::geoq::error::Error;
+use std::any::Any;
+
+use crate::geoq::{self, error::Error};
 use clap::ArgMatches;
 use dbase::{FieldValue, Record};
 use geojson;
@@ -7,6 +9,12 @@ use shapefile;
 
 impl From<shapefile::Error> for Error {
     fn from(_err: shapefile::Error) -> Self {
+        Error::ShapefileReaderError
+    }
+}
+
+impl From<geozero_shp::Error> for Error {
+    fn from(_err: geozero_shp::Error) -> Self {
         Error::ShapefileReaderError
     }
 }
@@ -36,48 +44,157 @@ fn record_to_json(record: Record) -> Result<serde_json::Map<String, Value>, Stri
     Ok(json)
 }
 
+trait Pointable {
+    fn vec(&self) -> Vec<f64>;
+    fn gj_point(&self) -> geojson::Value {
+        geojson::Value::Point(self.vec())
+    }
+    fn gj_geom(&self) -> geojson::Geometry {
+        geojson::Geometry::new(geojson::Value::Point(self.vec()))
+    }
+    fn gj_geom_res(&self) -> Result<geojson::Geometry, String> {
+        Ok(self.gj_geom())
+    }
+}
+
+impl Pointable for shapefile::Point {
+    fn vec(&self) -> Vec<f64> {
+        vec![self.x, self.y]
+    }
+}
+impl Pointable for shapefile::PointM {
+    fn vec(&self) -> Vec<f64> {
+        vec![self.x, self.y, self.m]
+    }
+}
+impl Pointable for shapefile::PointZ {
+    fn vec(&self) -> Vec<f64> {
+        vec![self.x, self.y, self.m, self.z]
+    }
+}
+
+trait PointIterable {
+    fn vec(&self) -> Vec<Vec<Vec<f64>>>;
+}
+
+impl PointIterable for shapefile::Polyline {
+    fn vec(&self) -> Vec<Vec<Vec<f64>>> {
+        self.parts()
+            .into_iter()
+            .map(|part| part.into_iter().map(|p| p.vec()).collect::<Vec<Vec<f64>>>())
+            .collect()
+    }
+}
+impl PointIterable for shapefile::PolylineZ {
+    fn vec(&self) -> Vec<Vec<Vec<f64>>> {
+        self.parts()
+            .into_iter()
+            .map(|part| part.into_iter().map(|p| p.vec()).collect::<Vec<Vec<f64>>>())
+            .collect()
+    }
+}
+impl PointIterable for shapefile::PolylineM {
+    fn vec(&self) -> Vec<Vec<Vec<f64>>> {
+        self.parts()
+            .into_iter()
+            .map(|part| part.into_iter().map(|p| p.vec()).collect::<Vec<Vec<f64>>>())
+            .collect()
+    }
+}
+
+impl PointIterable for shapefile::Polygon {
+    fn vec(&self) -> Vec<Vec<Vec<f64>>> {
+        self.rings()
+            .into_iter()
+            .map(|r| {
+                let ring: &shapefile::PolygonRing<shapefile::Point> = r;
+                let point_vecs: Vec<Vec<f64>> =
+                    ring.points().into_iter().map(|p| p.vec()).collect();
+                point_vecs
+            })
+            .collect()
+    }
+}
+impl PointIterable for shapefile::PolygonZ {
+    fn vec(&self) -> Vec<Vec<Vec<f64>>> {
+        self.rings()
+            .into_iter()
+            .map(|r| {
+                let ring: &shapefile::PolygonRing<shapefile::PointZ> = r;
+                let point_vecs: Vec<Vec<f64>> =
+                    ring.points().into_iter().map(|p| p.vec()).collect();
+                point_vecs
+            })
+            .collect()
+    }
+}
+impl PointIterable for shapefile::PolygonM {
+    fn vec(&self) -> Vec<Vec<Vec<f64>>> {
+        self.rings()
+            .into_iter()
+            .map(|r| {
+                let ring: &shapefile::PolygonRing<shapefile::PointM> = r;
+                let point_vecs: Vec<Vec<f64>> =
+                    ring.points().into_iter().map(|p| p.vec()).collect();
+                point_vecs
+            })
+            .collect()
+    }
+}
+
 // fn shp_to_gj_point(p: shapefile::Shape::PointZ)
 
 fn shp_to_gj_geom(geom: shapefile::Shape) -> Result<geojson::Geometry, String> {
     match geom {
-        shapefile::Shape::Point(g) => {
-            let gj_point = geojson::Value::Point(vec![g.x, g.y]);
-            let gj_geom = geojson::Geometry::new(gj_point);
-            Ok(gj_geom)
+        shapefile::Shape::Point(g) => g.gj_geom_res(),
+        shapefile::Shape::PointM(g) => g.gj_geom_res(),
+        shapefile::Shape::PointZ(g) => g.gj_geom_res(),
+        shapefile::Shape::Polyline(g) => Ok(geojson::Geometry::new(
+            geojson::Value::MultiLineString(g.vec()),
+        )),
+        shapefile::Shape::PolylineZ(g) => Ok(geojson::Geometry::new(
+            geojson::Value::MultiLineString(g.vec()),
+        )),
+        shapefile::Shape::PolylineM(g) => Ok(geojson::Geometry::new(
+            geojson::Value::MultiLineString(g.vec()),
+        )),
+        shapefile::Shape::Polygon(g) => {
+            Ok(geojson::Geometry::new(geojson::Value::Polygon(g.vec())))
         }
-        shapefile::Shape::PointM(g) => {
-            let gj_point = geojson::Value::Point(vec![g.x, g.y, g.m]);
-            let gj_geom = geojson::Geometry::new(gj_point);
-            Ok(gj_geom)
+        shapefile::Shape::PolygonZ(g) => {
+            Ok(geojson::Geometry::new(geojson::Value::Polygon(g.vec())))
         }
-        shapefile::Shape::PointZ(g) => {
-            let gj_point = geojson::Value::Point(vec![g.x, g.y, g.z, g.m]);
-            let gj_geom = geojson::Geometry::new(gj_point);
-            Ok(gj_geom)
+        shapefile::Shape::PolygonM(g) => {
+            Ok(geojson::Geometry::new(geojson::Value::Polygon(g.vec())))
         }
-        shapefile::Shape::Polyline(g) => {
-            // shapefile polyline becomes multilinestring
-            let parts = g.parts();
-            if (parts.len() == 0) {
-                Ok(geojson::Geometry::new(geojson::Value::LineString(vec![])))
-            } else if (parts.len() == 1) {
-                let part = g.part(0).or_else(vec![]);
-                // part.map(|point| )
-                Ok(geojson::Geometry::new(geojson::Value::LineString(vec![])))
-            } else {
-                for p in parts {
-                    print!("{:?}", p);
-                }
-                let gj_point = geojson::Value::Point(vec![0.0, 0.0]);
-                let gj_geom = geojson::Geometry::new(gj_point);
-                Ok(gj_geom)
-            }
-
-            // let gj_point = geojson::Value::Point(vec![g.x, g.y, g.z, g.m]);
-            // let gj_geom = geojson::Geometry::new(gj_point);
-            // Ok(gj_geom)
+        shapefile::Shape::Multipoint(g) => {
+            let points: Vec<Vec<f64>> = g.points().into_iter().map(|p| p.vec()).collect();
+            Ok(geojson::Geometry::new(geojson::Value::MultiPoint(points)))
         }
-        _ => Err("Invalid shape type".to_string()),
+        shapefile::Shape::MultipointZ(g) => {
+            let points: Vec<Vec<f64>> = g.points().into_iter().map(|p| p.vec()).collect();
+            Ok(geojson::Geometry::new(geojson::Value::MultiPoint(points)))
+        }
+        shapefile::Shape::MultipointM(g) => {
+            let points: Vec<Vec<f64>> = g.points().into_iter().map(|p| p.vec()).collect();
+            Ok(geojson::Geometry::new(geojson::Value::MultiPoint(points)))
+        }
+        shapefile::Shape::NullShape => Ok(geojson::Geometry::new(geojson::Value::Polygon(vec![]))),
+        shapefile::Shape::Multipatch(g) => {
+            // This almost certainly does not work but it might be structurally valid ¯\_(ツ)_/¯
+            let poly_vecs: Vec<Vec<Vec<f64>>> = g
+                .patches()
+                .into_iter()
+                .map(|patch| {
+                    patch
+                        .points()
+                        .into_iter()
+                        .map(|point| point.vec())
+                        .collect::<Vec<Vec<f64>>>()
+                })
+                .collect();
+            Ok(geojson::Geometry::new(geojson::Value::Polygon(poly_vecs)))
+        }
     }
 }
 
@@ -93,8 +210,53 @@ fn shp_to_geojson(geom: shapefile::Shape, record: Record) -> Result<geojson::Fea
     })
 }
 
+fn print_shps(path: &str) -> Result<usize, geoq::error::Error> {
+    let shp_reader = geozero_shp::Reader::from_path(path)?;
+    let stdout = std::io::stdout();
+    let mut handler = stdout.lock();
+    let geojson_writer = geozero::geojson::GeoJsonWriter::new(&mut handler);
+    let shp_iter = shp_reader.iter_geometries(geojson_writer);
+    let count = shp_iter.count();
+    Ok(count)
+}
+
+fn print_props(path: &str) -> Result<usize, geoq::error::Error> {
+    let props_reader = geozero_shp::Reader::from_path(path)?;
+    let stdout = std::io::stdout();
+    let mut handler = stdout.lock();
+    let geojson_writer = geozero::geojson::GeoJsonWriter::new(&mut handler);
+    let props_iter = props_reader.iter_features(geojson_writer)?;
+
+    let count = props_iter.count();
+    Ok(count)
+}
+
 pub fn run(m: &ArgMatches) -> Result<(), Error> {
     let path = m.value_of("path").unwrap();
+
+    // print_shps(path)?;
+    // print_props(path)?;
+
+    // props_iter.count();
+
+    // for (shape_r, props_r) in shp_iter.zip(props_iter) {
+    //     // geozero::geo_types::GeoWriter::geometry(g)
+    //     // let shape = shape_r?;
+    //     let props = props_r?;
+    //     println!("{:?}", props.record);
+    //     // println!("{:?}", geo_writer.geometry());
+    // }
+
+    // for shape_record_r in props_iter {
+    //     let shape_record = shape_record_r?;
+    //     println!("{:?}", shape_record.record);
+    // }
+    // iter.for_each(|f_r| {
+    //     let f = f_r?;
+    //     println!("{}", f);
+    // });
+    // reader.iter_features()
+
     let mut reader = shapefile::Reader::from_path(path)?;
     for shape_record in reader.iter_shapes_and_records() {
         // for each shape, match it by type and convert

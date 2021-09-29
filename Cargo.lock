@@ -305,6 +305,15 @@ dependencies = [
 
 [[package]]
 name = "dbase"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f11532d799d221b4b11d7e0df6dcace80a64b9b274687a638f76e4668872bc1a"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
+name = "dbase"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59e54631a3a0c92273703fa4aa691ab79e15d8506862c8086feeb48907a64a36"
@@ -372,9 +381,9 @@ version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea1063915fd7ef4309e222a5a07cf9c319fb9c7836b1f89b85458672dbb127e1"
 dependencies = [
- "proc-macro2",
- "quote",
- "syn",
+ "proc-macro2 0.4.24",
+ "quote 0.6.10",
+ "syn 0.15.24",
  "synstructure",
 ]
 
@@ -449,7 +458,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89ce8faa25a6f5ce8ea98faa95247d66377a843408eb4418332ec37de96850b0"
 dependencies = [
  "failure",
- "geo-types",
+ "geo-types 0.4.3",
  "num-traits",
  "rstar",
 ]
@@ -465,13 +474,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "geo-types"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8bd2e95dd9f5c8ff74159ed9205ad7fd239a9569173a550863976421b45d2bb"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "geohash"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4c97316dbd08e58b49c9f0ab5d37aeca27059065b86b360506ea484bd74b286"
 dependencies = [
  "failure",
- "geo-types",
+ "geo-types 0.4.3",
 ]
 
 [[package]]
@@ -480,10 +498,21 @@ version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22b37e57c7f498be81360116a489ebad0b133557e87d8b4f82d51bebd1c3ef9e"
 dependencies = [
- "geo-types",
+ "geo-types 0.4.3",
  "num-traits",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "geojson"
+version = "0.22.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c209e446d28d9142fb23127808bef2a1485924e7b42cd8c9407ea7cbfe09ccc"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]
@@ -492,11 +521,13 @@ version = "0.0.18"
 dependencies = [
  "assert_cli",
  "clap",
- "dbase",
+ "dbase 0.2.0",
  "geo",
- "geo-types",
+ "geo-types 0.4.3",
  "geohash",
- "geojson",
+ "geojson 0.16.0",
+ "geozero",
+ "geozero-shp",
  "num_cpus",
  "once_cell",
  "os_info",
@@ -506,6 +537,29 @@ dependencies = [
  "serde_json",
  "shapefile",
  "wkt",
+]
+
+[[package]]
+name = "geozero"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "917cdab5cb89696c58122acc2afea6def1b5a389a472d84fa742754d363b28f7"
+dependencies = [
+ "geo-types 0.7.2",
+ "geojson 0.22.2",
+ "thiserror",
+]
+
+[[package]]
+name = "geozero-shp"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c567722a6aafbee713b6b804ac3ee3f71e905ff9a669b7d0b9c5ef46fe4104b"
+dependencies = [
+ "byteorder",
+ "dbase 0.0.4",
+ "geozero",
+ "thiserror",
 ]
 
 [[package]]
@@ -972,7 +1026,16 @@ version = "0.4.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77619697826f31a02ae974457af0b29b723e5619e113e9397b8b82c6bd253f09"
 dependencies = [
- "unicode-xid",
+ "unicode-xid 0.1.0",
+]
+
+[[package]]
+name = "proc-macro2"
+version = "1.0.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9f5105d4fdaab20335ca9565e106a5d9b82b6219b5ba735731124ac6711d23d"
+dependencies = [
+ "unicode-xid 0.2.2",
 ]
 
 [[package]]
@@ -994,7 +1057,16 @@ version = "0.6.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "53fa22a1994bd0f9372d7a816207d8a2677ad0325b073f5c5332760f0fb62b5c"
 dependencies = [
- "proc-macro2",
+ "proc-macro2 0.4.24",
+]
+
+[[package]]
+name = "quote"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3d0b9745dc2debf507c8422de05d7226cc1f0644216dfdfead988f9b1ab32a7"
+dependencies = [
+ "proc-macro2 1.0.29",
 ]
 
 [[package]]
@@ -1290,9 +1362,9 @@ version = "1.0.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01e69e1b8a631f245467ee275b8c757b818653c6d704cdbcaeb56b56767b529c"
 dependencies = [
- "proc-macro2",
- "quote",
- "syn",
+ "proc-macro2 0.4.24",
+ "quote 0.6.10",
+ "syn 0.15.24",
 ]
 
 [[package]]
@@ -1325,8 +1397,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e994bc4cd40414ab22428916b1ef418b1ac864c98978358982f29e310e56348d"
 dependencies = [
  "byteorder",
- "dbase",
- "geo-types",
+ "dbase 0.2.0",
+ "geo-types 0.4.3",
 ]
 
 [[package]]
@@ -1371,9 +1443,20 @@ version = "0.15.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "734ecc29cd36e8123850d9bf21dfd62ef8300aaa8f879aabaa899721808be37c"
 dependencies = [
- "proc-macro2",
- "quote",
- "unicode-xid",
+ "proc-macro2 0.4.24",
+ "quote 0.6.10",
+ "unicode-xid 0.1.0",
+]
+
+[[package]]
+name = "syn"
+version = "1.0.77"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5239bc68e0fef57495900cfea4e8dc75596d9a319d7e16b1e0a440d24e6fe0a0"
+dependencies = [
+ "proc-macro2 1.0.29",
+ "quote 1.0.9",
+ "unicode-xid 0.2.2",
 ]
 
 [[package]]
@@ -1382,10 +1465,10 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73687139bf99285483c96ac0add482c3776528beac1d97d444f6e91f203a2015"
 dependencies = [
- "proc-macro2",
- "quote",
- "syn",
- "unicode-xid",
+ "proc-macro2 0.4.24",
+ "quote 0.6.10",
+ "syn 0.15.24",
+ "unicode-xid 0.1.0",
 ]
 
 [[package]]
@@ -1420,6 +1503,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "307686869c93e71f94da64286f9a9524c0f308a9e1c87a583de8e9c9039ad3f6"
 dependencies = [
  "unicode-width",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "602eca064b2d83369e2b2f34b09c70b605402801927c65c11071ac911d299b88"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bad553cc2c78e8de258400763a647e80e6d1b31ee237275d756f6836d204494c"
+dependencies = [
+ "proc-macro2 1.0.29",
+ "quote 1.0.9",
+ "syn 1.0.77",
 ]
 
 [[package]]
@@ -1633,6 +1736,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc72304796d0818e357ead4e000d19c9c174ab23dc11093ac919054d20a6a7fc"
 
 [[package]]
+name = "unicode-xid"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
+
+[[package]]
 name = "url"
 version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1730,7 +1839,7 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "816e17904977de6370bf5328ab191ac4a6a417bb91e43defc1f456158da656f8"
 dependencies = [
- "geo-types",
+ "geo-types 0.4.3",
 ]
 
 [[package]]

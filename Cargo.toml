@@ -25,6 +25,8 @@ num_cpus = "1.0"
 reqwest = "0.9.19"
 shapefile = { version = "0.3.0", features=["geo-types"]}
 dbase = "0.2.0"
+geozero-shp = "0.2.0"
+geozero = "0.7.4"
 
 [dev-dependencies]
 assert_cli = "0.6.2"
