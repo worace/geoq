@@ -1,6 +1,4 @@
-use std::any::Any;
-
-use crate::geoq::{self, error::Error};
+use crate::geoq::error::Error;
 use clap::ArgMatches;
 use dbase::{FieldValue, Record};
 use geojson;
@@ -9,12 +7,6 @@ use shapefile;
 
 impl From<shapefile::Error> for Error {
     fn from(_err: shapefile::Error) -> Self {
-        Error::ShapefileReaderError
-    }
-}
-
-impl From<geozero_shp::Error> for Error {
-    fn from(_err: geozero_shp::Error) -> Self {
         Error::ShapefileReaderError
     }
 }
@@ -210,52 +202,8 @@ fn shp_to_geojson(geom: shapefile::Shape, record: Record) -> Result<geojson::Fea
     })
 }
 
-fn print_shps(path: &str) -> Result<usize, geoq::error::Error> {
-    let shp_reader = geozero_shp::Reader::from_path(path)?;
-    let stdout = std::io::stdout();
-    let mut handler = stdout.lock();
-    let geojson_writer = geozero::geojson::GeoJsonWriter::new(&mut handler);
-    let shp_iter = shp_reader.iter_geometries(geojson_writer);
-    let count = shp_iter.count();
-    Ok(count)
-}
-
-fn print_props(path: &str) -> Result<usize, geoq::error::Error> {
-    let props_reader = geozero_shp::Reader::from_path(path)?;
-    let stdout = std::io::stdout();
-    let mut handler = stdout.lock();
-    let geojson_writer = geozero::geojson::GeoJsonWriter::new(&mut handler);
-    let props_iter = props_reader.iter_features(geojson_writer)?;
-
-    let count = props_iter.count();
-    Ok(count)
-}
-
 pub fn run(m: &ArgMatches) -> Result<(), Error> {
     let path = m.value_of("path").unwrap();
-
-    // print_shps(path)?;
-    // print_props(path)?;
-
-    // props_iter.count();
-
-    // for (shape_r, props_r) in shp_iter.zip(props_iter) {
-    //     // geozero::geo_types::GeoWriter::geometry(g)
-    //     // let shape = shape_r?;
-    //     let props = props_r?;
-    //     println!("{:?}", props.record);
-    //     // println!("{:?}", geo_writer.geometry());
-    // }
-
-    // for shape_record_r in props_iter {
-    //     let shape_record = shape_record_r?;
-    //     println!("{:?}", shape_record.record);
-    // }
-    // iter.for_each(|f_r| {
-    //     let f = f_r?;
-    //     println!("{}", f);
-    // });
-    // reader.iter_features()
 
     let mut reader = shapefile::Reader::from_path(path)?;
     for shape_record in reader.iter_shapes_and_records() {
