@@ -6,8 +6,8 @@ use serde_json::{Map, Number, Value};
 use shapefile;
 
 impl From<shapefile::Error> for Error {
-    fn from(_err: shapefile::Error) -> Self {
-        Error::ShapefileReaderError
+    fn from(err: shapefile::Error) -> Self {
+        Error::ShapefileReaderError(err.to_string())
     }
 }
 
