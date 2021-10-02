@@ -39,7 +39,7 @@ fn record_to_json(record: Record) -> Result<serde_json::Map<String, Value>, Stri
     // https://devzone.advantagedatabase.com/dz/webhelp/Advantage9.0/server1/dbf_field_types_and_specifications.htm
     let mut json = Map::new();
     for (name, value) in record.into_iter() {
-        let n: Option<serde_json::Value> = match value {
+        match value {
             FieldValue::Character(Some(string)) => {
                 let json_str = serde_json::Value::String(string);
                 json.insert(name, json_str)
