@@ -17,21 +17,53 @@ impl From<String> for Error {
     }
 }
 
+trait JsonNum {
+    fn to_json_num(self) -> Result<serde_json::Value, String>;
+}
+
+impl JsonNum for f64 {
+    fn to_json_num(self) -> Result<serde_json::Value, String> {
+        let num = Number::from_f64(self).ok_or("Could not convert shp number to JSON")?;
+        return Ok(serde_json::Value::Number(num));
+    }
+}
+
+impl JsonNum for f32 {
+    fn to_json_num(self) -> Result<serde_json::Value, String> {
+        let num = Number::from_f64(self.into()).ok_or("Could not convert shp number to JSON")?;
+        return Ok(serde_json::Value::Number(num));
+    }
+}
+
 fn record_to_json(record: Record) -> Result<serde_json::Map<String, Value>, String> {
+    // https://devzone.advantagedatabase.com/dz/webhelp/Advantage9.0/server1/dbf_field_types_and_specifications.htm
     let mut json = Map::new();
     for (name, value) in record.into_iter() {
-        match value {
+        let n: Option<serde_json::Value> = match value {
             FieldValue::Character(Some(string)) => {
                 let json_str = serde_json::Value::String(string);
-                json.insert(name, json_str);
+                json.insert(name, json_str)
             }
-            FieldValue::Double(num) => {
-                let num = Number::from_f64(num).ok_or("Could not convert shp number to JSON")?;
-                let json_num = serde_json::Value::Number(num);
-                json.insert(name, json_num);
+            FieldValue::Currency(num) => json.insert(name, num.to_json_num()?),
+            FieldValue::Date(Some(date)) => {
+                let datestr = format!("{}-{}-{}", date.year(), date.month(), date.day());
+                json.insert(name, serde_json::Value::String(datestr))
             }
-            _ => (),
-        }
+            FieldValue::DateTime(_) => {
+                return Err("DateTime dbase type not implemented yet".to_string())
+            }
+            FieldValue::Double(num) => json.insert(name, num.to_json_num()?),
+            FieldValue::Float(Some(num)) => json.insert(name, num.to_json_num()?),
+            FieldValue::Integer(num) => json.insert(name, serde_json::Value::Number(num.into())),
+            FieldValue::Logical(Some(b)) => json.insert(name, serde_json::Value::Bool(b.into())),
+            FieldValue::Memo(string) => json.insert(name, serde_json::Value::String(string)),
+            FieldValue::Numeric(Some(num)) => json.insert(name, num.to_json_num()?),
+            FieldValue::Character(None) => json.insert(name, serde_json::Value::Null),
+            FieldValue::Date(None) => json.insert(name, serde_json::Value::Null),
+            FieldValue::Float(None) => json.insert(name, serde_json::Value::Null),
+            FieldValue::Logical(None) => json.insert(name, serde_json::Value::Null),
+            FieldValue::Numeric(None) => json.insert(name, serde_json::Value::Null),
+        };
     }
     Ok(json)
 }
@@ -173,7 +205,7 @@ fn shp_to_gj_geom(geom: shapefile::Shape) -> Result<geojson::Geometry, String> {
         }
         shapefile::Shape::NullShape => Ok(geojson::Geometry::new(geojson::Value::Polygon(vec![]))),
         shapefile::Shape::Multipatch(g) => {
-            // This almost certainly does not work but it might be structurally valid ¯\_(ツ)_/¯
+            // This is almost certainly semantically wrong but it might be structurally valid ¯\_(ツ)_/¯
             let poly_vecs: Vec<Vec<Vec<f64>>> = g
                 .patches()
                 .into_iter()
