@@ -84,10 +84,7 @@ echo '{
 
 See the built-in command help using `geoq --help` or `geoq <subcommand> --help` for more detailed information on these:
 
-* `gj` - GeoJSON subcommands
-  * `f` - Output geometry as GeoJSON feature
-  * `geom` - Output geometry as GeoJSON geometry
-  * `fc` - Collect all input geometries into a GeoJSON Feature Collection
+* `bbox` - Give bounding boxes for geometries, or for a stream of geometries collectively
 * `centroid` - Cet the centroid of a geometry
 * `filter` - Spatial predicate filtering
   * `intersects` - Select features intersecting a given query geometry
@@ -97,15 +94,21 @@ See the built-in command help using `geoq --help` or `geoq <subcommand> --help` 
   * `covering` - Output geohashes that "cover" a geometry
   * `neighbors` - Get neighbors of a Geohash
   * `point` - Output base 32 Geohash for a given Lat,Lon
+* `gj` - GeoJSON subcommands
+  * `f` - Output geometry as GeoJSON feature
+  * `geom` - Output geometry as GeoJSON geometry
+  * `fc` - Collect all input geometries into a GeoJSON Feature Collection
 * `json` - JSON -> GeoJSON coercion
   * `munge` - Attempt to convert arbitrary JSON to a GeoJSON Feature.
 * `map` - Visualization with geojson.io
-* `read` - Debugging / format validation
-* `wkt` - Output geometries as WKT
-* `whereami` - Output IP geolocation-based current lat/lon as GeoJSON
 * `measure` - Measurement subcommands
   * `distance` - Measure distances between features
-
+  * `coord-count` - Give the number of vertices in geometries
+* `read` - Debugging / format validation
+* `shp` - Convert shapefiles to GeoJSON
+* `simplify` - Simplify geometries, either with fixed threshold or iteratively toward target coord-count
+* `whereami` - Output IP geolocation-based current lat/lon as GeoJSON
+* `wkt` - Output geometries as WKT
 
 See the [Manual](https://github.com/worace/geoq/blob/master/manual.md) for more examples and available commands.
 
