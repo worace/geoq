@@ -22,6 +22,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("simplify", Some(m)) => commands::simplify::run(m),
         ("measure", Some(m)) => commands::measure::run(m),
         ("bbox", Some(m)) => commands::bbox::run(m),
+        ("shp", Some(m)) => commands::shp::run(m),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -177,6 +178,15 @@ fn main() {
              .help("Give a single bbox for all input geometries rather than 1 bbox per input"))
         .after_help(text::BBOX_AFTER_HELP);
 
+    let shp = SubCommand::with_name("shp")
+        .about("Read a shapefile and convert to GeoJSON")
+        .arg(
+            Arg::with_name("path")
+                .help("path to the .shp file -- expects .dbf file to be adjacent.")
+                .required(true)
+                .index(1),
+        );
+
     let matches = App::new("geoq")
         .version(VERSION)
         .setting(AppSettings::SubcommandRequiredElseHelp)
@@ -194,6 +204,7 @@ fn main() {
         .subcommand(measure)
         .subcommand(simplify)
         .subcommand(bbox)
+        .subcommand(shp)
         .get_matches();
 
     if let Err(e) = run(matches) {
