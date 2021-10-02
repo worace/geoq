@@ -166,8 +166,6 @@ impl PointIterable for shapefile::PolygonM {
     }
 }
 
-// fn shp_to_gj_point(p: shapefile::Shape::PointZ)
-
 fn shp_to_gj_geom(geom: shapefile::Shape) -> Result<geojson::Geometry, String> {
     match geom {
         shapefile::Shape::Point(g) => g.gj_geom_res(),
@@ -239,10 +237,6 @@ pub fn run(m: &ArgMatches) -> Result<(), Error> {
 
     let mut reader = shapefile::Reader::from_path(path)?;
     for shape_record in reader.iter_shapes_and_records() {
-        // for each shape, match it by type and convert
-        // to the appropriate geojson type
-        // for each properties record, convert it to a JSON object
-        // that will go into the GJ feature's properties field
         let (shape, record) = shape_record?;
         let gj = shp_to_geojson(shape, record)?;
         let str = serde_json::to_string(&gj).unwrap();
