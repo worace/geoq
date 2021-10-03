@@ -4,8 +4,9 @@ use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, UOffsetT, Vector, WIPOffse
 use flatgeobuf::{
     Column, ColumnArgs, ColumnBuilder, ColumnType, Feature, GeometryType, Header, HeaderBuilder,
 };
+use serde_json::Map;
 use std::collections::HashSet;
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::io;
 
 // https://www.notion.so/worace/Flatgeobuf-4c2eb8ea1475419991863f36bd2fa355
@@ -26,18 +27,106 @@ use std::io;
 //   properties: [ubyte]; // Custom buffer, variable length collection of key/value pairs (key=ushort)
 //   columns: [Column];   // Attribute columns schema (optional)
 // }
-fn write_feature(bldr: &mut FlatBufferBuilder, cols: &Vec<ColSpec>, f: &geojson::Feature) -> () {
+fn write_feature(
+    bldr: &mut FlatBufferBuilder,
+    col_specs: &Vec<ColSpec>,
+    f: &geojson::Feature,
+) -> () {
     // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/feature.ts#L47-L143
     // flatgeobuf::GeometryOffset
 
+    // Q: should this repeat all columns for the schema, or only the ones that apply to this feature?
+    let cols: Vec<WIPOffset<Column>> = col_specs
+        .clone()
+        .into_iter()
+        .map(|c| {
+            let col_name = bldr.create_string(&c.name);
+            let mut cb = ColumnBuilder::new(bldr);
+            cb.add_type_(c.type_);
+            cb.add_name(col_name);
+            cb.add_nullable(true);
+            cb.finish()
+        })
+        .collect();
+    let cols_vec = bldr.create_vector(&cols[..]);
+
     let args = flatgeobuf::FeatureArgs {
-        columns: None,
+        columns: Some(cols_vec),
         geometry: None,
         properties: None,
     };
     let offset = flatgeobuf::Feature::create(bldr, &args);
 
     bldr.finish(offset, None);
+}
+
+trait ToBytesWithIndex {
+    fn write(&self, idx: u16, vec: &mut Vec<u8>) -> () {
+        vec.extend_from_slice(&idx.to_le_bytes());
+        self._write_data(idx, vec);
+    }
+    fn _write_data(&self, idx: u16, vec: &mut Vec<u8>) -> ();
+}
+
+impl ToBytesWithIndex for bool {
+    fn _write_data(&self, idx: u16, vec: &mut Vec<u8>) -> () {
+        if *self {
+            vec.push(1);
+        } else {
+            vec.push(1);
+        }
+    }
+}
+
+fn feature_props(f: &geojson::Feature, specs: &Vec<ColSpec>) -> Option<Vec<u8>> {
+    if f.properties.is_none() {
+        return None;
+    }
+    let props: &Map<String, serde_json::Value> = f.properties.as_ref().unwrap();
+
+    let mut bytes: Vec<u8> = Vec::new();
+    let mut idx: u16 = 0;
+
+    // Placeholder -- Single prop "properties" as stringified JSON
+    let json = serde_json::to_string(&props).expect("Failed to serialize feature JSON properties");
+    let json_bytes = json.as_bytes();
+    let json_length: u32 = json_bytes
+        .len()
+        .try_into()
+        .expect("Could not truncate String length to u32");
+    // String encoding
+    // index (u16)
+    // bytes-length (u32)
+    // bytes
+    bytes.extend_from_slice(&idx.to_le_bytes());
+    bytes.extend_from_slice(&json_length.to_le_bytes());
+    bytes.extend_from_slice(&json_bytes);
+    // Placeholder
+
+    for c in specs {
+        let prop = props.get(&c.name);
+        if let Some(value) = prop {
+            match c.type_ {
+                ColumnType::Bool => match value {
+                    serde_json::Value::Bool(b) => {
+                        b.write(idx, &mut bytes);
+                    }
+                    _ => bytes.push(0),
+                },
+                ColumnType::Short => {
+                    if value.is_i64() {
+                        let int_val = value.as_i64().unwrap_or(0);
+                        let short_val = i16::try_from(int_val).unwrap_or(0);
+                        bytes.extend_from_slice(&short_val.to_le_bytes())
+                    }
+                }
+                ColumnType::String => {}
+                _ => (),
+            }
+        }
+        idx += 1;
+    }
+    None
 }
 
 // table Header {
@@ -97,10 +186,16 @@ fn col_specs(features: &Vec<geojson::Feature>) -> Vec<ColSpec> {
     }]
 }
 
-fn write_cols<'a>(
+fn write_header<'a>(
     bldr: &'a mut FlatBufferBuilder,
-    col_specs: &Vec<ColSpec>,
-) -> WIPOffset<Vector<'a, ForwardsUOffset<Column<'a>>>> {
+    features: &Vec<geojson::Feature>,
+) -> Vec<ColSpec> {
+    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/fbs/header.fbs
+    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/featurecollection.ts#L158-L182
+    let name = bldr.create_string("Geoq-generated FGB");
+    let desc = bldr.create_string("Geoq-generated FGB");
+
+    let col_specs = col_specs(features);
     let cols: Vec<WIPOffset<Column>> = col_specs
         .clone()
         .into_iter()
@@ -114,20 +209,7 @@ fn write_cols<'a>(
             // let col: WIPOffset<Column> = ;
         })
         .collect();
-    bldr.create_vector(&cols[..])
-}
-
-fn write_header<'a>(
-    bldr: &'a mut FlatBufferBuilder,
-    features: &Vec<geojson::Feature>,
-) -> Vec<ColSpec> {
-    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/fbs/header.fbs
-    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/featurecollection.ts#L158-L182
-    let name = bldr.create_string("Geoq-generated FGB");
-    let desc = bldr.create_string("Geoq-generated FGB");
-
-    let col_specs = col_specs(features);
-    let cols_vec = write_cols(bldr, &col_specs);
+    let cols_vec = bldr.create_vector(&cols[..]);
 
     let mut hb = HeaderBuilder::new(bldr);
     hb.add_name(name);
