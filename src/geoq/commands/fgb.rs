@@ -36,6 +36,7 @@ fn write_feature(
     // flatgeobuf::GeometryOffset
 
     // Q: should this repeat all columns for the schema, or only the ones that apply to this feature?
+    // Copy-Pastad code from header section
     let cols: Vec<WIPOffset<Column>> = col_specs
         .clone()
         .into_iter()
@@ -50,10 +51,12 @@ fn write_feature(
         .collect();
     let cols_vec = bldr.create_vector(&cols[..]);
 
+    let props = feature_props(f, col_specs).map(|bytes| bldr.create_vector(&bytes[..]));
+
     let args = flatgeobuf::FeatureArgs {
         columns: Some(cols_vec),
         geometry: None,
-        properties: None,
+        properties: props,
     };
     let offset = flatgeobuf::Feature::create(bldr, &args);
 
@@ -78,14 +81,14 @@ impl ToBytesWithIndex for bool {
     }
 }
 
-fn feature_props(f: &geojson::Feature, specs: &Vec<ColSpec>) -> Option<Vec<u8>> {
+fn feature_props(f: &geojson::Feature, _specs: &Vec<ColSpec>) -> Option<Vec<u8>> {
     if f.properties.is_none() {
         return None;
     }
     let props: &Map<String, serde_json::Value> = f.properties.as_ref().unwrap();
 
     let mut bytes: Vec<u8> = Vec::new();
-    let mut idx: u16 = 0;
+    let idx: u16 = 0;
 
     // Placeholder -- Single prop "properties" as stringified JSON
     let json = serde_json::to_string(&props).expect("Failed to serialize feature JSON properties");
@@ -101,32 +104,34 @@ fn feature_props(f: &geojson::Feature, specs: &Vec<ColSpec>) -> Option<Vec<u8>> 
     bytes.extend_from_slice(&idx.to_le_bytes());
     bytes.extend_from_slice(&json_length.to_le_bytes());
     bytes.extend_from_slice(&json_bytes);
+
+    Some(bytes)
     // Placeholder
 
-    for c in specs {
-        let prop = props.get(&c.name);
-        if let Some(value) = prop {
-            match c.type_ {
-                ColumnType::Bool => match value {
-                    serde_json::Value::Bool(b) => {
-                        b.write(idx, &mut bytes);
-                    }
-                    _ => bytes.push(0),
-                },
-                ColumnType::Short => {
-                    if value.is_i64() {
-                        let int_val = value.as_i64().unwrap_or(0);
-                        let short_val = i16::try_from(int_val).unwrap_or(0);
-                        bytes.extend_from_slice(&short_val.to_le_bytes())
-                    }
-                }
-                ColumnType::String => {}
-                _ => (),
-            }
-        }
-        idx += 1;
-    }
-    None
+    // Real property writing would look sth like...
+    // for c in specs {
+    //     let prop = props.get(&c.name);
+    //     if let Some(value) = prop {
+    //         match c.type_ {
+    //             ColumnType::Bool => match value {
+    //                 serde_json::Value::Bool(b) => {
+    //                     b.write(idx, &mut bytes);
+    //                 }
+    //                 _ => bytes.push(0),
+    //             },
+    //             ColumnType::Short => {
+    //                 if value.is_i64() {
+    //                     let int_val = value.as_i64().unwrap_or(0);
+    //                     let short_val = i16::try_from(int_val).unwrap_or(0);
+    //                     bytes.extend_from_slice(&short_val.to_le_bytes())
+    //                 }
+    //             }
+    //             ColumnType::String => {}
+    //             _ => (),
+    //         }
+    //     }
+    //     idx += 1;
+    // }
 }
 
 // table Header {
