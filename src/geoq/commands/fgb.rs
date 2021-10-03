@@ -1,12 +1,14 @@
 use crate::geoq::{entity::Entity, error::Error, reader::Reader};
 use clap::ArgMatches;
 use flatbuffers::{FlatBufferBuilder, UOffsetT, WIPOffset};
-use flatgeobuf::{Feature, Header, HeaderBuilder};
+use flatgeobuf::{Column, ColumnBuilder, ColumnType, Feature, GeometryType, Header, HeaderBuilder};
+use std::collections::HashSet;
+use std::convert::TryInto;
 use std::io;
 
 // https://www.notion.so/worace/Flatgeobuf-4c2eb8ea1475419991863f36bd2fa355
 
-fn write_fgb_feature(bldr: &mut FlatBufferBuilder, entity: &Entity) -> UOffsetT {
+fn write_fgb_feature(bldr: &mut FlatBufferBuilder, _entity: &Entity) -> UOffsetT {
     // flatgeobuf::GeometryOffset
     let args = flatgeobuf::FeatureArgs {
         columns: None,
@@ -33,14 +35,57 @@ fn write_fgb_feature(bldr: &mut FlatBufferBuilder, entity: &Entity) -> UOffsetT 
 //   description: string;          // Dataset description (intended for free form long text)
 //   metadata: string;             // Dataset metadata (intended to be application specific and suggested to be structured fx. JSON)
 // }
+
+fn geometry_type(features: &Vec<geojson::Feature>) -> GeometryType {
+    let mut types = HashSet::new();
+    let mut last_gtype = GeometryType::Unknown;
+    for f in features {
+        // let val = f.geometry.map(|g| g.value);
+        if let Some(geom) = &f.geometry {
+            let gtype = match geom.value {
+                geojson::Value::Point(_) => GeometryType::Point,
+                geojson::Value::LineString(_) => GeometryType::LineString,
+                geojson::Value::Polygon(_) => GeometryType::Polygon,
+                geojson::Value::MultiPoint(_) => GeometryType::MultiPoint,
+                geojson::Value::MultiLineString(_) => GeometryType::MultiLineString,
+                geojson::Value::MultiPolygon(_) => GeometryType::MultiPolygon,
+                geojson::Value::GeometryCollection(_) => GeometryType::GeometryCollection,
+            };
+            types.insert(gtype);
+            last_gtype = gtype;
+        }
+    }
+
+    if types.len() == 1 {
+        last_gtype
+    } else {
+        GeometryType::Unknown
+    }
+}
+
 fn write_header<'a>(
     bldr: &'a mut FlatBufferBuilder,
-    features: Vec<geojson::Feature>,
+    features: &Vec<geojson::Feature>,
 ) -> WIPOffset<Header<'a>> {
     // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/fbs/header.fbs
     let name = bldr.create_string("Geoq-generated FGB");
+    let desc = bldr.create_string("Geoq-generated FGB");
+
+    let col_name = bldr.create_string("properties");
+    let mut cb = ColumnBuilder::new(bldr);
+    cb.add_type_(ColumnType::Json);
+    cb.add_name(col_name);
+    cb.add_nullable(true);
+    let col: WIPOffset<Column> = cb.finish();
+    let cols = bldr.create_vector(&[col]);
+
     let mut hb = HeaderBuilder::new(bldr);
     hb.add_name(name);
+    hb.add_description(desc);
+    hb.add_features_count(features.len().try_into().unwrap()); // not sure when this would fail...i guess 128bit system?
+    hb.add_columns(cols);
+    hb.add_geometry_type(geometry_type(features));
+
     hb.finish()
 }
 
@@ -49,8 +94,8 @@ fn write() -> Result<(), Error> {
     // read features to get header schema (Columns "table")
     // generate + write header
     // iterate + convert + write each feature
-    let mut buffer: Vec<u8> = Vec::new();
-    let mut features: Vec<Feature> = Vec::new();
+    let mut _buffer: Vec<u8> = Vec::new();
+    let mut _features: Vec<Feature> = Vec::new();
     let mut builder = FlatBufferBuilder::new();
 
     let mut input_features: Vec<geojson::Feature> = Vec::new();
@@ -67,6 +112,8 @@ fn write() -> Result<(), Error> {
             }
         }
     }
+
+    write_header(&mut builder, &input_features);
 
     // write_fgb_feature(&mut builder, &e);
     Ok(())
