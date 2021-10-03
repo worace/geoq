@@ -10,19 +10,34 @@ use std::io;
 
 // https://www.notion.so/worace/Flatgeobuf-4c2eb8ea1475419991863f36bd2fa355
 
-fn write_fgb_feature(
-    bldr: &mut FlatBufferBuilder,
-    cols: Vec<ColSpec>,
-    f: &geojson::Feature,
-) -> UOffsetT {
+// table Geometry {
+//   ends: [uint];          // Array of end index in flat coordinates per geometry part
+//   xy: [double];          // Flat x and y coordinate array (flat pairs)
+//   z: [double];           // Flat z height array
+//   m: [double];           // Flat m measurement array
+//   t: [double];           // Flat t geodetic decimal year time array
+//   tm: [ulong];           // Flat tm time nanosecond measurement array
+//   type: GeometryType;    // Type of geometry (only relevant for elements in heterogeneous collection types)
+//   parts: [Geometry];     // Array of parts (for heterogeneous collection types)
+// }
+
+// table Feature {
+//   geometry: Geometry;  // Geometry
+//   properties: [ubyte]; // Custom buffer, variable length collection of key/value pairs (key=ushort)
+//   columns: [Column];   // Attribute columns schema (optional)
+// }
+fn write_feature(bldr: &mut FlatBufferBuilder, cols: &Vec<ColSpec>, f: &geojson::Feature) -> () {
+    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/feature.ts#L47-L143
     // flatgeobuf::GeometryOffset
+
     let args = flatgeobuf::FeatureArgs {
         columns: None,
         geometry: None,
         properties: None,
     };
     let offset = flatgeobuf::Feature::create(bldr, &args);
-    offset.value()
+
+    bldr.finish(offset, None);
 }
 
 // table Header {
@@ -149,7 +164,16 @@ fn write() -> Result<(), Error> {
     // DATA: Features (each written as its own standalone flatbuffer?)
 
     let mut header_builder = FlatBufferBuilder::new();
-    let (header_bytes, col_specs) = write_header(&mut header_builder, &input_features);
+    let col_specs = write_header(&mut header_builder, &input_features);
+    // Header is now done, use header_builder.finished_data() to access &[u8]
+
+    let mut feature_builders: Vec<FlatBufferBuilder> = Vec::new();
+
+    for f in input_features {
+        let mut builder = FlatBufferBuilder::new();
+        write_feature(&mut builder, &col_specs, &f);
+        feature_builders.push(builder);
+    }
 
     // write_fgb_feature(&mut builder, &e);
     Ok(())
