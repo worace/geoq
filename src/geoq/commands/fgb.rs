@@ -1,6 +1,6 @@
 use crate::geoq::{entity::Entity, error::Error, reader::Reader};
 use clap::ArgMatches;
-use flatbuffers::{FlatBufferBuilder, UOffsetT, WIPOffset};
+use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, UOffsetT, Vector, WIPOffset};
 use flatgeobuf::{
     Column, ColumnArgs, ColumnBuilder, ColumnType, Feature, GeometryType, Header, HeaderBuilder,
 };
@@ -97,16 +97,10 @@ fn col_specs(features: &Vec<geojson::Feature>) -> Vec<ColSpec> {
     }]
 }
 
-fn write_header<'a>(
+fn write_cols<'a>(
     bldr: &'a mut FlatBufferBuilder,
-    features: &Vec<geojson::Feature>,
-) -> (&'a [u8], Vec<ColSpec>) {
-    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/fbs/header.fbs
-    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/featurecollection.ts#L158-L182
-    let name = bldr.create_string("Geoq-generated FGB");
-    let desc = bldr.create_string("Geoq-generated FGB");
-
-    let col_specs = col_specs(features);
+    col_specs: &Vec<ColSpec>,
+) -> WIPOffset<Vector<'a, ForwardsUOffset<Column<'a>>>> {
     let cols: Vec<WIPOffset<Column>> = col_specs
         .clone()
         .into_iter()
@@ -120,7 +114,20 @@ fn write_header<'a>(
             // let col: WIPOffset<Column> = ;
         })
         .collect();
-    let cols_vec = bldr.create_vector(&cols[..]);
+    bldr.create_vector(&cols[..])
+}
+
+fn write_header<'a>(
+    bldr: &'a mut FlatBufferBuilder,
+    features: &Vec<geojson::Feature>,
+) -> Vec<ColSpec> {
+    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/fbs/header.fbs
+    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/featurecollection.ts#L158-L182
+    let name = bldr.create_string("Geoq-generated FGB");
+    let desc = bldr.create_string("Geoq-generated FGB");
+
+    let col_specs = col_specs(features);
+    let cols_vec = write_cols(bldr, &col_specs);
 
     let mut hb = HeaderBuilder::new(bldr);
     hb.add_name(name);
@@ -131,7 +138,7 @@ fn write_header<'a>(
     hb.add_index_node_size(0); // No Index? (following ts example)
     let header = hb.finish();
     bldr.finish(header, None);
-    (bldr.finished_data(), col_specs)
+    col_specs
 }
 
 fn write() -> Result<(), Error> {
