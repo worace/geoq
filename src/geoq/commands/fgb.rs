@@ -9,6 +9,109 @@ use std::collections::HashSet;
 use std::convert::{TryFrom, TryInto};
 use std::io;
 
+// Parsing geometry into FlatGeoBuf representation:
+// https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/geometry.ts#L83-L112
+struct ParsedGeometry {
+    xy: Vec<f64>,
+    z: Option<Vec<f64>>,
+    ends: Option<Vec<usize>>,
+    parts: Option<Vec<ParsedGeometry>>,
+    type_: GeometryType,
+}
+
+trait ParsedGeoJsonGeom {
+    // fn xy(&self) -> Vec<f64>;
+    fn parsed(&self) -> ParsedGeometry;
+}
+
+trait XY {
+    fn xy(&self) -> Vec<f64>;
+}
+
+impl XY for Vec<f64> {
+    fn xy(&self) -> Vec<f64> {
+        if self.len() < 2 {
+            panic!("Invalid GeoJSON Point with missing x or y")
+        }
+        let xy = self[0..2].to_vec();
+    }
+}
+
+impl ParsedGeoJsonGeom for geojson::Value {
+    fn parsed(&self) -> ParsedGeometry {
+        match *self {
+            geojson::Value::Point(coords) => {
+                if coords.len() < 2 {
+                    panic!("Invalid GeoJSON Point with missing x or y")
+                }
+                let xy = coords[0..2].to_vec();
+                let z = if coords.len() > 2 {
+                    Some(coords[2..3].to_vec())
+                } else {
+                    None
+                };
+                ParsedGeometry {
+                    xy,
+                    z,
+                    ends: None,
+                    parts: None,
+                    type_: GeometryType::Point,
+                }
+            }
+            geojson::Value::LineString(coords) => {
+                let mut xy: Vec<f64> = vec![];
+                let has_z = false;
+                for c in coords {
+                    xy.push(c[0]);
+                    xy.push(c[1]);
+                    if c.len() > 2 {
+                        has_z = true;
+                    }
+                }
+
+                let z = if has_z {
+                    let mut z: Vec<f64> = vec![];
+                    for c in coords {
+                        if c.len() > 2 {
+                            z.push(c[2]);
+                        } else {
+                            z.push(0.0);
+                        }
+                    }
+                    Some(z)
+                } else {
+                    None
+                };
+
+                ParsedGeometry {
+                    xy,
+                    z,
+                    ends: None,
+                    parts: None,
+                    type_: GeometryType::Unknown,
+                }
+            }
+            _ => ParsedGeometry {
+                xy: Vec::new(),
+                z: None,
+                ends: None,
+                parts: None,
+                type_: GeometryType::Unknown,
+            },
+        }
+    }
+}
+
+fn parse_geom(g: &geojson::Value) -> ParsedGeometry {
+    ParsedGeometry {
+        xy: Vec::new(),
+        z: Vec::new(),
+        ends: Vec::new(),
+        parts: Vec::new(),
+        type_: GeometryType::Unknown,
+    }
+}
+
 // https://www.notion.so/worace/Flatgeobuf-4c2eb8ea1475419991863f36bd2fa355
 
 // table Geometry {
@@ -52,6 +155,9 @@ fn write_feature(
     let cols_vec = bldr.create_vector(&cols[..]);
 
     let props = feature_props(f, col_specs).map(|bytes| bldr.create_vector(&bytes[..]));
+
+    // Geometry serialization
+    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/geometry.ts#L37-L64
 
     let args = flatgeobuf::FeatureArgs {
         columns: Some(cols_vec),
