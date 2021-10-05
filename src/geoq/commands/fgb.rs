@@ -55,9 +55,6 @@ impl ParseGeom for Vec<f64> {
 
 impl ParseGeom for Vec<Vec<f64>> {
     fn xy(&self) -> Vec<f64> {
-        if self.len() < 2 {
-            panic!("Invalid GeoJSON Point with missing x or y")
-        }
         let mut xy: Vec<f64> = Vec::new();
         for p in self {
             xy.extend(p.xy());
@@ -89,6 +86,62 @@ impl ParseGeom for Vec<Vec<f64>> {
     }
 }
 
+impl ParseGeom for Vec<Vec<Vec<f64>>> {
+    fn xy(&self) -> Vec<f64> {
+        let mut xy: Vec<f64> = Vec::new();
+        for ring in self {
+            for point in ring {
+                xy.extend(point.xy());
+            }
+        }
+        xy
+    }
+    fn z(&self) -> Option<Vec<f64>> {
+        let mut has_z = false;
+        for ring in self {
+            for coord in ring {
+                if coord.len() > 2 {
+                    has_z = true;
+                }
+            }
+        }
+        if has_z {
+            let mut z: Vec<f64> = Vec::new();
+            for ring in self {
+                for coord in ring {
+                    z.push(*coord.get(2).unwrap_or(&0.0));
+                }
+            }
+            Some(z)
+        } else {
+            None
+        }
+    }
+    fn ends(&self) -> Option<Vec<usize>> {
+        if self.len() > 1 {
+            let mut ends: Vec<usize> = Vec::new();
+            let mut last_coord_start_idx = 0;
+            for ring in self {
+                last_coord_start_idx += (ring.len() - 1) * 2;
+                // "end" is index into flat coordinates for starting "X" of
+                // coord pair where where each ring ends
+                //     0 1    2 3     4 5    6 7    8 9
+                // [ [[1,2], [3,4]] [[5,6], [7,8], [9,10]] ]
+                //            End                   End.
+                // ends: [2, 8] (coord idx 1 and coord idx 2, each doubled)
+                ends.push(last_coord_start_idx);
+            }
+            Some(ends)
+        } else {
+            // No ends for single-ring polygon (following TS impl)
+            None
+        }
+    }
+    fn parts(&self) -> Option<Vec<ParsedGeometry>> {
+        None
+    }
+}
+
 impl ParsedGeoJsonGeom for geojson::Value {
     fn parsed(&self) -> ParsedGeometry {
         match self {
@@ -105,6 +158,13 @@ impl ParsedGeoJsonGeom for geojson::Value {
                 ends: None,
                 parts: None,
                 type_: GeometryType::LineString,
+            },
+            geojson::Value::Polygon(coords) => ParsedGeometry {
+                xy: coords.xy(),
+                z: coords.z(),
+                ends: coords.ends(),
+                parts: None,
+                type_: GeometryType::Polygon,
             },
             _ => ParsedGeometry {
                 xy: Vec::new(),
