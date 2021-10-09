@@ -209,10 +209,57 @@ fn write_feature(
     // flatgeobuf::GeometryOffset
 
     // Q: should this repeat all columns for the schema, or only the ones that apply to this feature?
-    // Copy-Pastad code from header section
+    let cols_vec = build_cols(bldr, col_specs);
+    let props = feature_props(f, col_specs).map(|bytes| bldr.create_vector(&bytes[..]));
+
+    // Geometry serialization
+    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/geometry.ts#L37-L64
+    let geom_components = f
+        .geometry
+        .as_ref()
+        .map(|g| g.value.parsed())
+        .unwrap_or(empty_parsed_geom());
+
+    let geom = build_geom(bldr, &geom_components);
+
+    let args = flatgeobuf::FeatureArgs {
+        columns: Some(cols_vec),
+        geometry: Some(geom),
+        properties: props,
+    };
+    let offset = flatgeobuf::Feature::create(bldr, &args);
+
+    bldr.finish(offset, None);
+}
+
+fn build_geom<'a: 'b, 'b>(
+    bldr: &'b mut FlatBufferBuilder<'a>,
+    geom_components: &ParsedGeometry,
+) -> WIPOffset<flatgeobuf::Geometry<'a>> {
+    let parts = geom_components.parts.as_ref().map(|geoms| {
+        let g_offsets: Vec<WIPOffset<flatgeobuf::Geometry>> =
+            geoms.iter().map(|g| build_geom(bldr, g)).collect();
+        bldr.create_vector(&g_offsets[..])
+    });
+
+    let geom_args = flatgeobuf::GeometryArgs {
+        xy: Some(bldr.create_vector(&geom_components.xy)),
+        z: geom_components.z.as_ref().map(|z| bldr.create_vector(&z)),
+        type_: geom_components.type_,
+        parts,
+        ..Default::default()
+    };
+
+    let res = flatgeobuf::Geometry::create(bldr, &geom_args);
+    res
+}
+
+fn build_cols<'a: 'b, 'b>(
+    bldr: &'b mut FlatBufferBuilder<'a>,
+    col_specs: &Vec<ColSpec>,
+) -> WIPOffset<Vector<'a, ForwardsUOffset<Column<'a>>>> {
     let cols: Vec<WIPOffset<Column>> = col_specs
-        .clone()
-        .into_iter()
+        .iter()
         .map(|c| {
             let col_name = bldr.create_string(&c.name);
             let mut cb = ColumnBuilder::new(bldr);
@@ -222,52 +269,7 @@ fn write_feature(
             cb.finish()
         })
         .collect();
-    let cols_vec = bldr.create_vector(&cols[..]);
-
-    let props = feature_props(f, col_specs).map(|bytes| bldr.create_vector(&bytes[..]));
-
-    // Geometry serialization
-    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/geometry.ts#L37-L64
-
-    // let geom_components = parse_geom(f.geometry)
-    let geom_components = f
-        .geometry
-        .as_ref()
-        .map(|g| g.value.parsed())
-        .unwrap_or(empty_parsed_geom());
-
-    let geom = build_geom(bldr, geom_components);
-
-    let args = flatgeobuf::FeatureArgs {
-        columns: Some(cols_vec),
-        geometry: Some(geom),
-        properties: props,
-    };
-    let offset = build_feature(bldr, args);
-
-    bldr.finish(offset, None);
-}
-
-fn build_geom<'a: 'b, 'b>(
-    bldr: &'b mut FlatBufferBuilder<'a>,
-    geom_components: ParsedGeometry,
-) -> WIPOffset<flatgeobuf::Geometry<'a>> {
-    let geom_args = flatgeobuf::GeometryArgs {
-        xy: Some(bldr.create_vector(&geom_components.xy)),
-        z: geom_components.z.as_ref().map(|z| bldr.create_vector(&z)),
-        type_: geom_components.type_,
-        ..Default::default()
-    };
-
-    let res = flatgeobuf::Geometry::create(bldr, &geom_args);
-    res
-}
-
-fn build_feature<'a: 'b, 'b>(
-    bldr: &'b mut FlatBufferBuilder<'a>,
-    args: flatgeobuf::FeatureArgs,
-) -> WIPOffset<flatgeobuf::Feature<'a>> {
-    flatgeobuf::Feature::create(bldr, &args)
+    bldr.create_vector(&cols[..])
 }
 
 trait ToBytesWithIndex {
@@ -408,20 +410,7 @@ fn write_header<'a>(
     let desc = bldr.create_string("Geoq-generated FGB");
 
     let col_specs = col_specs(features);
-    let cols: Vec<WIPOffset<Column>> = col_specs
-        .clone()
-        .into_iter()
-        .map(|c| {
-            let col_name = bldr.create_string(&c.name);
-            let mut cb = ColumnBuilder::new(bldr);
-            cb.add_type_(c.type_);
-            cb.add_name(col_name);
-            cb.add_nullable(true);
-            cb.finish()
-            // let col: WIPOffset<Column> = ;
-        })
-        .collect();
-    let cols_vec = bldr.create_vector(&cols[..]);
+    let cols_vec = build_cols(bldr, &col_specs);
 
     let mut hb = HeaderBuilder::new(bldr);
     hb.add_name(name);
