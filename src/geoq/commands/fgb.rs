@@ -2,7 +2,8 @@ use crate::geoq::{entity::Entity, error::Error, reader::Reader};
 use clap::ArgMatches;
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, UOffsetT, Vector, WIPOffset};
 use flatgeobuf::{
-    Column, ColumnArgs, ColumnBuilder, ColumnType, Feature, GeometryType, Header, HeaderBuilder,
+    Column, ColumnArgs, ColumnBuilder, ColumnType, Feature, FeatureArgs, GeometryType, Header,
+    HeaderBuilder,
 };
 use serde_json::Map;
 use std::collections::HashSet;
@@ -166,18 +167,12 @@ impl ParsedGeoJsonGeom for geojson::Value {
                 parts: None,
                 type_: GeometryType::Polygon,
             },
-            _ => ParsedGeometry {
-                xy: Vec::new(),
-                z: None,
-                ends: None,
-                parts: None,
-                type_: GeometryType::Unknown,
-            },
+            _ => empty_parsed_geom(),
         }
     }
 }
 
-fn parse_geom(g: &geojson::Value) -> ParsedGeometry {
+fn empty_parsed_geom() -> ParsedGeometry {
     ParsedGeometry {
         xy: Vec::new(),
         z: None,
@@ -234,14 +229,45 @@ fn write_feature(
     // Geometry serialization
     // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/geometry.ts#L37-L64
 
+    // let geom_components = parse_geom(f.geometry)
+    let geom_components = f
+        .geometry
+        .as_ref()
+        .map(|g| g.value.parsed())
+        .unwrap_or(empty_parsed_geom());
+
+    let geom = build_geom(bldr, geom_components);
+
     let args = flatgeobuf::FeatureArgs {
         columns: Some(cols_vec),
-        geometry: None,
+        geometry: Some(geom),
         properties: props,
     };
-    let offset = flatgeobuf::Feature::create(bldr, &args);
+    let offset = build_feature(bldr, args);
 
     bldr.finish(offset, None);
+}
+
+fn build_geom<'a: 'b, 'b>(
+    bldr: &'b mut FlatBufferBuilder<'a>,
+    geom_components: ParsedGeometry,
+) -> WIPOffset<flatgeobuf::Geometry<'a>> {
+    let geom_args = flatgeobuf::GeometryArgs {
+        xy: Some(bldr.create_vector(&geom_components.xy)),
+        z: geom_components.z.as_ref().map(|z| bldr.create_vector(&z)),
+        type_: geom_components.type_,
+        ..Default::default()
+    };
+
+    let res = flatgeobuf::Geometry::create(bldr, &geom_args);
+    res
+}
+
+fn build_feature<'a: 'b, 'b>(
+    bldr: &'b mut FlatBufferBuilder<'a>,
+    args: flatgeobuf::FeatureArgs,
+) -> WIPOffset<flatgeobuf::Feature<'a>> {
+    flatgeobuf::Feature::create(bldr, &args)
 }
 
 trait ToBytesWithIndex {
