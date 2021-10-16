@@ -9,6 +9,7 @@ use serde_json::Map;
 use std::collections::HashSet;
 use std::convert::{TryFrom, TryInto};
 use std::io;
+use std::path::Path;
 
 // Parsing geometry into FlatGeoBuf representation:
 // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/geometry.ts#L83-L112
@@ -424,7 +425,7 @@ fn write_header<'a>(
     col_specs
 }
 
-fn write() -> Result<(), Error> {
+fn write(path: &str) -> Result<(), Error> {
     // collect features into vector
     // read features to get header schema (Columns "table")
     // generate + write header
@@ -453,22 +454,31 @@ fn write() -> Result<(), Error> {
     // I (optional): Static packed Hilbert R-tree index (static size custom buffer)
     // DATA: Features (each written as its own standalone flatbuffer?)
 
+    let mut buffer: Vec<u8> = vec![0x66, 0x67, 0x62, 0x03, 0x66, 0x67, 0x62, 0x00];
+
     let mut header_builder = FlatBufferBuilder::new();
     let col_specs = write_header(&mut header_builder, &input_features);
     // Header is now done, use header_builder.finished_data() to access &[u8]
-
-    let mut feature_builders: Vec<FlatBufferBuilder> = Vec::new();
+    buffer.extend(header_builder.finished_data());
 
     for f in input_features {
         let mut builder = FlatBufferBuilder::new();
         write_feature(&mut builder, &col_specs, &f);
-        feature_builders.push(builder);
+        buffer.extend(builder.finished_data());
     }
 
     // write_fgb_feature(&mut builder, &e);
-    Ok(())
+    let res = std::fs::write(Path::new(path), buffer);
+    match res {
+        Ok(_) => Ok(()),
+        Err(_) => Err(Error::ProgramError(format!(
+            "Error writing flatgeobuf data to file {}",
+            path
+        ))),
+    }
 }
 
-pub fn run(_fgb: &ArgMatches) -> Result<(), Error> {
-    write()
+pub fn run(m: &ArgMatches) -> Result<(), Error> {
+    let path: &str = m.value_of("path").unwrap();
+    write(path)
 }

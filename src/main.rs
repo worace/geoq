@@ -23,6 +23,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("measure", Some(m)) => commands::measure::run(m),
         ("bbox", Some(m)) => commands::bbox::run(m),
         ("shp", Some(m)) => commands::shp::run(m),
+        ("fgb", Some(m)) => commands::fgb::run(m),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -202,6 +203,15 @@ fn main() {
         .about("Read a shapefile and convert to GeoJSON")
         .arg(
             Arg::with_name("path")
+                .help("output file, e.g. data.fgb")
+                .required(true)
+                .index(1),
+        );
+
+    let fgb = SubCommand::with_name("fgb")
+        .about("Convert GeoJSON data to a binary flatgeobuf file")
+        .arg(
+            Arg::with_name("path")
                 .help("path to the .shp file -- expects .dbf file to be adjacent.")
                 .required(true)
                 .index(1),
@@ -225,6 +235,7 @@ fn main() {
         .subcommand(simplify)
         .subcommand(bbox)
         .subcommand(shp)
+        .subcommand(fgb)
         .get_matches();
 
     if let Err(e) = run(matches) {
