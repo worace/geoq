@@ -1,5 +1,7 @@
 use std::{convert::From, io};
 
+use geozero::error::GeozeroError;
+
 #[derive(Debug)]
 pub enum Error {
     // InvalidLatLon,
@@ -41,5 +43,11 @@ impl From<serde_json::Error> for Error {
 impl From<reqwest::Error> for Error {
     fn from(_: reqwest::Error) -> Self {
         Error::HTTPError
+    }
+}
+
+impl From<GeozeroError> for Error {
+    fn from(e: GeozeroError) -> Self {
+        Error::ProgramError(format!("{}", e))
     }
 }

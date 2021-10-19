@@ -1,5 +1,6 @@
 pub mod bbox;
 pub mod centroid;
+pub mod fgb;
 pub mod filter;
 pub mod geohash;
 pub mod geojson_cmd;
@@ -12,6 +13,3 @@ pub mod simplify;
 pub mod snip;
 pub mod whereami;
 pub mod wkt;
-pub mod bbox;
-pub mod shp;
-pub mod fgb;
