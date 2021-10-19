@@ -209,12 +209,26 @@ fn main() {
         );
 
     let fgb = SubCommand::with_name("fgb")
-        .about("Convert GeoJSON data to a binary flatgeobuf file")
-        .arg(
-            Arg::with_name("path")
-                .help("path to the .shp file -- expects .dbf file to be adjacent.")
-                .required(true)
-                .index(1),
+        .about("Reading and Writing FlatGeoBuf")
+        .subcommand(
+            SubCommand::with_name("write")
+                .about("Write GeoJSON data to a binary flatgeobuf file")
+                .arg(
+                    Arg::with_name("path")
+                        .help("output path")
+                        .required(true)
+                        .index(1),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("read")
+                .about("Read a binary flatgeobuf file to GeoJSON")
+                .arg(
+                    Arg::with_name("path")
+                        .help("input path to .fgb file")
+                        .required(true)
+                        .index(1),
+                ),
         );
 
     let matches = App::new("geoq")

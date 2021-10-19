@@ -2,17 +2,19 @@ use crate::geoq::{entity::Entity, error::Error, reader::Reader};
 use clap::ArgMatches;
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, UOffsetT, Vector, WIPOffset};
 use flatgeobuf::{
-    Column, ColumnArgs, ColumnBuilder, ColumnType, Feature, FeatureArgs, GeometryType, Header,
-    HeaderBuilder,
+    Column, ColumnArgs, ColumnBuilder, ColumnType, Feature, FeatureArgs, FgbReader, GeometryType,
+    Header, HeaderBuilder,
 };
 use serde_json::Map;
 use std::collections::HashSet;
 use std::convert::{TryFrom, TryInto};
-use std::io;
+use std::fs::File;
+use std::io::{self, BufReader};
 use std::path::Path;
 
 // Parsing geometry into FlatGeoBuf representation:
 // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/geometry.ts#L83-L112
+#[derive(Debug)]
 struct ParsedGeometry {
     xy: Vec<f64>,
     z: Option<Vec<f64>>,
@@ -206,6 +208,7 @@ fn write_feature(
     col_specs: &Vec<ColSpec>,
     f: &geojson::Feature,
 ) -> () {
+    eprintln!("Write geojson feature: {:?}", f);
     // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/feature.ts#L47-L143
     // flatgeobuf::GeometryOffset
 
@@ -221,6 +224,7 @@ fn write_feature(
         .map(|g| g.value.parsed())
         .unwrap_or(empty_parsed_geom());
 
+    eprintln!("Parsed geom: {:?}", geom_components);
     let geom = build_geom(bldr, &geom_components);
 
     let args = flatgeobuf::FeatureArgs {
@@ -292,6 +296,7 @@ impl ToBytesWithIndex for bool {
 }
 
 fn feature_props(f: &geojson::Feature, _specs: &Vec<ColSpec>) -> Option<Vec<u8>> {
+    return None;
     if f.properties.is_none() {
         return None;
     }
@@ -388,7 +393,7 @@ fn geometry_type(features: &Vec<geojson::Feature>) -> GeometryType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct ColSpec {
     name: String,
     type_: ColumnType,
@@ -410,7 +415,8 @@ fn write_header<'a>(
     let name = bldr.create_string("Geoq-generated FGB");
     let desc = bldr.create_string("Geoq-generated FGB");
 
-    let col_specs = col_specs(features);
+    let col_specs: Vec<ColSpec> = col_specs(features);
+    eprintln!("Columns for fgb file: {:?}", col_specs);
     let cols_vec = build_cols(bldr, &col_specs);
 
     let mut hb = HeaderBuilder::new(bldr);
@@ -460,11 +466,15 @@ fn write(path: &str) -> Result<(), Error> {
     let col_specs = write_header(&mut header_builder, &input_features);
     // Header is now done, use header_builder.finished_data() to access &[u8]
     buffer.extend(header_builder.finished_data());
+    eprintln!(
+        "Writing {:?} bytes of header data",
+        header_builder.finished_data().len()
+    );
 
     for f in input_features {
         let mut builder = FlatBufferBuilder::new();
         write_feature(&mut builder, &col_specs, &f);
-        buffer.extend(builder.finished_data());
+        // buffer.extend(builder.finished_data());
     }
 
     // write_fgb_feature(&mut builder, &e);
@@ -478,7 +488,27 @@ fn write(path: &str) -> Result<(), Error> {
     }
 }
 
+use geozero::ProcessToJson;
+
+fn read(path: &str) -> Result<(), Error> {
+    let mut file = BufReader::new(File::open(path)?);
+    let mut fgb = FgbReader::open(&mut file)?;
+    eprintln!("{:?}", fgb.header());
+    fgb.select_bbox(8.8, 47.2, 9.5, 55.3)?;
+    println!("{}", fgb.to_json()?);
+    Ok(())
+}
+
 pub fn run(m: &ArgMatches) -> Result<(), Error> {
-    let path: &str = m.value_of("path").unwrap();
-    write(path)
+    match m.subcommand() {
+        ("write", Some(args)) => {
+            let path: &str = args.value_of("path").unwrap();
+            write(path)
+        }
+        ("read", Some(args)) => {
+            let path: &str = args.value_of("path").unwrap();
+            read(path)
+        }
+        _ => Err(Error::UnknownCommand),
+    }
 }
