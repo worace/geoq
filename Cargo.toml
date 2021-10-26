@@ -25,7 +25,8 @@ num_cpus = "1.0"
 reqwest = "0.9.19"
 shapefile = { version = "0.3.0", features=["geo-types"]}
 dbase = "0.2.0"
-flatgeobuf = "0.6.1"
+# flatgeobuf = "0.6.1"
+flatgeobuf = { git = "https://github.com/worace/flatgeobuf", branch = "worace/debug" }
 flatbuffers = "2.0.0"
 geozero = "0.7.4"
 
