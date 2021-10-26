@@ -234,7 +234,7 @@ fn write_feature(
     };
     let offset = flatgeobuf::Feature::create(bldr, &args);
 
-    bldr.finish(offset, None);
+    bldr.finish_size_prefixed(offset, None);
 }
 
 fn build_geom<'a: 'b, 'b>(
@@ -412,22 +412,23 @@ fn write_header<'a>(
 ) -> Vec<ColSpec> {
     // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/fbs/header.fbs
     // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/featurecollection.ts#L158-L182
-    let name = bldr.create_string("Geoq-generated FGB");
-    let desc = bldr.create_string("Geoq-generated FGB");
+    let name = bldr.create_string("L1");
+    // let desc = bldr.create_string("");
 
-    let col_specs: Vec<ColSpec> = col_specs(features);
+    // let col_specs: Vec<ColSpec> = col_specs(features);
+    let col_specs: Vec<ColSpec> = vec![];
     eprintln!("Columns for fgb file: {:?}", col_specs);
     let cols_vec = build_cols(bldr, &col_specs);
 
     let mut hb = HeaderBuilder::new(bldr);
-    hb.add_name(name);
-    hb.add_description(desc);
+    // hb.add_description(desc);
     hb.add_features_count(features.len().try_into().unwrap()); // not sure when this would fail...i guess 128bit system?
-    hb.add_columns(cols_vec);
+    dbg!(geometry_type(features));
     hb.add_geometry_type(geometry_type(features));
     hb.add_index_node_size(0); // No Index? (following ts example)
+    hb.add_name(name);
     let header = hb.finish();
-    bldr.finish(header, None);
+    bldr.finish_size_prefixed(header, None);
     col_specs
 }
 
@@ -466,15 +467,19 @@ fn write(path: &str) -> Result<(), Error> {
     let col_specs = write_header(&mut header_builder, &input_features);
     // Header is now done, use header_builder.finished_data() to access &[u8]
     buffer.extend(header_builder.finished_data());
+    eprintln!("header data:");
+    eprintln!("{:02X?}", header_builder.finished_data());
     eprintln!(
         "Writing {:?} bytes of header data",
         header_builder.finished_data().len()
     );
 
     for f in input_features {
+        eprintln!("writing feature");
+        dbg!(&f);
         let mut builder = FlatBufferBuilder::new();
         write_feature(&mut builder, &col_specs, &f);
-        // buffer.extend(builder.finished_data());
+        buffer.extend(builder.finished_data());
     }
 
     // write_fgb_feature(&mut builder, &e);
