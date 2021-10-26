@@ -1,12 +1,6 @@
-use crate::geoq::{entity::Entity, error::Error, fgb, fgb::header::ColSpec, reader::Reader};
+use crate::geoq::{error::Error, fgb, reader::Reader};
 use clap::ArgMatches;
-use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, UOffsetT, Vector, WIPOffset};
-use flatgeobuf::{
-    Column, ColumnArgs, ColumnBuilder, ColumnType, Feature, FeatureArgs, FgbReader, GeometryType,
-    Header, HeaderBuilder,
-};
-use serde_json::Map;
-use std::convert::{TryFrom, TryInto};
+use flatgeobuf::FgbReader;
 use std::fs::File;
 use std::io::{self, BufReader};
 use std::path::Path;
