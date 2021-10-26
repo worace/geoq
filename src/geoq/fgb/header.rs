@@ -59,10 +59,8 @@ fn col_specs(features: &Vec<geojson::Feature>) -> Vec<ColSpec> {
     }]
 }
 
-pub fn write_header<'a>(
-    bldr: &'a mut FlatBufferBuilder,
-    features: &Vec<geojson::Feature>,
-) -> Vec<ColSpec> {
+pub fn write<'a>(features: &Vec<geojson::Feature>) -> (FlatBufferBuilder, Vec<ColSpec>) {
+    let mut bldr = FlatBufferBuilder::new();
     // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/fbs/header.fbs
     // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/featurecollection.ts#L158-L182
     let name = bldr.create_string("L1");
@@ -71,9 +69,9 @@ pub fn write_header<'a>(
     // let col_specs: Vec<ColSpec> = col_specs(features);
     let col_specs: Vec<ColSpec> = vec![];
     eprintln!("Columns for fgb file: {:?}", col_specs);
-    let cols_vec = columns::build(bldr, &col_specs);
+    let cols_vec = columns::build(&mut bldr, &col_specs);
 
-    let mut hb = HeaderBuilder::new(bldr);
+    let mut hb = HeaderBuilder::new(&mut bldr);
     // hb.add_description(desc);
     hb.add_features_count(features.len().try_into().unwrap()); // not sure when this would fail...i guess 128bit system?
     dbg!(geometry_type(features));
@@ -82,5 +80,5 @@ pub fn write_header<'a>(
     hb.add_name(name);
     let header = hb.finish();
     bldr.finish_size_prefixed(header, None);
-    col_specs
+    (bldr, col_specs)
 }

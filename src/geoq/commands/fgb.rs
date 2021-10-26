@@ -11,47 +11,7 @@ use std::fs::File;
 use std::io::{self, BufReader};
 use std::path::Path;
 
-// table Feature {
-//   geometry: Geometry;  // Geometry
-//   properties: [ubyte]; // Custom buffer, variable length collection of key/value pairs (key=ushort)
-//   columns: [Column];   // Attribute columns schema (optional)
-// }
-fn write_feature(
-    bldr: &mut FlatBufferBuilder,
-    col_specs: &Vec<ColSpec>,
-    f: &geojson::Feature,
-) -> () {
-    eprintln!("Write geojson feature: {:?}", f);
-    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/feature.ts#L47-L143
-    // flatgeobuf::GeometryOffset
-
-    // Q: should this repeat all columns for the schema, or only the ones that apply to this feature?
-    let cols_vec = fgb::columns::build(bldr, col_specs);
-    let props =
-        fgb::properties::feature_props(f, col_specs).map(|bytes| bldr.create_vector(&bytes[..]));
-
-    // Geometry serialization
-    // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/geometry.ts#L37-L64
-    let geom = fgb::geometry::build(bldr, f);
-
-    let args = flatgeobuf::FeatureArgs {
-        columns: Some(cols_vec),
-        geometry: Some(geom),
-        properties: props,
-    };
-    let offset = flatgeobuf::Feature::create(bldr, &args);
-
-    bldr.finish_size_prefixed(offset, None);
-}
-
-fn write(path: &str) -> Result<(), Error> {
-    // collect features into vector
-    // read features to get header schema (Columns "table")
-    // generate + write header
-    // iterate + convert + write each feature
-    let mut _buffer: Vec<u8> = Vec::new();
-    let mut _features: Vec<Feature> = Vec::new();
-
+fn stdin_features() -> Result<Vec<geojson::Feature>, Error> {
     let mut input_features: Vec<geojson::Feature> = Vec::new();
 
     let stdin = io::stdin();
@@ -66,18 +26,25 @@ fn write(path: &str) -> Result<(), Error> {
             }
         }
     }
+    Ok(input_features)
+}
 
-    // Binary Layout
-    // MB: Magic bytes (0x6667620366676201)
-    // H: Header (variable size flatbuffer) (written as its own standalone flatbuffer)
-    // I (optional): Static packed Hilbert R-tree index (static size custom buffer)
-    // DATA: Features (each written as its own standalone flatbuffer?)
+// Binary Layout
+// MB: Magic bytes (0x6667620366676201)
+// H: Header (variable size flatbuffer) (written as its own standalone flatbuffer)
+// I (optional): Static packed Hilbert R-tree index (static size custom buffer)
+// DATA: Features (each written as its own standalone flatbuffer?)
+fn write(path: &str) -> Result<(), Error> {
+    // collect features into vector
+    // read features to get header schema (Columns "table")
+    // generate + write header
+    // iterate + convert + write each feature
+    let mut _buffer: Vec<u8> = Vec::new();
+    let input_features = stdin_features()?;
 
     let mut buffer: Vec<u8> = vec![0x66, 0x67, 0x62, 0x03, 0x66, 0x67, 0x62, 0x00];
 
-    let mut header_builder = FlatBufferBuilder::new();
-    let col_specs = fgb::header::write_header(&mut header_builder, &input_features);
-    // Header is now done, use header_builder.finished_data() to access &[u8]
+    let (header_builder, col_specs) = fgb::header::write(&input_features);
     buffer.extend(header_builder.finished_data());
     eprintln!("header data:");
     eprintln!("{:02X?}", header_builder.finished_data());
@@ -89,12 +56,10 @@ fn write(path: &str) -> Result<(), Error> {
     for f in input_features {
         eprintln!("writing feature");
         dbg!(&f);
-        let mut builder = FlatBufferBuilder::new();
-        write_feature(&mut builder, &col_specs, &f);
+        let builder = fgb::feature::write(&col_specs, &f);
         buffer.extend(builder.finished_data());
     }
 
-    // write_fgb_feature(&mut builder, &e);
     let res = std::fs::write(Path::new(path), buffer);
     match res {
         Ok(_) => Ok(()),
