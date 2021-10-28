@@ -58,8 +58,17 @@ mod tests {
             GeoJson::FeatureCollection(fc) => fc.features,
         }
     }
-    const point_gj: &str = r#"
+    const POINT: &str = r#"
      {"type": "Point", "coordinates": [-118, 34]}
+    "#;
+    const LINESTRING: &str = r#"
+     {"type": "LineString", "coordinates": [[-118, 34], [-119, 35]]}
+    "#;
+    const POLYGON: &str = r#"
+     {"coordinates":[[[-119.53125,33.75],[-118.125,33.75],[-118.125,35.15625],[-119.53125,35.15625],[-119.53125,33.75]]],"type":"Polygon"}
+    "#;
+    const POLYGON_HOLE: &str = r#"
+      {"type":"Polygon","coordinates":[[[-120,60],[120,60],[120,-60],[-120,-60],[-120,60]],[[-60,30],[60,30],[60,-30],[-60,-30],[-60,30]]]}
     "#;
 
     fn roundtrip(gj: &str) -> (Vec<geojson::Feature>, Vec<geojson::Feature>) {
@@ -78,7 +87,25 @@ mod tests {
 
     #[test]
     fn test_point() {
-        let (input, output) = roundtrip(point_gj);
+        let (input, output) = roundtrip(POINT);
+        assert_eq!(input, output);
+    }
+
+    #[test]
+    fn test_linestring() {
+        let (input, output) = roundtrip(LINESTRING);
+        assert_eq!(input, output);
+    }
+
+    #[test]
+    fn test_polygon() {
+        let (input, output) = roundtrip(POLYGON);
+        assert_eq!(input, output);
+    }
+
+    #[test]
+    fn test_polygon_with_hole() {
+        let (input, output) = roundtrip(POLYGON_HOLE);
         assert_eq!(input, output);
     }
 }

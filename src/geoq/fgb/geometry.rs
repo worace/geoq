@@ -114,19 +114,22 @@ impl ParseGeom for Vec<Vec<Vec<f64>>> {
         }
     }
     fn ends(&self) -> Option<Vec<usize>> {
+        dbg!("get polygon ends");
         if self.len() > 1 {
             let mut ends: Vec<usize> = Vec::new();
-            let mut last_coord_start_idx = 0;
+            let mut num_coords = 0;
             for ring in self {
-                last_coord_start_idx += (ring.len() - 1) * 2;
+                num_coords += ring.len();
+                // last_coord_start_idx += (ring.len() - 1) * 2;
                 // "end" is index into flat coordinates for starting "X" of
                 // coord pair where where each ring ends
                 //     0 1    2 3     4 5    6 7    8 9
                 // [ [[1,2], [3,4]] [[5,6], [7,8], [9,10]] ]
                 //            End                   End.
                 // ends: [2, 8] (coord idx 1 and coord idx 2, each doubled)
-                ends.push(last_coord_start_idx);
+                ends.push((num_coords - 1) * 2);
             }
+            dbg!(&ends);
             Some(ends)
         } else {
             // No ends for single-ring polygon (following TS impl)
@@ -205,6 +208,10 @@ fn _build<'a: 'b, 'b>(
     let geom_args = flatgeobuf::GeometryArgs {
         xy: Some(bldr.create_vector(&geom_components.xy)),
         z: geom_components.z.as_ref().map(|z| bldr.create_vector(&z)),
+        ends: geom_components
+            .ends
+            .as_ref()
+            .map(|e| bldr.create_vector(&e)), // how to make vec of usize (not f64)
         type_: geom_components.type_,
         parts,
         ..Default::default()
