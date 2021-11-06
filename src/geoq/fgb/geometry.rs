@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, UOffsetT, Vector, WIPOffset};
 use flatgeobuf::{
     Column, ColumnArgs, ColumnBuilder, ColumnType, Feature, FeatureArgs, FgbReader, GeometryType,
@@ -10,7 +12,7 @@ use flatgeobuf::{
 struct ParsedGeometry {
     xy: Vec<f64>,
     z: Option<Vec<f64>>,
-    ends: Option<Vec<usize>>,
+    ends: Option<Vec<u32>>,
     parts: Option<Vec<ParsedGeometry>>,
     type_: GeometryType,
 }
@@ -23,7 +25,7 @@ trait ParsedGeoJsonGeom {
 trait ParseGeom {
     fn xy(&self) -> Vec<f64>;
     fn z(&self) -> Option<Vec<f64>>;
-    fn ends(&self) -> Option<Vec<usize>>;
+    fn ends(&self) -> Option<Vec<u32>>;
     fn parts(&self) -> Option<Vec<ParsedGeometry>>;
 }
 
@@ -41,7 +43,7 @@ impl ParseGeom for Vec<f64> {
             None
         }
     }
-    fn ends(&self) -> Option<Vec<usize>> {
+    fn ends(&self) -> Option<Vec<u32>> {
         None
     }
     fn parts(&self) -> Option<Vec<ParsedGeometry>> {
@@ -74,7 +76,7 @@ impl ParseGeom for Vec<Vec<f64>> {
             None
         }
     }
-    fn ends(&self) -> Option<Vec<usize>> {
+    fn ends(&self) -> Option<Vec<u32>> {
         None
     }
     fn parts(&self) -> Option<Vec<ParsedGeometry>> {
@@ -113,10 +115,10 @@ impl ParseGeom for Vec<Vec<Vec<f64>>> {
             None
         }
     }
-    fn ends(&self) -> Option<Vec<usize>> {
+    fn ends(&self) -> Option<Vec<u32>> {
         dbg!("get polygon ends");
         if self.len() > 1 {
-            let mut ends: Vec<usize> = Vec::new();
+            let mut ends: Vec<u32> = Vec::new();
             let mut num_coords = 0;
             for ring in self {
                 num_coords += ring.len();
@@ -127,7 +129,13 @@ impl ParseGeom for Vec<Vec<Vec<f64>>> {
                 // [ [[1,2], [3,4]] [[5,6], [7,8], [9,10]] ]
                 //            End                   End.
                 // ends: [2, 8] (coord idx 1 and coord idx 2, each doubled)
-                ends.push((num_coords - 1) * 2);
+                // let end: u32 = ((num_coords - 1) * 2)
+                // Or...?
+                // end is just coord for _start_ of the next ring?
+                let end: u32 = num_coords
+                    .try_into()
+                    .expect("Polygon end index must fit into u32");
+                ends.push(end);
             }
             dbg!(&ends);
             Some(ends)
@@ -211,7 +219,7 @@ fn _build<'a: 'b, 'b>(
         ends: geom_components
             .ends
             .as_ref()
-            .map(|e| bldr.create_vector(&e)), // how to make vec of usize (not f64)
+            .map(|e| bldr.create_vector(&e)),
         type_: geom_components.type_,
         parts,
         ..Default::default()
