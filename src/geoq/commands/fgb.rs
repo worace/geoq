@@ -36,6 +36,7 @@ fn write(path: &str) -> Result<(), Error> {
 }
 
 use flatgeobuf::*;
+use geozero::geojson::GeoJsonWriter;
 use geozero::ToJson;
 
 fn read(path: &str) -> Result<(), Error> {
@@ -43,9 +44,16 @@ fn read(path: &str) -> Result<(), Error> {
     let mut fgb = FgbReader::open(&mut file)?;
     eprintln!("{:?}", fgb.header());
     fgb.select_all()?;
-    while let Some(feature) = fgb.next()? {
-        println!("{}", feature.to_json()?);
-    }
+
+    // while let Some(feature) = fgb.next()? {
+    //     dbg!(feature.properties()?);
+    //     println!("{}", feature.to_json()?);
+    // }
+
+    let mut json_data: Vec<u8> = Vec::new();
+    let mut json = GeoJsonWriter::new(&mut json_data);
+    fgb.process_features(&mut json)?;
+    println!("{}", std::str::from_utf8(&json_data)?);
     Ok(())
 }
 

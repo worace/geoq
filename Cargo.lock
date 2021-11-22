@@ -50,6 +50,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-trait"
+version = "0.1.51"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44318e776df68115a881de9a8fd1b9e53368d7a4a5ce4cc48517da3393233a5e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -400,16 +411,18 @@ dependencies = [
 
 [[package]]
 name = "flatgeobuf"
-version = "0.6.1"
-source = "git+https://github.com/worace/flatgeobuf?branch=worace/debug#72a294ff8b413a565ed24ed9f70a1536126c9311"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1afe0a0c8ba85ac536b9c86538a801988e29f86f65d9f64a9eae27b630703ce5"
 dependencies = [
  "byteorder",
  "bytes 1.1.0",
  "fallible-streaming-iterator",
  "flatbuffers",
  "geozero",
+ "http-range-client",
  "log",
- "reqwest 0.11.4",
+ "tempfile",
 ]
 
 [[package]]
@@ -612,12 +625,13 @@ dependencies = [
 
 [[package]]
 name = "geozero"
-version = "0.7.4"
+version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "917cdab5cb89696c58122acc2afea6def1b5a389a472d84fa742754d363b28f7"
+checksum = "68e8478191347f2f85032aa1f0c9b6eab4880e16c4d78fa97e184b8af5a4042a"
 dependencies = [
  "geo-types 0.7.2",
  "geojson 0.22.2",
+ "serde_json",
  "thiserror",
 ]
 
@@ -733,6 +747,20 @@ dependencies = [
  "bytes 1.1.0",
  "http 0.2.5",
  "pin-project-lite",
+]
+
+[[package]]
+name = "http-range-client"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9e031570fd8415fc4ded0cb8582b304be567b05e6d811474948629b4590d820"
+dependencies = [
+ "async-trait",
+ "byteorder",
+ "bytes 1.1.0",
+ "log",
+ "reqwest 0.11.4",
+ "thiserror",
 ]
 
 [[package]]

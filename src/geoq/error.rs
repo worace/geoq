@@ -1,4 +1,4 @@
-use std::{convert::From, io};
+use std::{convert::From, io, str::Utf8Error};
 
 use geozero::error::GeozeroError;
 
@@ -48,6 +48,12 @@ impl From<reqwest::Error> for Error {
 
 impl From<GeozeroError> for Error {
     fn from(e: GeozeroError) -> Self {
+        Error::ProgramError(format!("{}", e))
+    }
+}
+
+impl From<std::str::Utf8Error> for Error {
+    fn from(e: Utf8Error) -> Self {
         Error::ProgramError(format!("{}", e))
     }
 }
