@@ -73,6 +73,39 @@ fn contains(matches: &ArgMatches, negate: bool) -> Result<(), Error> {
     }
 }
 
+fn dwithin(matches: &ArgMatches, negate: bool) -> Result<(), Error> {
+    let query_geoms = read_query_geoms(matches)?;
+    let rad_arg = matches.value_of("radius").unwrap();
+    let radius: f64 = rad_arg
+        .parse()
+        .map_err(|_| Error::InvalidNumberFormat(format!("Invalid Radius: {}", rad_arg)))?;
+
+    if query_geoms.is_empty() {
+        Err(Error::NoInputGiven)
+    } else {
+        par::for_stdin_entity(move |entity| {
+            let output = entity.raw();
+            let geom = entity.geom();
+            let point = match geom {
+                Geometry::Point(p) => Ok(p),
+                _ => Err(Error::PointRequired),
+            }?;
+            let is_match = query_geoms.iter().any(|ref query_geom| {
+                let dist = geoq::distance::distance(&point, query_geom);
+                match dist {
+                    Some(d) => d < radius,
+                    None => false,
+                }
+            });
+            if is_match ^ negate {
+                Ok(vec![output])
+            } else {
+                Ok(vec![])
+            }
+        })
+    }
+}
+
 pub fn run(matches: &ArgMatches) -> Result<(), Error> {
     // allow --negate to be passed either before or after the subcommand
     // geoq filter --negate intersects
@@ -87,6 +120,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("intersects", Some(m)) => intersects(m, negate),
         ("contains", Some(m)) => contains(m, negate),
+        ("dwithin", Some(m)) => dwithin(m, negate),
         _ => Err(Error::UnknownCommand),
     }
 }
