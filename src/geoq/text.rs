@@ -135,6 +135,14 @@ geoq filter intersects 9q5
 geoq filter contains 'Polygon ((30 10, 10 30, 40 40, 30 10))'
 ";
 
+pub const FILTER_DWITHIN_AFTER_HELP: &str = r"
+Example:
+
+geoq filter dwithin --radius 100 9q5
+
+Note: Currently only Point geometries are supported as candidates.
+";
+
 pub const SIMPLIFY_ABOUT: &str = "Simplify geometries.";
 
 pub const SIMPLIFY_AFTER_HELP: &str = r"Reads features from STDIN.

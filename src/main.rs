@@ -103,6 +103,24 @@ fn main() {
                         .help("Entity to check intersections.\nMust be Geohash, WKT, or GeoJSON.\nMust be a POLYGON or MULTIPOLYGON.")
                         .index(1)
                 )
+        )
+        .subcommand(
+            SubCommand::with_name("dwithin")
+                .about("Output only points (from STDIN) which fall within a QUERY entity (as command-line ARG)")
+                .after_help(text::FILTER_DWITHIN_AFTER_HELP)
+                .arg(
+                    Arg::with_name("query")
+                        .help("Feature(s) to check intersections.\nMust be Geohash, WKT, or GeoJSON.")
+                        .index(1)
+                )
+                .arg(
+                    Arg::with_name("radius")
+                        .help("Radius in meters")
+                        .takes_value(true)
+                        .required(true)
+                        .long("radius")
+                        .short("r")
+                )
         );
 
     let json = SubCommand::with_name("json")
@@ -158,7 +176,8 @@ fn main() {
                 .help(text::SIMPLIFY_EPSILON_ARG_HELP)
                 .required(true)
                 .index(1),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("to_coord_count")
                 .long("to-coord-count")
                 .required(false)
@@ -168,14 +187,15 @@ fn main() {
 
     let bbox = SubCommand::with_name("bbox")
         .about("Generate bounding boxes for geometries")
-        .arg(Arg::with_name("embed")
-             .long("embed")
-             .short("e")
-             .help("Print inputs as GeoJSON features and include the bbox in the GeoJSON bbox field"))
-        .arg(Arg::with_name("all")
-             .long("all")
-             .short("a")
-             .help("Give a single bbox for all input geometries rather than 1 bbox per input"))
+        .arg(Arg::with_name("embed").long("embed").short("e").help(
+            "Print inputs as GeoJSON features and include the bbox in the GeoJSON bbox field",
+        ))
+        .arg(
+            Arg::with_name("all")
+                .long("all")
+                .short("a")
+                .help("Give a single bbox for all input geometries rather than 1 bbox per input"),
+        )
         .after_help(text::BBOX_AFTER_HELP);
 
     let shp = SubCommand::with_name("shp")

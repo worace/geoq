@@ -44,11 +44,11 @@ pub fn run(matches: &ArgMatches) -> Result<(), Error> {
         Some(arg) => match f64::from_str(arg) {
             Ok(eps) => Ok(eps),
             Err(_) => {
-                eprintln!(
+                let err = format!(
                     "Invalid Epsilon: {:?} - must be floating point number, e.g. 0.001.",
                     arg
                 );
-                Err(Error::InvalidNumberFormat)
+                Err(Error::InvalidNumberFormat(err))
             }
         },
         _ => Err(Error::MissingArgument),

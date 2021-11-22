@@ -12,7 +12,10 @@ fn read_level(matches: &ArgMatches) -> Result<usize, Error> {
 
     let level_parsed = level_str.parse::<usize>();
     if level_parsed.is_err() {
-        return Err(Error::InvalidNumberFormat);
+        return Err(Error::InvalidNumberFormat(format!(
+            "Expected valid geohash level: {}",
+            level_str
+        )));
     }
     Ok(level_parsed.unwrap())
 }
@@ -73,7 +76,12 @@ fn encode_long() -> Result<(), Error> {
         match line {
             Ok(l) => match l.parse::<u64>() {
                 Ok(gh_num) => println!("{}", geoq::geohash::encode_long(gh_num)),
-                _ => return Err(Error::InvalidNumberFormat),
+                _ => {
+                    return Err(Error::InvalidNumberFormat(format!(
+                        "Expected u64 geohash number: {}",
+                        l
+                    )))
+                }
             },
             _ => return Err(Error::IOError),
         }

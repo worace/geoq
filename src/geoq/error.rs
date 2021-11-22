@@ -9,7 +9,7 @@ pub enum Error {
     UnknownEntityFormat,
     InvalidWkt,
     MissingArgument,
-    InvalidNumberFormat,
+    InvalidNumberFormat(String),
     InputTooLarge,
     IOError,
     JSONParseError,
