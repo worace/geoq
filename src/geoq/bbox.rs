@@ -1,14 +1,14 @@
-use std::fmt::Debug;
 use geo_types::*;
 use std::cmp::Ordering;
+use std::fmt::Debug;
 
 trait OptRectHelper: Debug {
     fn or_zero(self) -> geo::Rect<f64>;
 }
 
 pub fn zero_rect() -> geo::Rect<f64> {
-    let p = geo::Coordinate {x: 0.0, y: 0.0};
-    geo::Rect {min: p, max: p}
+    let p = geo::Coordinate { x: 0.0, y: 0.0 };
+    geo::Rect { min: p, max: p }
 }
 
 impl OptRectHelper for Option<geo::Rect<f64>> {
@@ -18,15 +18,15 @@ impl OptRectHelper for Option<geo::Rect<f64>> {
 }
 
 fn rect(p: &Point<f64>) -> geo::Rect<f64> {
-    let c = geo::Coordinate {x: p.x(), y: p.y()};
-    geo::Rect {min: c, max: c}
+    let c = geo::Coordinate { x: p.x(), y: p.y() };
+    geo::Rect { min: c, max: c }
 }
 
 fn min(a: f64, b: f64) -> f64 {
     match a.partial_cmp(&b).unwrap_or(Ordering::Equal) {
         Ordering::Less => a,
         Ordering::Equal => a,
-        Ordering::Greater => b
+        Ordering::Greater => b,
     }
 }
 
@@ -34,20 +34,20 @@ fn max(a: f64, b: f64) -> f64 {
     match a.partial_cmp(&b).unwrap_or(Ordering::Equal) {
         Ordering::Less => b,
         Ordering::Equal => a,
-        Ordering::Greater => a
+        Ordering::Greater => a,
     }
 }
 
 pub fn merge(a: &geo::Rect<f64>, b: &geo::Rect<f64>) -> geo::Rect<f64> {
     let min = geo::Coordinate {
         x: min(a.min.x, b.min.x),
-        y: min(a.min.y, b.min.y)
+        y: min(a.min.y, b.min.y),
     };
     let max = geo::Coordinate {
         x: max(a.max.x, b.max.x),
-        y: max(a.max.y, b.max.y)
+        y: max(a.max.y, b.max.y),
     };
-    geo::Rect{min, max}
+    geo::Rect { min, max }
 }
 
 pub fn bbox(geom: &Geometry<f64>) -> geo::Rect<f64> {
@@ -72,7 +72,6 @@ pub trait BBoxToPoly {
     fn to_polygon(&self) -> geo_types::Polygon<f64>;
 }
 
-
 impl BBoxToPoly for geo::Rect<f64> {
     fn to_polygon(&self) -> geo_types::Polygon<f64> {
         Polygon::new(
@@ -81,7 +80,7 @@ impl BBoxToPoly for geo::Rect<f64> {
                 (self.max.x, self.min.y),
                 (self.min.x, self.min.y),
                 (self.min.x, self.max.y),
-                self.max.x_y()
+                self.max.x_y(),
             ]),
             vec![],
         )

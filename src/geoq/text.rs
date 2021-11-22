@@ -168,5 +168,4 @@ pub const MEASURE_COORDS_ABOUT: &str =
 pub const MEASURE_COORDS_GEOJSON_ARG_HELP: &str =
     "Give result as an embedded property in a GeoJSON feature, rather than as a single number.";
 
-pub const BBOX_AFTER_HELP: &str =
-    "Generate bbox for a geometry";
+pub const BBOX_AFTER_HELP: &str = "Generate bbox for a geometry";

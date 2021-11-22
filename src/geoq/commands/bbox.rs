@@ -1,4 +1,4 @@
-use crate::geoq::{error::Error, par, bbox::BBoxToPoly, reader, bbox};
+use crate::geoq::{bbox, bbox::BBoxToPoly, error::Error, par, reader};
 use clap::ArgMatches;
 use geo_types::Rect;
 
@@ -22,9 +22,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), Error> {
         })?;
 
         match bbox {
-            None => {
-                Err(Error::NoInputGiven)
-            }
+            None => Err(Error::NoInputGiven),
             Some(bbox) => {
                 let poly = bbox.to_polygon();
                 let gj = geojson::Geometry::new(geojson::Value::from(&poly));

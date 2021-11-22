@@ -1,4 +1,4 @@
-use crate::geoq::{error::Error, input::Input, bbox};
+use crate::geoq::{bbox, error::Error, input::Input};
 use geo_types::{Coordinate, Geometry, LineString, Point, Polygon};
 use geojson::GeoJson;
 use once_cell::sync::Lazy;
@@ -99,9 +99,13 @@ impl Entity {
             Entity::Geohash(ref raw) => geohash_geom(raw),
             Entity::Wkt(_, ref geom) => geom.clone(),
             Entity::GeoJsonGeometry(_, gj_geom) => gj_geom.value.clone().try_into().unwrap(),
-            Entity::GeoJsonFeature(_, gj_feature) => {
-                gj_feature.clone().geometry.unwrap().value.try_into().unwrap()
-            }
+            Entity::GeoJsonFeature(_, gj_feature) => gj_feature
+                .clone()
+                .geometry
+                .unwrap()
+                .value
+                .try_into()
+                .unwrap(),
         }
     }
 

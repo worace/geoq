@@ -1,4 +1,4 @@
-use crate::geoq::{error::Error, par, simplify, coord_count};
+use crate::geoq::{coord_count, error::Error, par, simplify};
 use clap::ArgMatches;
 use std::str::FromStr;
 
@@ -17,7 +17,7 @@ fn simplify(epsilon: f64, coords_target: Option<usize>) -> Result<(), Error> {
                     let mut eps = epsilon;
                     let mut simp = geom;
                     let mut iters = 0;
-                    while coord_count::coord_count(&simp) > target  && iters < MAX_ITERS {
+                    while coord_count::coord_count(&simp) > target && iters < MAX_ITERS {
                         simp = simplify::simplify(simp, eps);
                         eps = eps * 2.0;
                         iters += 1;
@@ -67,11 +67,8 @@ pub fn run(matches: &ArgMatches) -> Result<(), Error> {
                 parsed.ok()
             }
         }
-        _ => None
+        _ => None,
     };
 
-    eps.and_then(|eps| {
-        simplify(eps, target)
-    })
-
+    eps.and_then(|eps| simplify(eps, target))
 }

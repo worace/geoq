@@ -1,4 +1,4 @@
-use crate::geoq::{distance, entity, error::Error, input, par, coord_count};
+use crate::geoq::{coord_count, distance, entity, error::Error, input, par};
 use clap::ArgMatches;
 use geo_types::Geometry;
 use serde_json::json;
@@ -54,7 +54,7 @@ fn coords(matches: &ArgMatches) -> Result<(), Error> {
                 Some(props) => {
                     props.insert("coord_count".to_string(), json!(count));
                 }
-                None => ()
+                None => (),
             }
             Ok(vec![serde_json::to_string(&feature).unwrap()])
         } else {
