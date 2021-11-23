@@ -13,7 +13,6 @@ pub mod error;
 pub mod fgb;
 pub mod geohash;
 pub mod input;
-pub mod intersection;
 pub mod par;
 pub mod reader;
 pub mod simplify;

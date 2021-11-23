@@ -200,7 +200,16 @@ impl ParsedGeoJsonGeom for geojson::Value {
                     type_: GeometryType::MultiPolygon,
                 }
             }
-            _ => empty_parsed_geom(),
+            geojson::Value::GeometryCollection(geoms) => {
+                let parts = geoms.iter().map(|geom| geom.value.parsed());
+                ParsedGeometry {
+                    xy: vec![],
+                    z: None,
+                    ends: None,
+                    parts: Some(parts.collect()),
+                    type_: GeometryType::GeometryCollection,
+                }
+            }
         }
     }
 }

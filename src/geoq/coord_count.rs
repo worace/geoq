@@ -13,6 +13,8 @@ pub fn coord_count(geom: &Geometry<f64>) -> usize {
     match *geom {
         Geometry::Point(_) => 1,
         Geometry::Line(_) => 2,
+        Geometry::Triangle(_) => 3,
+        Geometry::Rect(_) => 4,
         Geometry::LineString(ref g) => g.num_coords(),
         Geometry::Polygon(ref g) => poly_coord_count(g),
         Geometry::MultiPoint(ref g) => g.0.len(),

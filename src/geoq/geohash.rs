@@ -1,4 +1,4 @@
-use crate::geoq::{contains, intersection};
+use crate::geoq::contains;
 use geo_types::{Coordinate, Geometry, LineString, Polygon};
 use std::str;
 
@@ -37,8 +37,8 @@ pub fn neighbors(gh: &String, include_self: bool) -> Vec<String> {
 pub fn bbox(gh: &str) -> Option<Polygon<f64>> {
     match geohash::decode_bbox(gh) {
         Ok(rect) => {
-            let bl = rect.min;
-            let tr = rect.max;
+            let bl = rect.min();
+            let tr = rect.max();
             let outer = LineString(vec![
                 Coordinate::from((bl.x, bl.y)),
                 Coordinate::from((tr.x, bl.y)),
@@ -53,13 +53,14 @@ pub fn bbox(gh: &str) -> Option<Polygon<f64>> {
 }
 
 pub fn covering(geom: &Geometry<f64>, level: usize) -> Vec<String> {
+    use geo::algorithm::intersects::Intersects;
     let mut ghs: Vec<String> = vec![];
     let mut queue: Vec<String> = vec!["".to_string()];
     while !queue.is_empty() {
         let gh = queue.pop().unwrap();
         match bbox(&gh) {
             Some(poly) => {
-                if contains::contains(&poly, &geom) || intersection::poly_intersects(&poly, &geom) {
+                if contains::contains(&poly, &geom) || poly.intersects(geom) {
                     if gh.len() < level {
                         queue.extend(children(&gh));
                     } else {

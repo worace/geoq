@@ -7,6 +7,8 @@ pub fn contains(outer: &Polygon<f64>, inner: &Geometry<f64>) -> bool {
         Geometry::Line(ref g) => outer.contains(g),
         Geometry::LineString(ref g) => outer.contains(g),
         Geometry::Polygon(ref g) => outer.contains(g),
+        Geometry::Rect(ref g) => outer.contains(&g.to_polygon()),
+        Geometry::Triangle(ref g) => outer.contains(&g.to_polygon()),
         Geometry::MultiPoint(ref mp) => mp.0.iter().all(|p| outer.contains(p)),
         Geometry::MultiLineString(ref mls) => mls.0.iter().all(|ls| outer.contains(ls)),
         Geometry::MultiPolygon(ref mp) => mp.0.iter().all(|poly| outer.contains(poly)),
