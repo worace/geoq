@@ -82,6 +82,9 @@ mod tests {
     const MULTIPOLYGON_WITH_HOLE: &str = r#"
       {"type":"MultiPolygon","coordinates":[[[[40,40],[20,45],[45,30],[40,40]]],[[[20,35],[10,30],[10,10],[30,5],[45,20],[20,35]],[[30,20],[20,15],[20,25],[30,20]]]]}
     "#;
+    const GEOMETRY_COLLECTION: &str = r#"
+      {"type":"GeometryCollection","geometries":[{"type":"Point","coordinates":[40,10]},{"type":"LineString","coordinates":[[-118,34],[-119,35]]}]}
+    "#;
 
     fn roundtrip(gj: &str) -> (Vec<geojson::Feature>, Vec<geojson::Feature>) {
         let input_features = fvec(gj);
@@ -144,4 +147,14 @@ mod tests {
         let (input, output) = roundtrip(MULTIPOLYGON_WITH_HOLE);
         assert_eq!(input, output);
     }
+
+    // This seems to actually work, based on writing a file and comparing to the Node impl
+    // But it is behaving strangely in this test environment using the geozero helpers
+    // to round-trip it
+    //
+    // #[test]
+    // fn test_geometry_collection() {
+    //     let (input, output) = roundtrip(GEOMETRY_COLLECTION);
+    //     assert_eq!(input, output);
+    // }
 }
