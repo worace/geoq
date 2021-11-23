@@ -11,7 +11,7 @@ use flatbuffers::FlatBufferBuilder;
 // }
 pub fn write<'a>(col_specs: &Vec<ColSpec>, f: &geojson::Feature) -> FlatBufferBuilder<'a> {
     let mut bldr = FlatBufferBuilder::new();
-    eprintln!("Write geojson feature: {:?}", f);
+    // eprintln!("Write geojson feature: {:?}", f);
     // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/feature.ts#L47-L143
     // flatgeobuf::GeometryOffset
 

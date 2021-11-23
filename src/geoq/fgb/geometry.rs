@@ -113,7 +113,6 @@ impl ParseGeom for Vec<Vec<Vec<f64>>> {
         }
     }
     fn ends(&self) -> Option<Vec<u32>> {
-        dbg!("get polygon ends");
         if self.len() > 1 {
             let mut ends: Vec<u32> = Vec::new();
             let mut num_coords = 0;
@@ -134,7 +133,6 @@ impl ParseGeom for Vec<Vec<Vec<f64>>> {
                     .expect("Polygon end index must fit into u32");
                 ends.push(end);
             }
-            dbg!(&ends);
             Some(ends)
         } else {
             // No ends for single-ring polygon (following TS impl)
@@ -241,8 +239,6 @@ fn _build<'a: 'b, 'b>(
     bldr: &'b mut FlatBufferBuilder<'a>,
     geom_components: &ParsedGeometry,
 ) -> WIPOffset<flatgeobuf::Geometry<'a>> {
-    eprintln!("Parsed geom: {:?}", geom_components);
-
     let parts = geom_components.parts.as_ref().map(|geoms| {
         let g_offsets: Vec<WIPOffset<flatgeobuf::Geometry>> =
             geoms.iter().map(|g| _build(bldr, g)).collect();
@@ -275,6 +271,5 @@ pub fn build<'a: 'b, 'b>(
         .map(|g| g.value.parsed())
         .unwrap_or(empty_parsed_geom());
 
-    eprintln!("Parsed geom: {:?}", geom_components);
     _build(bldr, &geom_components)
 }

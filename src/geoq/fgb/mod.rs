@@ -26,8 +26,8 @@ pub fn write(features: &Vec<geojson::Feature>) -> Vec<u8> {
     );
 
     for f in features {
-        eprintln!("writing feature");
-        dbg!(&f);
+        // eprintln!("writing feature");
+        // dbg!(&f);
         let builder = feature::write(&col_specs, &f);
         buffer.extend(builder.finished_data());
     }
