@@ -703,7 +703,7 @@ Polygon ((30 10, 10 30, 40 40, 30 10))
 
     let output = r#"{"coordinates":[-43.52783203125,25.41347553724687],"type":"Point"}
 {"coordinates":[-47.4609375,21.453068633086783],"type":"Point"}
-{"coordinates":[26.666666666666668,26.666666666666668],"type":"Point"}
+{"coordinates":[26.66666666666667,26.66666666666667],"type":"Point"}
 "#;
 
     Assert::main_binary()

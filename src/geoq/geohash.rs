@@ -35,6 +35,11 @@ pub fn neighbors(gh: &String, include_self: bool) -> Vec<String> {
 }
 
 pub fn bbox(gh: &str) -> Option<Polygon<f64>> {
+    if gh == "" {
+        let min = Coordinate::<f64>::from((-180.0, -90.0));
+        let max = Coordinate::<f64>::from((180.0, 90.0));
+        return Some(geo_types::Rect::new(min, max).to_polygon());
+    }
     match geohash::decode_bbox(gh) {
         Ok(rect) => {
             let bl = rect.min();
