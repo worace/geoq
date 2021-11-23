@@ -99,9 +99,13 @@ impl Entity {
             Entity::Geohash(ref raw) => geohash_geom(raw),
             Entity::Wkt(_, ref geom) => geom.clone(),
             Entity::GeoJsonGeometry(_, gj_geom) => match gj_geom.value.clone() {
-                // geojson::Value::GeometryCollection(coll) => {
-
-                // }
+                geojson::Value::GeometryCollection(gj_geoms) => {
+                    let geoms: Vec<geo_types::Geometry<f64>> = gj_geoms
+                        .iter()
+                        .map(|g| g.value.clone().try_into().unwrap())
+                        .collect();
+                    geo_types::Geometry::GeometryCollection(geo_types::GeometryCollection(geoms))
+                }
                 coord_vec => coord_vec.try_into().unwrap(),
             },
             Entity::GeoJsonFeature(_, gj_feature) => gj_feature
