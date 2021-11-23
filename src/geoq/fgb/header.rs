@@ -52,7 +52,7 @@ pub struct ColSpec {
     pub type_: ColumnType,
 }
 
-fn col_specs(features: &Vec<geojson::Feature>) -> Vec<ColSpec> {
+fn col_specs(_features: &Vec<geojson::Feature>) -> Vec<ColSpec> {
     vec![ColSpec {
         name: "properties".to_string(),
         type_: ColumnType::Json,
@@ -69,7 +69,7 @@ pub fn write<'a>(features: &Vec<geojson::Feature>) -> (FlatBufferBuilder, Vec<Co
     // let col_specs: Vec<ColSpec> = col_specs(features);
     let col_specs: Vec<ColSpec> = vec![];
     eprintln!("Columns for fgb file: {:?}", col_specs);
-    let cols_vec = columns::build(&mut bldr, &col_specs);
+    let _cols_vec = columns::build(&mut bldr, &col_specs);
 
     let mut hb = HeaderBuilder::new(&mut bldr);
     // hb.add_description(desc);

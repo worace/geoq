@@ -1,4 +1,4 @@
-use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, UOffsetT, Vector, WIPOffset};
+use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatgeobuf::Column;
 use flatgeobuf::ColumnBuilder;
 

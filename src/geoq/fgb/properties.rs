@@ -11,7 +11,7 @@ trait ToBytesWithIndex {
 }
 
 impl ToBytesWithIndex for bool {
-    fn _write_data(&self, idx: u16, vec: &mut Vec<u8>) -> () {
+    fn _write_data(&self, _idx: u16, vec: &mut Vec<u8>) -> () {
         if *self {
             vec.push(1);
         } else {

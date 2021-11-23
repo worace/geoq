@@ -1,10 +1,7 @@
 use std::convert::TryInto;
 
-use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, UOffsetT, Vector, WIPOffset};
-use flatgeobuf::{
-    Column, ColumnArgs, ColumnBuilder, ColumnType, Feature, FeatureArgs, FgbReader, GeometryType,
-    Header, HeaderBuilder,
-};
+use flatbuffers::{FlatBufferBuilder, WIPOffset};
+use flatgeobuf::GeometryType;
 
 // Parsing geometry into FlatGeoBuf representation:
 // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/geometry.ts#L83-L112
@@ -173,6 +170,36 @@ impl ParsedGeoJsonGeom for geojson::Value {
                 parts: None,
                 type_: GeometryType::Polygon,
             },
+            geojson::Value::MultiPoint(coords) => ParsedGeometry {
+                xy: coords.xy(),
+                z: coords.z(),
+                ends: coords.ends(),
+                parts: None,
+                type_: GeometryType::MultiPoint,
+            },
+            geojson::Value::MultiLineString(coords) => ParsedGeometry {
+                xy: coords.xy(),
+                z: coords.z(),
+                ends: coords.ends(),
+                parts: None,
+                type_: GeometryType::MultiLineString,
+            },
+            geojson::Value::MultiPolygon(coords) => {
+                let parts = coords.iter().map(|poly_vec| ParsedGeometry {
+                    xy: poly_vec.xy(),
+                    z: poly_vec.z(),
+                    ends: poly_vec.ends(),
+                    parts: None,
+                    type_: GeometryType::Polygon,
+                });
+                ParsedGeometry {
+                    xy: vec![],
+                    z: None,
+                    ends: None,
+                    parts: Some(parts.collect()),
+                    type_: GeometryType::MultiPolygon,
+                }
+            }
             _ => empty_parsed_geom(),
         }
     }

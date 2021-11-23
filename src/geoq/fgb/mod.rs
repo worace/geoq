@@ -70,6 +70,18 @@ mod tests {
     const POLYGON_HOLE: &str = r#"
       {"type":"Polygon","coordinates":[[[-120,60],[120,60],[120,-60],[-120,-60],[-120,60]],[[-60,30],[60,30],[60,-30],[-60,-30],[-60,30]]]}
     "#;
+    const MULTIPOINT: &str = r#"
+      {"type": "MultiPoint", "coordinates": [[10.0, 40.0], [40.0, 30.0], [20.0, 20.0], [30.0, 10.0]]}
+    "#;
+    const MULTILINESTRING: &str = r#"
+      {"type": "MultiLineString", "coordinates": [[[10.0, 10.0], [20.0, 20.0], [10.0, 40.0]], [[40.0, 40.0], [30.0, 30.0], [40.0, 20.0], [30.0, 10.0]]]}
+    "#;
+    const MULTIPOLYGON: &str = r#"
+      {"type": "MultiPolygon", "coordinates": [[[[30.0, 20.0], [45.0, 40.0], [10.0, 40.0], [30.0, 20.0]]], [[[15.0, 5.0], [40.0, 10.0], [10.0, 20.0], [5.0, 10.0], [15.0, 5.0]]]]}
+    "#;
+    const MULTIPOLYGON_WITH_HOLE: &str = r#"
+      {"type":"MultiPolygon","coordinates":[[[[40,40],[20,45],[45,30],[40,40]]],[[[20,35],[10,30],[10,10],[30,5],[45,20],[20,35]],[[30,20],[20,15],[20,25],[30,20]]]]}
+    "#;
 
     fn roundtrip(gj: &str) -> (Vec<geojson::Feature>, Vec<geojson::Feature>) {
         let input_features = fvec(gj);
@@ -106,6 +118,30 @@ mod tests {
     #[test]
     fn test_polygon_with_hole() {
         let (input, output) = roundtrip(POLYGON_HOLE);
+        assert_eq!(input, output);
+    }
+
+    #[test]
+    fn test_multipoint() {
+        let (input, output) = roundtrip(MULTIPOINT);
+        assert_eq!(input, output);
+    }
+
+    #[test]
+    fn test_multilinestring() {
+        let (input, output) = roundtrip(MULTILINESTRING);
+        assert_eq!(input, output);
+    }
+
+    #[test]
+    fn test_multipolygon() {
+        let (input, output) = roundtrip(MULTIPOLYGON);
+        assert_eq!(input, output);
+    }
+
+    #[test]
+    fn test_multipolygon_with_hole() {
+        let (input, output) = roundtrip(MULTIPOLYGON_WITH_HOLE);
         assert_eq!(input, output);
     }
 }
