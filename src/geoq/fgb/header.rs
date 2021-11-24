@@ -1,6 +1,6 @@
 use super::columns;
 use flatbuffers::FlatBufferBuilder;
-use flatgeobuf::{ColumnType, GeometryType, HeaderBuilder};
+use flatgeobuf::{ColumnType, GeometryType, HeaderArgs, HeaderBuilder};
 use std::collections::HashSet;
 use std::convert::TryInto;
 // table Header {
@@ -71,14 +71,16 @@ pub fn write<'a>(features: &Vec<geojson::Feature>) -> (FlatBufferBuilder, Vec<Co
     eprintln!("Columns for fgb file: {:?}", col_specs);
     let _cols_vec = columns::build(&mut bldr, &col_specs);
 
-    let mut hb = HeaderBuilder::new(&mut bldr);
-    // hb.add_description(desc);
-    hb.add_features_count(features.len().try_into().unwrap()); // not sure when this would fail...i guess 128bit system?
+    let args = HeaderArgs {
+        name: Some(name),
+        features_count: features.len().try_into().unwrap(), // not sure when this would fail...i guess 128bit system?
+        geometry_type: geometry_type(features),
+        index_node_size: 0,
+        ..Default::default()
+    };
+
     dbg!(geometry_type(features));
-    hb.add_geometry_type(geometry_type(features));
-    hb.add_index_node_size(0); // No Index? (following ts example)
-    hb.add_name(name);
-    let header = hb.finish();
+    let header = flatgeobuf::Header::create(&mut bldr, &args);
     bldr.finish_size_prefixed(header, None);
     (bldr, col_specs)
 }

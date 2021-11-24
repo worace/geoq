@@ -40,7 +40,6 @@ mod tests {
     use flatgeobuf::FgbReader;
     use flatgeobuf::*;
     use geojson::GeoJson;
-    use geozero::ToJson;
     use std::io::Cursor;
 
     fn fvec(gj: &str) -> Vec<geojson::Feature> {
@@ -52,7 +51,7 @@ mod tests {
                 bbox: None,
                 foreign_members: None,
                 id: None,
-                properties: None,
+                properties: Some(serde_json::Map::new()),
             }],
             GeoJson::Feature(f) => vec![f],
             GeoJson::FeatureCollection(fc) => fc.features,
@@ -85,8 +84,14 @@ mod tests {
     const GEOMETRY_COLLECTION: &str = r#"
       {"type":"GeometryCollection","geometries":[{"type":"Point","coordinates":[40,10]},{"type":"LineString","coordinates":[[-118,34],[-119,35]]}]}
     "#;
+    const POINT_PROPS: &str = r#"
+      {"type":"Feature","properties": {"name": "pizza"},"geometry": {"type": "Point", "coordinates": [-118, 34]}}
+    "#;
 
     fn roundtrip(gj: &str) -> (Vec<geojson::Feature>, Vec<geojson::Feature>) {
+        use geozero::ProcessToJson;
+        // use geozero::ToJson;
+
         let input_features = fvec(gj);
         let ser = write(&input_features);
         let mut buf = Cursor::new(ser);
@@ -94,9 +99,15 @@ mod tests {
         de.select_all().expect("read all features...");
         let mut output_features: Vec<geojson::Feature> = vec![];
 
-        while let Some(feature) = de.next().expect("read next feature") {
-            output_features.extend(fvec(&feature.to_json().expect("fgb feature to geojson")));
-        }
+        let deserialized_geojson: String = de.to_json().unwrap();
+        output_features = fvec(&deserialized_geojson);
+
+        // while let Some(feature) = de.next().expect("read next feature") {
+        //     let props = feature.properties();
+        //     dbg!(props.unwrap());
+        //     dbg!(&feature.to_json());
+        //     output_features.extend(fvec(&feature.to_json().expect("fgb feature to geojson")));
+        // }
         (input_features, output_features)
     }
 
@@ -147,6 +158,23 @@ mod tests {
         let (input, output) = roundtrip(MULTIPOLYGON_WITH_HOLE);
         assert_eq!(input, output);
     }
+
+    // #[test]
+    // fn test_samples() {
+    //     let points = std::fs::read_to_string("./samples/points.geojson").unwrap();
+    //     let (input, output) = roundtrip(&points);
+
+    //     for (i, o) in input.iter().zip(output.iter()) {
+    //         assert_eq!(i, o);
+    //     }
+    //     // assert_eq!(1, 2);
+    // }
+
+    // #[test]
+    // fn test_point_props() {
+    //     let (input, output) = roundtrip(POINT_PROPS);
+    //     assert_eq!(input, output);
+    // }
 
     // This seems to actually work, based on writing a file and comparing to the Node impl
     // But it is behaving strangely in this test environment using the geozero helpers

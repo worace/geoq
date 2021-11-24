@@ -21,8 +21,8 @@ impl ToBytesWithIndex for bool {
 }
 
 pub fn feature_props(f: &geojson::Feature, _specs: &Vec<ColSpec>) -> Option<Vec<u8>> {
-    return None;
     if f.properties.is_none() {
+        eprintln!("no props...");
         return None;
     }
     let props: &Map<String, serde_json::Value> = f.properties.as_ref().unwrap();
@@ -32,6 +32,9 @@ pub fn feature_props(f: &geojson::Feature, _specs: &Vec<ColSpec>) -> Option<Vec<
 
     // Placeholder -- Single prop "properties" as stringified JSON
     let json = serde_json::to_string(&props).expect("Failed to serialize feature JSON properties");
+    eprintln!("Feature props:");
+    dbg!(&json);
+
     let json_bytes = json.as_bytes();
     let json_length: u32 = json_bytes
         .len()
