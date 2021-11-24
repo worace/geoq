@@ -1,8 +1,10 @@
 use super::columns;
 use flatbuffers::FlatBufferBuilder;
 use flatgeobuf::{ColumnType, GeometryType, HeaderArgs, HeaderBuilder};
-use std::collections::HashSet;
+use serde_json::Value;
+use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
+use std::iter::Map;
 // table Header {
 //   name: string;                 // Dataset name
 //   envelope: [double];           // Bounds
@@ -52,11 +54,98 @@ pub struct ColSpec {
     pub type_: ColumnType,
 }
 
-fn col_specs(_features: &Vec<geojson::Feature>) -> Vec<ColSpec> {
-    vec![ColSpec {
-        name: "properties".to_string(),
-        type_: ColumnType::Json,
-    }]
+#[derive(PartialEq)]
+enum PropType {
+    Boolean,
+    String,
+    Long,
+    Double,
+    JsonVal,
+}
+// impl Eq for PropType {}
+
+fn schema(features: &Vec<geojson::Feature>) -> HashMap<String, PropType> {
+    let mut schema = HashMap::<String, PropType>::new();
+    for f in features {
+        if f.properties.is_none() {
+            continue;
+        }
+        for (k, v) in f.properties.as_ref().unwrap() {
+            let jsont_o = match v {
+                Value::Bool(_) => Some(PropType::Boolean),
+                Value::String(_) => Some(PropType::String),
+                Value::Number(num) => {
+                    if num.is_f64() {
+                        Some(PropType::Double)
+                    } else if num.is_i64() {
+                        Some(PropType::Long)
+                    } else {
+                        // Is this possible? I think is_f64 or is_i64 should cover all
+                        None
+                    }
+                }
+                Value::Array(_) => Some(PropType::JsonVal),
+                Value::Object(_) => Some(PropType::JsonVal),
+                Value::Null => None,
+            };
+            if jsont_o.is_none() {
+                continue;
+            }
+
+            let jsont = jsont_o.unwrap();
+            if !schema.contains_key(k) {
+                schema.insert(k.to_string(), jsont);
+            } else {
+                let current = schema.get(k).unwrap();
+                if *current == jsont {
+                    continue;
+                } else {
+                    // schemas diverge for a key.
+                    // 2 cases of widening:
+                    // number: from Long -> Double
+                    // any other (e.g. string vs array, string vs JSON):
+                    // -> JsonVal
+                    match jsont {
+                        PropType::Long => {
+                            if *current == PropType::Double {
+                                // leave as is to "widen" from Long to double
+                                continue;
+                            }
+                        }
+                        _ => {
+                            if *current == PropType::JsonVal {
+                                continue;
+                            } else {
+                                schema.insert(k.to_string(), PropType::JsonVal);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    schema
+}
+
+fn col_type(prop_type: &PropType) -> ColumnType {
+    match *prop_type {
+        PropType::Boolean => ColumnType::Bool,
+        PropType::Long => ColumnType::Long,
+        PropType::Double => ColumnType::Double,
+        PropType::String => ColumnType::String,
+        PropType::JsonVal => ColumnType::Json,
+    }
+}
+
+fn col_specs(features: &Vec<geojson::Feature>) -> Vec<ColSpec> {
+    let schema = schema(features);
+    schema
+        .iter()
+        .map(|(k, v)| ColSpec {
+            name: k.to_string(),
+            type_: col_type(v),
+        })
+        .collect()
 }
 
 pub fn write<'a>(features: &Vec<geojson::Feature>) -> (FlatBufferBuilder, Vec<ColSpec>) {
@@ -66,16 +155,20 @@ pub fn write<'a>(features: &Vec<geojson::Feature>) -> (FlatBufferBuilder, Vec<Co
     let name = bldr.create_string("L1");
     // let desc = bldr.create_string("");
 
-    // let col_specs: Vec<ColSpec> = col_specs(features);
-    let col_specs: Vec<ColSpec> = vec![];
+    let col_specs: Vec<ColSpec> = col_specs(features);
     eprintln!("Columns for fgb file: {:?}", col_specs);
-    let _cols_vec = columns::build(&mut bldr, &col_specs);
+    let cols_vec = if col_specs.is_empty() {
+        None
+    } else {
+        Some(columns::build(&mut bldr, &col_specs))
+    };
 
     let args = HeaderArgs {
         name: Some(name),
         features_count: features.len().try_into().unwrap(), // not sure when this would fail...i guess 128bit system?
         geometry_type: geometry_type(features),
         index_node_size: 0,
+        columns: cols_vec,
         ..Default::default()
     };
 

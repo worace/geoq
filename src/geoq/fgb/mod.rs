@@ -159,22 +159,21 @@ mod tests {
         assert_eq!(input, output);
     }
 
-    // #[test]
-    // fn test_samples() {
-    //     let points = std::fs::read_to_string("./samples/points.geojson").unwrap();
-    //     let (input, output) = roundtrip(&points);
+    #[test]
+    fn test_samples() {
+        let points = std::fs::read_to_string("./samples/points.geojson").unwrap();
+        let (input, output) = roundtrip(&points);
 
-    //     for (i, o) in input.iter().zip(output.iter()) {
-    //         assert_eq!(i, o);
-    //     }
-    //     // assert_eq!(1, 2);
-    // }
+        for (i, o) in input.iter().zip(output.iter()) {
+            assert_eq!(i, o);
+        }
+    }
 
-    // #[test]
-    // fn test_point_props() {
-    //     let (input, output) = roundtrip(POINT_PROPS);
-    //     assert_eq!(input, output);
-    // }
+    #[test]
+    fn test_point_props() {
+        let (input, output) = roundtrip(POINT_PROPS);
+        assert_eq!(input, output);
+    }
 
     // This seems to actually work, based on writing a file and comparing to the Node impl
     // But it is behaving strangely in this test environment using the geozero helpers
