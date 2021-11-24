@@ -43,6 +43,8 @@ mod tests {
     use std::io::Cursor;
 
     fn fvec(gj: &str) -> Vec<geojson::Feature> {
+        use serde_json::json;
+        let j: serde_json::Value = gj.parse().expect("couldn't parse json");
         let feat: GeoJson = gj.parse().expect("invalid geojson");
 
         match feat {
@@ -86,6 +88,13 @@ mod tests {
     "#;
     const POINT_PROPS: &str = r#"
       {"type":"Feature","properties": {"name": "pizza"},"geometry": {"type": "Point", "coordinates": [-118, 34]}}
+    "#;
+
+    const MULTI_SCHEMA: &str = r#"
+      {"type": "FeatureCollection", "features":[
+        {"type":"Feature","properties": {"name": "pizza", "age": 123},"geometry": {"type": "Point", "coordinates": [-118, 34]}},
+        {"type":"Feature","properties": {"name": "pizza", "age": 456},"geometry": {"type": "Point", "coordinates": [-118, 34]}}
+       ]}
     "#;
 
     fn roundtrip(gj: &str) -> (Vec<geojson::Feature>, Vec<geojson::Feature>) {
@@ -172,6 +181,12 @@ mod tests {
     #[test]
     fn test_point_props() {
         let (input, output) = roundtrip(POINT_PROPS);
+        assert_eq!(input, output);
+    }
+
+    #[test]
+    fn test_multi_schema() {
+        let (input, output) = roundtrip(MULTI_SCHEMA);
         assert_eq!(input, output);
     }
 
