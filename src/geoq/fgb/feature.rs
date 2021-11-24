@@ -16,7 +16,9 @@ pub fn write<'a>(col_specs: &Vec<ColSpec>, f: &geojson::Feature) -> FlatBufferBu
     // flatgeobuf::GeometryOffset
 
     // Q: should this repeat all columns for the schema, or only the ones that apply to this feature?
-    let cols_vec = columns::build(&mut bldr, col_specs);
+    // Currently _not_ repeating this since we are assuming consistent schema
+    // across all features in the file.
+    // let cols_vec = columns::build(&mut bldr, col_specs);
     dbg!(col_specs);
     let props = properties::feature_props(f, col_specs).map(|bytes| bldr.create_vector(&bytes[..]));
 
@@ -27,7 +29,7 @@ pub fn write<'a>(col_specs: &Vec<ColSpec>, f: &geojson::Feature) -> FlatBufferBu
     let args = flatgeobuf::FeatureArgs {
         columns: None,
         geometry: Some(geom),
-        properties: None,
+        properties: props,
     };
     let offset = flatgeobuf::Feature::create(&mut bldr, &args);
 

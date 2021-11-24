@@ -98,10 +98,10 @@ pub fn feature_props(f: &geojson::Feature, specs: &Vec<ColSpec>) -> Option<Vec<u
                 bytes.extend_from_slice(&json_str.as_bytes());
             }
             other => {
-                panic!(format!(
+                panic!(
                     "Feature property serialization received unexpected column type: {:?}.",
                     other
-                ));
+                );
             }
         }
         idx += 1;
