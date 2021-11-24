@@ -78,10 +78,8 @@ fn wkt_geom(v: &Map<String, Value>) -> Option<(Geom, Vec<&'static str>)> {
             if wkt.items.is_empty() {
                 None
             } else {
-                // TODO what to do with multiple wkt geoms
-                wkt::conversion::try_into_geometry(&wkt.items[0])
-                    .ok()
-                    .map(|geom| (geom, vec![k]))
+                let geom: Option<Geom> = wkt.try_into().ok();
+                geom.map(|geom| (geom, vec![k]))
             }
         })
 }

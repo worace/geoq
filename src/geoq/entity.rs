@@ -58,7 +58,7 @@ fn wkt_entities(raw: &String) -> Result<Vec<Entity>, Error> {
         Ok(wkts) => {
             for wkt_geom in wkts.items {
                 let wkt_raw = wkt_geom.to_string();
-                let geom = wkt::conversion::try_into_geometry(&wkt_geom).unwrap();
+                let geom: Geometry<f64> = wkt_geom.try_into().unwrap();
                 entities.push(Entity::Wkt(wkt_raw, geom))
             }
         }
