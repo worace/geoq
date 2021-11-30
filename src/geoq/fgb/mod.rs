@@ -4,6 +4,26 @@ pub(crate) mod geometry;
 pub(crate) mod header;
 pub(crate) mod properties;
 
+// TODO
+// * [x] Add envelope generation and record in header field
+// * [x] Add hilbert sort
+// * [ ] Add packed rtree index
+// * [ ] Support streaming write (2-pass) - Is this possible with hilbert sort?
+//       - needs external merge sort with on-disk buffers?
+// * [ ] Implement paged slippy-map UI for TS
+
+// Hilbert Sort / Index
+// 1. Calc bboxes for all nodes (NodeItem:)
+//   min_x,min_y,max_x,max_y -> (Feature, BBox)
+// 2. Get dataset (ds) "extent" -- total bbox of dataset
+//   (fold 'expand' over feature bboxes)
+// 3. sort by hilbert bboxes
+// sort_by { |feat, bbox| hilbert_bbox(bbox, ds_extent) } (hilbert_bbox(feat_bbox, max_val, ds_bbox) -> u32)
+// 4. Write features to buffer...
+//   - write feature
+//   - record byte offset
+//   - use (bbox, byte_offset) pairs for building index
+
 // Binary Layout
 // MB: Magic bytes (0x6667620366676201)
 // H: Header (variable size flatbuffer) (written as its own standalone flatbuffer)
