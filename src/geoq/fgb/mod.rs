@@ -25,6 +25,32 @@ pub(crate) mod properties;
 //   - record byte offset
 //   - use (bbox, byte_offset) pairs for building index
 
+// 2-pass idea:
+// pass 1:
+//   - calc acceptable buffer size (% of system memory? or from CLI arg?)
+//   - start a temp dir
+//   - stream features:
+//     - per feature:
+//       - fold header schema
+//       - fold header geom type
+//       - populate extent
+//     - When buffer size reached, stop streaming features
+//     - sort this buffer
+//     - write to part_n tempfile
+//  - repeat for all features
+
+// pass 2:
+// - write header
+// - iterate merged feature stream from partfiles...
+// - write each feature
+// - record offsets + hilbert #' to build packed r tree
+//   TODO: Research this more:
+//   - can R-Tree be built before buffers are written (I think no b/c it requires literal byte offsets?)
+//   - can R-Tree fit fully into memory? -- this is probably a requirement
+//     so... stream features (to standalone file), recording offsets + bboxes as you go
+//     take offsets and use to build RTree
+//   - Write new file: Header + Tree + [concat from standalone features file]
+
 // Binary Layout
 // MB: Magic bytes (0x6667620366676201)
 // H: Header (variable size flatbuffer) (written as its own standalone flatbuffer)
