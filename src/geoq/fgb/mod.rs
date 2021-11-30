@@ -2,6 +2,7 @@ pub(crate) mod columns;
 pub(crate) mod feature;
 pub(crate) mod geometry;
 pub(crate) mod header;
+pub(crate) mod hilbert;
 pub(crate) mod properties;
 
 // TODO
@@ -29,14 +30,16 @@ pub(crate) mod properties;
 // H: Header (variable size flatbuffer) (written as its own standalone flatbuffer)
 // I (optional): Static packed Hilbert R-tree index (static size custom buffer)
 // DATA: Features (each written as its own standalone flatbuffer?)
-pub fn write(features: &Vec<geojson::Feature>) -> Vec<u8> {
+pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
     // collect features into vector
     // read features to get header schema (Columns "table")
     // generate + write header
     // iterate + convert + write each feature
     let mut buffer: Vec<u8> = vec![0x66, 0x67, 0x62, 0x03, 0x66, 0x67, 0x62, 0x00];
 
-    let (header_builder, col_specs) = header::write(features);
+    let (sorted, bounds) = hilbert::sort_with_extent(features);
+
+    let (header_builder, col_specs) = header::write(&sorted, &bounds);
     buffer.extend(header_builder.finished_data());
     eprintln!("header data:");
     eprintln!("{:02X?}", header_builder.finished_data());
@@ -45,7 +48,7 @@ pub fn write(features: &Vec<geojson::Feature>) -> Vec<u8> {
         header_builder.finished_data().len()
     );
 
-    for f in features {
+    for f in &sorted {
         // eprintln!("writing feature");
         // dbg!(&f);
         let builder = feature::write(&col_specs, &f);
@@ -122,7 +125,7 @@ mod tests {
         // use geozero::ToJson;
 
         let input_features = fvec(gj);
-        let ser = write(&input_features);
+        let ser = write(input_features.clone());
         let mut buf = Cursor::new(ser);
         let mut de = FgbReader::open(&mut buf).expect("Round trip...");
         de.select_all().expect("read all features...");
@@ -208,6 +211,23 @@ mod tests {
     fn test_multi_schema() {
         let (input, output) = roundtrip(MULTI_SCHEMA);
         assert_eq!(input, output);
+    }
+
+    #[test]
+    fn test_header() {
+        let input_features = fvec(POINT_PROPS);
+        let ser = write(input_features.clone());
+        let mut buf = Cursor::new(ser);
+        let res = FgbReader::open(&mut buf).expect("Round trip...");
+
+        let bounds: Vec<f64> = res
+            .header()
+            .envelope()
+            .expect("Header should have an envelope populated")
+            .iter()
+            .collect();
+        dbg!(&bounds);
+        assert_eq!(bounds, vec![-118.0, 34.0, -118.0, 34.0]);
     }
 
     // This seems to actually work, based on writing a file and comparing to the Node impl

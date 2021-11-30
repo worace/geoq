@@ -1,4 +1,5 @@
 use super::columns;
+use super::hilbert::BBox;
 use flatbuffers::FlatBufferBuilder;
 use flatgeobuf::{ColumnType, GeometryType, HeaderArgs, HeaderBuilder};
 use serde_json::Value;
@@ -148,7 +149,10 @@ fn col_specs(features: &Vec<geojson::Feature>) -> Vec<ColSpec> {
         .collect()
 }
 
-pub fn write<'a>(features: &Vec<geojson::Feature>) -> (FlatBufferBuilder, Vec<ColSpec>) {
+pub fn write<'a>(
+    features: &Vec<geojson::Feature>,
+    bounds: &BBox,
+) -> (FlatBufferBuilder<'a>, Vec<ColSpec>) {
     let mut bldr = FlatBufferBuilder::new();
     // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/fbs/header.fbs
     // https://github.com/flatgeobuf/flatgeobuf/blob/master/src/ts/generic/featurecollection.ts#L158-L182
@@ -163,12 +167,15 @@ pub fn write<'a>(features: &Vec<geojson::Feature>) -> (FlatBufferBuilder, Vec<Co
         Some(columns::build(&mut bldr, &col_specs))
     };
 
+    let bounds_vec = bldr.create_vector(&bounds.to_vec());
+
     let args = HeaderArgs {
         name: Some(name),
         features_count: features.len().try_into().unwrap(), // not sure when this would fail...i guess 128bit system?
         geometry_type: geometry_type(features),
         index_node_size: 0,
         columns: cols_vec,
+        envelope: Some(bounds_vec),
         ..Default::default()
     };
 

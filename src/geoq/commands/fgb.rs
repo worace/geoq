@@ -24,7 +24,8 @@ fn stdin_features() -> Result<Vec<geojson::Feature>, Error> {
 }
 
 fn write(path: &str) -> Result<(), Error> {
-    let buffer = fgb::write(&stdin_features()?);
+    let feats = stdin_features()?;
+    let buffer = fgb::write(feats);
     let res = std::fs::write(Path::new(path), buffer);
     match res {
         Ok(_) => Ok(()),
