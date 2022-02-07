@@ -9,6 +9,18 @@ pub struct BBox {
     pub max_y: f64,
 }
 
+#[derive(Debug)]
+pub struct BoundedFeature {
+    pub feature: Feature,
+    pub bbox: BBox,
+}
+
+#[derive(Debug)]
+pub struct IndexNode {
+    pub offset: usize,
+    pub bbox: BBox,
+}
+
 impl BBox {
     pub fn new(x: f64, y: f64) -> BBox {
         BBox {
@@ -156,26 +168,31 @@ fn coord(geom: &Value) -> (f64, f64) {
 
 const HILBERT_MAX: f64 = ((1 << 16u32) - 1) as f64;
 
-pub fn sort_with_extent(features: Vec<geojson::Feature>) -> (Vec<geojson::Feature>, BBox) {
+pub fn sort_with_extent(features: Vec<geojson::Feature>) -> (Vec<BoundedFeature>, BBox) {
     let (start_x, start_y) = features
         .first()
         .map(|f| feat_coord(f))
         .unwrap_or((0.0, 0.0));
     let mut extent = BBox::new(start_x, start_y);
-    let mut bounded_feats: Vec<(Feature, BBox)> = features
+    let mut bounded_feats: Vec<BoundedFeature> = features
         .into_iter()
         .map(|f| {
             let bb = BBox::for_feature(&f);
             extent.expand(&bb);
-            (f, bb)
+            BoundedFeature {
+                feature: f,
+                bbox: bb,
+            }
         })
         .collect();
-    bounded_feats.sort_by(|(_, bb_a), (_, bb_b)| {
-        bb_a.hilbert_bbox(&extent)
-            .partial_cmp(&bb_b.hilbert_bbox(&extent))
+    bounded_feats.sort_by(|a, b| {
+        a.bbox
+            .hilbert_bbox(&extent)
+            .partial_cmp(&b.bbox.hilbert_bbox(&extent))
             .unwrap_or(std::cmp::Ordering::Equal)
     });
-    (bounded_feats.into_iter().map(|(f, _)| f).collect(), extent)
+
+    (bounded_feats, extent)
 }
 
 // Based on public domain code at https://github.com/rawrunprotected/hilbert_curves

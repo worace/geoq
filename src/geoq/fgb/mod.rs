@@ -1,3 +1,5 @@
+use crate::geoq::fgb::hilbert::IndexNode;
+
 pub(crate) mod columns;
 pub(crate) mod feature;
 pub(crate) mod geometry;
@@ -14,42 +16,17 @@ pub(crate) mod properties;
 // * [ ] Implement paged slippy-map UI for TS
 
 // Hilbert Sort / Index
-// 1. Calc bboxes for all nodes (NodeItem:)
-//   min_x,min_y,max_x,max_y -> (Feature, BBox)
-// 2. Get dataset (ds) "extent" -- total bbox of dataset
-//   (fold 'expand' over feature bboxes)
-// 3. sort by hilbert bboxes
-// sort_by { |feat, bbox| hilbert_bbox(bbox, ds_extent) } (hilbert_bbox(feat_bbox, max_val, ds_bbox) -> u32)
+// 1. [X] Calc bboxes for all nodes (NodeItem:)
+//        min_x,min_y,max_x,max_y -> (Feature, BBox)
+// 2. [X] Get dataset (ds) "extent" -- total bbox of dataset
+//        (fold 'expand' over feature bboxes)
+// 3. [X]  sort by hilbert bboxes
+//         sort_by { |feat, bbox| hilbert_bbox(bbox, ds_extent) } (hilbert_bbox(feat_bbox, max_val, ds_bbox) -> u32)
 // 4. Write features to buffer...
 //   - write feature
 //   - record byte offset
 //   - use (bbox, byte_offset) pairs for building index
-
-// 2-pass idea:
-// pass 1:
-//   - calc acceptable buffer size (% of system memory? or from CLI arg?)
-//   - start a temp dir
-//   - stream features:
-//     - per feature:
-//       - fold header schema
-//       - fold header geom type
-//       - populate extent
-//     - When buffer size reached, stop streaming features
-//     - sort this buffer
-//     - write to part_n tempfile
-//  - repeat for all features
-
-// pass 2:
-// - write header
-// - iterate merged feature stream from partfiles...
-// - write each feature
-// - record offsets + hilbert #' to build packed r tree
-//   TODO: Research this more:
-//   - can R-Tree be built before buffers are written (I think no b/c it requires literal byte offsets?)
-//   - can R-Tree fit fully into memory? -- this is probably a requirement
-//     so... stream features (to standalone file), recording offsets + bboxes as you go
-//     take offsets and use to build RTree
-//   - Write new file: Header + Tree + [concat from standalone features file]
+// 5.
 
 // Binary Layout
 // MB: Magic bytes (0x6667620366676201)
@@ -62,10 +39,11 @@ pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
     // generate + write header
     // iterate + convert + write each feature
     let mut buffer: Vec<u8> = vec![0x66, 0x67, 0x62, 0x03, 0x66, 0x67, 0x62, 0x00];
+    let mut features_temp_buffer: Vec<u8> = vec![];
 
-    let (sorted, bounds) = hilbert::sort_with_extent(features);
+    let (bounded_sorted_features, bounds) = hilbert::sort_with_extent(features);
 
-    let (header_builder, col_specs) = header::write(&sorted, &bounds);
+    let (header_builder, col_specs) = header::write(&bounded_sorted_features, &bounds);
     buffer.extend(header_builder.finished_data());
     eprintln!("header data:");
     eprintln!("{:02X?}", header_builder.finished_data());
@@ -74,12 +52,32 @@ pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
         header_builder.finished_data().len()
     );
 
-    for f in &sorted {
+    // Writing:
+    // Buffer A (Main, could be file):
+    // Buffer B (temp features, tmpfile?)
+    //   1. Sort features, calc extend + header
+    //   2. Write header to A
+    //   3. Write features to Buffer A, record byte offsets + BBoxes
+    //   4. Build RTREE using byte offsets + BBoxes
+    //   5. Write RTree bytes to A
+    //   6. Copy features tempfile data to A
+
+    // TODO: write features to tempfile, so it can be copied to end of buffer
+    let mut offsets_for_index: Vec<IndexNode> = vec![];
+    for f in bounded_sorted_features {
         // eprintln!("writing feature");
         // dbg!(&f);
-        let builder = feature::write(&col_specs, &f);
-        buffer.extend(builder.finished_data());
+        // TODO: Must record feature byte offset here
+        // push to offsets_for_index ^
+        let feature_offset = features_temp_buffer.len();
+        offsets_for_index.push(IndexNode {
+            offset: feature_offset,
+            bbox: f.bbox,
+        });
+        let builder = feature::write(&col_specs, &f.feature);
+        features_temp_buffer.extend(builder.finished_data());
     }
+    buffer.extend(features_temp_buffer);
     buffer
 }
 
@@ -217,15 +215,15 @@ mod tests {
         assert_eq!(input, output);
     }
 
-    #[test]
-    fn test_samples() {
-        let points = std::fs::read_to_string("./samples/points.geojson").unwrap();
-        let (input, output) = roundtrip(&points);
+    // #[test]
+    // fn test_samples() {
+    //     let points = std::fs::read_to_string("./samples/points.geojson").unwrap();
+    //     let (input, output) = roundtrip(&points);
 
-        for (i, o) in input.iter().zip(output.iter()) {
-            assert_eq!(i, o);
-        }
-    }
+    //     for (i, o) in input.iter().zip(output.iter()) {
+    //         assert_eq!(i, o);
+    //     }
+    // }
 
     #[test]
     fn test_point_props() {

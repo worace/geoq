@@ -1,5 +1,6 @@
 use super::columns;
 use super::hilbert::BBox;
+use super::hilbert::BoundedFeature;
 use flatbuffers::FlatBufferBuilder;
 use flatgeobuf::{ColumnType, GeometryType, HeaderArgs, HeaderBuilder};
 use serde_json::Value;
@@ -22,10 +23,11 @@ use std::iter::Map;
 //   description: string;          // Dataset description (intended for free form long text) //   metadata: string;             // Dataset metadata (intended to be application specific and suggested to be structured fx. JSON)
 // }
 
-fn geometry_type(features: &Vec<geojson::Feature>) -> GeometryType {
+fn geometry_type(features: &Vec<BoundedFeature>) -> GeometryType {
     let mut types = HashSet::new();
     let mut last_gtype = GeometryType::Unknown;
-    for f in features {
+    for bf in features {
+        let f = &bf.feature;
         // let val = f.geometry.map(|g| g.value);
         if let Some(geom) = &f.geometry {
             let gtype = match geom.value {
@@ -65,9 +67,10 @@ enum PropType {
 }
 // impl Eq for PropType {}
 
-fn schema(features: &Vec<geojson::Feature>) -> HashMap<String, PropType> {
+fn schema(features: &Vec<BoundedFeature>) -> HashMap<String, PropType> {
     let mut schema = HashMap::<String, PropType>::new();
-    for f in features {
+    for bf in features {
+        let f = &bf.feature;
         if f.properties.is_none() {
             continue;
         }
@@ -138,7 +141,7 @@ fn col_type(prop_type: &PropType) -> ColumnType {
     }
 }
 
-fn col_specs(features: &Vec<geojson::Feature>) -> Vec<ColSpec> {
+fn col_specs(features: &Vec<BoundedFeature>) -> Vec<ColSpec> {
     let schema = schema(features);
     schema
         .iter()
@@ -150,7 +153,7 @@ fn col_specs(features: &Vec<geojson::Feature>) -> Vec<ColSpec> {
 }
 
 pub fn write<'a>(
-    features: &Vec<geojson::Feature>,
+    features: &Vec<BoundedFeature>,
     bounds: &BBox,
 ) -> (FlatBufferBuilder<'a>, Vec<ColSpec>) {
     let mut bldr = FlatBufferBuilder::new();
