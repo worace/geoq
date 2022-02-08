@@ -10,7 +10,7 @@ pub const NODE_STORAGE_BYTES: usize = 40;
 
 pub fn build_flattened_tree(
     hilbert_sorted_features: Vec<IndexNode>,
-    extent: &BBox,
+    _extent: &BBox,
 ) -> (RTreeIndexMeta, Vec<IndexNode>) {
     // 1. determine level bounds based on num features
     // 2. allocate buffer for nodes
