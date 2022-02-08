@@ -36,12 +36,8 @@ pub fn build_flattened_tree(
     // of the flattened index buffer. The index nodes here contain byte offsets
     // into the features section of the tree, and the node positions are index offsets
     // based on the calculated level hierarchy layout
-    eprintln!("iter bottom tree level");
+    eprintln!("iter bottom tree level - {:?}", bottom);
     for (feature_index, node_index) in bottom.clone().enumerate() {
-        eprintln!(
-            "feature index: {:?} node_index: {:?}",
-            feature_index, node_index
-        );
         flattened_tree[node_index] = hilbert_sorted_features[feature_index].clone();
     }
 
@@ -55,7 +51,10 @@ pub fn build_flattened_tree(
     // L2: 13..192
     for (level_index, level_bounds) in tree_structure.level_bounds.iter().enumerate().rev().skip(1)
     {
-        eprintln!("iterate non-leaf level: {:?}", level_index);
+        eprintln!(
+            "iterate non-leaf level: {:?} - {:?}",
+            level_index, level_bounds
+        );
         let prev_level = tree_structure.level_bounds[level_index + 1].clone();
 
         for node_index in level_bounds.clone() {
@@ -67,14 +66,14 @@ pub fn build_flattened_tree(
                 if prev_idx > prev_level.len() {
                     break;
                 }
-                eprintln!(
-                    "populate data from index {:?} in prev level into index {:?} in current",
-                    prev_idx, node_index,
-                );
-                eprintln!(
-                    "expand current bbox: {:?} from {:?}",
-                    bbox, &flattened_tree[prev_idx].bbox
-                );
+                // eprintln!(
+                //     "populate data from index {:?} in prev level into index {:?} in current",
+                //     prev_idx, node_index,
+                // );
+                // eprintln!(
+                //     "expand current bbox: {:?} from {:?}",
+                //     bbox, &flattened_tree[prev_idx].bbox
+                // );
                 if let Some(ref mut bb) = bbox {
                     bb.expand(&flattened_tree[prev_idx].bbox)
                 } else {
@@ -82,9 +81,10 @@ pub fn build_flattened_tree(
                 }
             }
 
+            // Offset for non-leaf index nodes whould be the index where its set of N (node_size) nodes starts
             let node = IndexNode {
                 bbox: bbox.unwrap_or(BBox::empty()),
-                offset: 0,
+                offset: prev_level_slice_start,
             };
             flattened_tree[node_index] = node;
         }
@@ -97,6 +97,10 @@ pub fn serialize(flattened_tree: Vec<IndexNode>) -> Vec<u8> {
     let size = flattened_tree.len() * NODE_STORAGE_BYTES;
     let mut buf: Vec<u8> = Vec::with_capacity(size);
     for node in flattened_tree {
+        eprintln!(
+            "(Geoq) Write Node {:?}, {:?}, {:?}, {:?}, {:?}",
+            node.bbox.min_x, node.bbox.min_y, node.bbox.max_x, node.bbox.max_y, node.offset,
+        );
         buf.extend(node.bbox.min_x.to_le_bytes());
         buf.extend(node.bbox.min_y.to_le_bytes());
         buf.extend(node.bbox.max_x.to_le_bytes());

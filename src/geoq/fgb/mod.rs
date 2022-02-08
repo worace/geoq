@@ -11,7 +11,7 @@ pub(crate) mod properties;
 // TODO
 // * [x] Add envelope generation and record in header field
 // * [x] Add hilbert sort
-// * [ ] Add packed rtree index
+// * [x] Add packed rtree index
 // * [ ] Support streaming write (2-pass) - Is this possible with hilbert sort?
 //       - needs external merge sort with on-disk buffers?
 // * [ ] Implement paged slippy-map UI for TS
@@ -87,11 +87,11 @@ pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
 
 #[cfg(test)]
 mod tests {
-    use crate::geoq::fgb::write;
+    use crate::geoq::{fgb::write, reader::Reader};
     use flatgeobuf::FgbReader;
     use flatgeobuf::*;
     use geojson::GeoJson;
-    use std::io::Cursor;
+    use std::io::{Cursor, Seek};
 
     fn fvec(gj: &str) -> Vec<geojson::Feature> {
         use serde_json::json;
@@ -157,8 +157,8 @@ mod tests {
         let mut buf = Cursor::new(ser);
         let mut de = FgbReader::open(&mut buf).expect("Round trip...");
         de.select_all().expect("read all features...");
-        let mut output_features: Vec<geojson::Feature> = vec![];
 
+        let mut output_features: Vec<geojson::Feature> = vec![];
         let deserialized_geojson: String = de.to_json().unwrap();
         output_features = fvec(&deserialized_geojson);
 
@@ -267,4 +267,48 @@ mod tests {
     //     let (input, output) = roundtrip(GEOMETRY_COLLECTION);
     //     assert_eq!(input, output);
     // }
+
+    use std::fs::File;
+    use std::io::BufReader;
+    use std::io::Write;
+    use tempfile::tempfile;
+    use tempfile::NamedTempFile;
+    #[test]
+    fn test_countries_dataset() {
+        use geozero::ProcessToJson;
+
+        let input_file = File::open("./tests/resources/countries.geojson").unwrap();
+        let mut input_buffer = BufReader::new(input_file);
+
+        let mut features: Vec<geojson::Feature> = vec![];
+        let reader = Reader::new(&mut input_buffer);
+
+        for e_res in reader {
+            if let Ok(entity) = e_res {
+                features.push(entity.geojson_feature())
+            }
+        }
+        assert_eq!(179, features.len());
+
+        let buffer = write(features);
+        // let mut output_file = NamedTempFile::new().unwrap();
+        let mut output_file = File::create("/tmp/geoq_countries.fgb").unwrap();
+        dbg!(&output_file);
+        output_file.write(&buffer).unwrap();
+
+        // let mut comp_file = output_file.reopen().unwrap();
+        let mut comp_file = File::open("/tmp/geoq_countries.fgb").unwrap();
+        let mut ref_impl = FgbReader::open(&mut comp_file).unwrap();
+
+        ref_impl.select_bbox(8.8, 47.2, 9.5, 55.3).unwrap();
+
+        let mut output_features: Vec<geojson::Feature> = vec![];
+        let deserialized_geojson: String = ref_impl.to_json().unwrap();
+        output_features = fvec(&deserialized_geojson);
+
+        assert_eq!(output_features.len(), 6);
+        dbg!(output_features);
+
+        // read using geozero
+    }
 }
