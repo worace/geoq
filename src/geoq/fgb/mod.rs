@@ -42,9 +42,9 @@ pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
     let mut buffer: Vec<u8> = vec![0x66, 0x67, 0x62, 0x03, 0x66, 0x67, 0x62, 0x00];
     let mut features_temp_buffer: Vec<u8> = vec![];
 
-    let (bounded_sorted_features, bounds) = hilbert::sort_with_extent(features);
+    let (bounded_sorted_features, dataset_bounds) = hilbert::sort_with_extent(features);
 
-    let (header_builder, col_specs) = header::write(&bounded_sorted_features, &bounds);
+    let (header_builder, col_specs) = header::write(&bounded_sorted_features, &dataset_bounds);
     buffer.extend(header_builder.finished_data());
     eprintln!("header data:");
     eprintln!("{:02X?}", header_builder.finished_data());
@@ -78,6 +78,7 @@ pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
         let builder = feature::write(&col_specs, &f.feature);
         features_temp_buffer.extend(builder.finished_data());
     }
+    let index_buffer = index::build_flattened_tree(offsets_for_index, &dataset_bounds);
     buffer.extend(features_temp_buffer);
     buffer
 }

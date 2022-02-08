@@ -1,7 +1,7 @@
 use geo::coords_iter;
 use geojson::{Feature, Value};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BBox {
     pub min_x: f64,
     pub min_y: f64,
@@ -15,7 +15,7 @@ pub struct BoundedFeature {
     pub bbox: BBox,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IndexNode {
     pub offset: usize,
     pub bbox: BBox,
@@ -28,6 +28,15 @@ impl BBox {
             min_y: y,
             max_x: x,
             max_y: y,
+        }
+    }
+
+    pub fn empty() -> BBox {
+        BBox {
+            min_x: 0.0,
+            min_y: 0.0,
+            max_x: 0.0,
+            max_y: 0.0,
         }
     }
 

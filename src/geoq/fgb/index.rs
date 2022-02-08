@@ -2,15 +2,14 @@ use std::ops::Range;
 
 use super::hilbert::BBox;
 use super::hilbert::BoundedFeature;
+use super::hilbert::IndexNode;
 
 pub const NODE_SIZE: u16 = 16;
 
-pub struct IndexNode {
-    bbox: BBox,
-    featureByteOffset: usize,
-}
-
-fn write_index(hilbert_sorted_features: Vec<BoundedFeature>, extent: BBox) -> Vec<u8> {
+pub fn build_flattened_tree(
+    hilbert_sorted_features: Vec<IndexNode>,
+    extent: &BBox,
+) -> (RTreeIndexMeta, Vec<IndexNode>) {
     // 1. determine level bounds based on num features
     // 2. allocate buffer for nodes
     // 3. fill in intermediate nodes
@@ -18,14 +17,81 @@ fn write_index(hilbert_sorted_features: Vec<BoundedFeature>, extent: BBox) -> Ve
     //    - populate bboxes (???)
     // 4. fill in leaf nodes
     let tree_structure = calculate_level_bounds(hilbert_sorted_features.len());
-    let mut index_nodes: Vec<IndexNode> = Vec::with_capacity(tree_structure.num_nodes);
-    // Q: how to set the bbox bounds for the intermediate nodes?
-    //  - build from bottom up?
-    //  - leaf node 0 - 15 to LN-1 node 0
-    //  - leaf node 16 - 32 to LN-2 node 1
-    vec![]
+    let placeholder_node = IndexNode {
+        bbox: BBox::empty(),
+        offset: 0,
+    };
+    let mut flattened_tree: Vec<IndexNode> = vec![placeholder_node; tree_structure.num_nodes];
+    eprintln!("Allocated len for index nodes: {:?}", flattened_tree.len());
+
+    eprintln!("tree: {:?}", tree_structure);
+    let bottom = tree_structure
+        .level_bounds
+        .last()
+        .expect("Expecting at least 2 levels in tree");
+
+    // Populate the bottom tier of the tree which makes up the last section
+    // of the flattened index buffer. The index nodes here contain byte offsets
+    // into the features section of the tree, and the node positions are index offsets
+    // based on the calculated level hierarchy layout
+    eprintln!("iter bottom tree level");
+    for (feature_index, node_index) in bottom.clone().enumerate() {
+        eprintln!(
+            "feature index: {:?} node_index: {:?}",
+            feature_index, node_index
+        );
+        flattened_tree[node_index] = hilbert_sorted_features[feature_index].clone();
+    }
+
+    // iterate non-leaf levels from bottom up
+    // iterate this level's nodes, for each one,
+    // consider the sub-slice of the previous-level's nodes which are covered by it
+    // (0..NODE_SIZE)
+    // and expand this nodes bbox by that ones
+    // L0: 0..1
+    // L1: 1..13
+    // L2: 13..192
+    for (level_index, level_bounds) in tree_structure.level_bounds.iter().enumerate().rev().skip(1)
+    {
+        eprintln!("iterate non-leaf level: {:?}", level_index);
+        let prev_level = tree_structure.level_bounds[level_index + 1].clone();
+
+        for node_index in level_bounds.clone() {
+            let mut bbox: Option<BBox> = None;
+            let prev_level_slice_start = prev_level.start + node_index * NODE_SIZE as usize;
+            let prev_level_slice_end = prev_level.start + (node_index + 1) * NODE_SIZE as usize;
+
+            for prev_idx in prev_level_slice_start..prev_level_slice_end {
+                if prev_idx > prev_level.len() {
+                    break;
+                }
+                eprintln!(
+                    "populate data from index {:?} in prev level into index {:?} in current",
+                    prev_idx, node_index,
+                );
+                eprintln!(
+                    "expand current bbox: {:?} from {:?}",
+                    bbox, &flattened_tree[prev_idx].bbox
+                );
+                if let Some(ref mut bb) = bbox {
+                    bb.expand(&flattened_tree[prev_idx].bbox)
+                } else {
+                    bbox = Some(flattened_tree[prev_idx].bbox.clone());
+                }
+            }
+
+            let node = IndexNode {
+                bbox: bbox.unwrap_or(BBox::empty()),
+                offset: 0,
+            };
+            flattened_tree[node_index] = node;
+        }
+    }
+
+    (tree_structure, flattened_tree)
 }
 
+#[derive(Debug)]
 pub struct RTreeIndexMeta {
     num_features: usize,
     num_nodes: usize,
@@ -68,10 +134,10 @@ fn calculate_level_bounds(num_features: usize) -> RTreeIndexMeta {
         nodes_so_far = end;
     }
     RTreeIndexMeta {
-        num_features: num_features,
+        num_features,
         num_nodes: nodes_per_level.iter().sum(),
         num_nodes_per_level: nodes_per_level,
-        level_bounds: level_bounds,
+        level_bounds,
     }
 }
 
@@ -97,4 +163,37 @@ fn test_level_bounds() {
         c.level_bounds,
         vec![0..1, 1..3, 3..28, 28..419, 419..6669, 6669..106669]
     );
+}
+
+#[test]
+fn test_building_index() {
+    let nodes = vec![
+        IndexNode {
+            bbox: BBox {
+                min_x: 11.0,
+                min_y: -29.0,
+                max_x: 25.0,
+                max_y: -16.0,
+            },
+            offset: 0,
+        },
+        IndexNode {
+            bbox: BBox {
+                min_x: 16.0,
+                min_y: -34.0,
+                max_x: 32.0,
+                max_y: -22.0,
+            },
+            offset: 100,
+        },
+    ];
+    let extent = BBox {
+        min_x: 11.0,
+        min_y: -34.0,
+        max_x: 32.0,
+        max_y: -16.0,
+    };
+    let idx = build_flattened_tree(nodes, &extent);
+
+    assert_eq!(&extent, &idx.1[0].bbox);
 }
