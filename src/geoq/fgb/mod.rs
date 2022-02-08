@@ -292,12 +292,13 @@ mod tests {
 
         let buffer = write(features);
         // let mut output_file = NamedTempFile::new().unwrap();
-        let mut output_file = File::create("/tmp/geoq_countries.fgb").unwrap();
+        let path = "/Users/horace/data/fgb_samples/geoq_countries.fgb";
+        let mut output_file = File::create(path).unwrap();
         dbg!(&output_file);
         output_file.write(&buffer).unwrap();
 
         // let mut comp_file = output_file.reopen().unwrap();
-        let mut comp_file = File::open("/tmp/geoq_countries.fgb").unwrap();
+        let mut comp_file = File::open(path).unwrap();
         let mut ref_impl = FgbReader::open(&mut comp_file).unwrap();
 
         ref_impl.select_bbox(8.8, 47.2, 9.5, 55.3).unwrap();
