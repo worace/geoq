@@ -307,7 +307,10 @@ mod tests {
         output_features = fvec(&deserialized_geojson);
 
         assert_eq!(output_features.len(), 6);
-        dbg!(output_features);
+        for f in output_features {
+            eprintln!("{:?}", f.properties);
+        }
+        // dbg!(output_features);
 
         // read using geozero
     }
