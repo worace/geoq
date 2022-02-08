@@ -1,3 +1,5 @@
+use crate::geoq::fgb::index;
+
 use super::columns;
 use super::hilbert::BBox;
 use super::hilbert::BoundedFeature;
@@ -176,7 +178,7 @@ pub fn write<'a>(
         name: Some(name),
         features_count: features.len().try_into().unwrap(), // not sure when this would fail...i guess 128bit system?
         geometry_type: geometry_type(features),
-        index_node_size: 0,
+        index_node_size: index::NODE_SIZE,
         columns: cols_vec,
         envelope: Some(bounds_vec),
         ..Default::default()

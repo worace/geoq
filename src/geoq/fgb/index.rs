@@ -5,6 +5,8 @@ use super::hilbert::BoundedFeature;
 use super::hilbert::IndexNode;
 
 pub const NODE_SIZE: u16 = 16;
+// 4 doubles for bbox + 1 u64 for byte offset
+pub const NODE_STORAGE_BYTES: usize = 40;
 
 pub fn build_flattened_tree(
     hilbert_sorted_features: Vec<IndexNode>,
@@ -89,6 +91,19 @@ pub fn build_flattened_tree(
     }
 
     (tree_structure, flattened_tree)
+}
+
+pub fn serialize(flattened_tree: Vec<IndexNode>) -> Vec<u8> {
+    let size = flattened_tree.len() * NODE_STORAGE_BYTES;
+    let mut buf: Vec<u8> = Vec::with_capacity(size);
+    for node in flattened_tree {
+        buf.extend(node.bbox.min_x.to_le_bytes());
+        buf.extend(node.bbox.min_y.to_le_bytes());
+        buf.extend(node.bbox.max_x.to_le_bytes());
+        buf.extend(node.bbox.max_y.to_le_bytes());
+        buf.extend(node.offset.to_le_bytes());
+    }
+    buf
 }
 
 #[derive(Debug)]
@@ -193,7 +208,14 @@ fn test_building_index() {
         max_x: 32.0,
         max_y: -16.0,
     };
-    let idx = build_flattened_tree(nodes, &extent);
+    let idx = build_flattened_tree(nodes.clone(), &extent);
 
     assert_eq!(&extent, &idx.1[0].bbox);
+    assert_eq!(&nodes[0].bbox, &idx.1[1].bbox);
+    assert_eq!(&nodes[1].bbox, &idx.1[2].bbox);
+
+    assert_eq!(idx.0.num_features, 2);
+    assert_eq!(idx.0.num_nodes, 3);
+    assert_eq!(idx.0.level_bounds.len(), 2);
+    assert_eq!(idx.0.num_nodes_per_level, vec![1, 2]);
 }

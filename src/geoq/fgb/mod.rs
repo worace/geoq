@@ -78,7 +78,9 @@ pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
         let builder = feature::write(&col_specs, &f.feature);
         features_temp_buffer.extend(builder.finished_data());
     }
-    let index_buffer = index::build_flattened_tree(offsets_for_index, &dataset_bounds);
+    let (_layout, flattened_tree) = index::build_flattened_tree(offsets_for_index, &dataset_bounds);
+    let index_bytes = index::serialize(flattened_tree);
+    buffer.extend(index_bytes);
     buffer.extend(features_temp_buffer);
     buffer
 }
