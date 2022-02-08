@@ -5,9 +5,24 @@ use super::hilbert::BoundedFeature;
 
 pub const NODE_SIZE: u16 = 16;
 
+pub struct IndexNode {
+    bbox: BBox,
+    featureByteOffset: usize,
+}
+
 fn write_index(hilbert_sorted_features: Vec<BoundedFeature>, extent: BBox) -> Vec<u8> {
     // 1. determine level bounds based on num features
-    // 2.
+    // 2. allocate buffer for nodes
+    // 3. fill in intermediate nodes
+    //    - allocate nodes
+    //    - populate bboxes (???)
+    // 4. fill in leaf nodes
+    let tree_structure = calculate_level_bounds(hilbert_sorted_features.len());
+    let mut index_nodes: Vec<IndexNode> = Vec::with_capacity(tree_structure.num_nodes);
+    // Q: how to set the bbox bounds for the intermediate nodes?
+    //  - build from bottom up?
+    //  - leaf node 0 - 15 to LN-1 node 0
+    //  - leaf node 16 - 32 to LN-2 node 1
     vec![]
 }
 
@@ -24,25 +39,12 @@ pub struct RTreeIndexMeta {
 // plus however many upper-level nodes are needed to
 // represent the required amount of nesting
 fn calculate_level_bounds(num_features: usize) -> RTreeIndexMeta {
-    // let mut num_upper_levels: u32 = 1; // need at least the root level
     let node_size = NODE_SIZE as usize;
-    // while node_size.pow(num_upper_levels) < num_features {
-    //     num_upper_levels += 1;
-    // }
-
-    // 179, 12, 1
-    // let num_levels = num_upper_levels + 1;
 
     let mut nodes_per_level: Vec<usize> = vec![];
     let mut current_level_size = num_features;
     loop {
         nodes_per_level.push(current_level_size);
-
-        eprintln!(
-            "check next level up from level of size {:?}",
-            current_level_size
-        );
-        // stop at root level when we reach 1 node
 
         let next_level_size = if current_level_size % node_size == 0 {
             current_level_size / node_size
@@ -56,31 +58,8 @@ fn calculate_level_bounds(num_features: usize) -> RTreeIndexMeta {
         } else {
             current_level_size = next_level_size;
         }
-
-        eprintln!("next level size: {:?}", current_level_size);
     }
     nodes_per_level.reverse();
-    dbg!(&nodes_per_level);
-
-    // level_num_nodes: contains numer of nodes per level starting
-    //   with the bottom level, which contains only leaf nodes, i.e.
-    //   individual features
-    // n: goes from total number of features (bottom level)
-    //    up to 1, reducing per level by factor of node_size
-    //    e.g.
-    //    n = 179
-    //    n = (179 + (16 - 1)) / 16 = 12 --> takes 12 16-item tree nodes to hold 179 leaf items
-    //    level_num_nodes = [179, 12];
-    //    -----iter 2
-    //    n = (12 + (16 - 1)) / 16 = 1
-    //    level_num_nodes = [179, 12, 1];
-    //      * reached n == 1, so stop here. this is our tree layout
-    //               <root>
-    //       /1         |2      ...     \12
-    // /1.1...\1.16   /2.1...\2.16     /12.1...\12.3
-    //                                 (12 * 16 - 179 = 13)
-    //                                 13 slots open in last tree node
-
     let mut nodes_so_far = 0;
     let mut level_bounds: Vec<Range<usize>> = vec![];
     for num_nodes in nodes_per_level.iter() {
