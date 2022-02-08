@@ -5,6 +5,7 @@ pub(crate) mod feature;
 pub(crate) mod geometry;
 pub(crate) mod header;
 pub(crate) mod hilbert;
+pub(crate) mod index;
 pub(crate) mod properties;
 
 // TODO
@@ -55,12 +56,12 @@ pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
     // Writing:
     // Buffer A (Main, could be file):
     // Buffer B (temp features, tmpfile?)
-    //   1. Sort features, calc extend + header
+    //   1. Sort features, calc extent + header
     //   2. Write header to A
-    //   3. Write features to Buffer A, record byte offsets + BBoxes
+    //   3. Write features to Buffer B, record byte offsets + BBoxes
     //   4. Build RTREE using byte offsets + BBoxes
     //   5. Write RTree bytes to A
-    //   6. Copy features tempfile data to A
+    //   6. Copy features tempfile data from B to A
 
     // TODO: write features to tempfile, so it can be copied to end of buffer
     let mut offsets_for_index: Vec<IndexNode> = vec![];
