@@ -29,7 +29,8 @@ dbase = "0.2.0"
 # flatgeobuf = { git = "https://github.com/worace/flatgeobuf", branch = "worace/debug" }
 flatgeobuf = { path = "../flatgeobuf/src/rust" }
 flatbuffers = "2.0.0"
-geozero = "0.8.0"
+geozero = "0.8.0" # fgb master
+# geozero = "0.7.7" # fgb worace/debug
 
 [dev-dependencies]
 assert_cli = "0.6.2"

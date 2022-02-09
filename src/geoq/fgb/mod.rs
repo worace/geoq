@@ -150,7 +150,7 @@ mod tests {
 
         let input_features = fvec(gj);
         let ser = write(input_features.clone());
-        let mut buf = Cursor::new(ser);
+        let mut buf: Cursor<Vec<u8>> = Cursor::new(ser);
         let mut de = FgbReader::open(&mut buf).expect("Round trip...");
         de.select_all().expect("read all features...");
 
