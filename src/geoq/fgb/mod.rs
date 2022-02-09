@@ -66,10 +66,6 @@ pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
     // TODO: write features to tempfile, so it can be copied to end of buffer
     let mut offsets_for_index: Vec<IndexNode> = vec![];
     for f in bounded_sorted_features {
-        // eprintln!("writing feature");
-        // dbg!(&f);
-        // TODO: Must record feature byte offset here
-        // push to offsets_for_index ^
         let feature_offset = features_temp_buffer.len();
         offsets_for_index.push(IndexNode {
             offset: feature_offset,

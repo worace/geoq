@@ -46,11 +46,6 @@ fn read(path: &str) -> Result<(), Error> {
     eprintln!("{:?}", fgb.header());
     fgb.select_all()?;
 
-    // while let Some(feature) = fgb.next()? {
-    //     dbg!(feature.properties()?);
-    //     println!("{}", feature.to_json()?);
-    // }
-
     let mut json_data: Vec<u8> = Vec::new();
     let mut json = GeoJsonWriter::new(&mut json_data);
     fgb.process_features(&mut json)?;

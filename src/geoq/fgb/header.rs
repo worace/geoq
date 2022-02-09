@@ -165,7 +165,6 @@ pub fn write<'a>(
     // let desc = bldr.create_string("");
 
     let col_specs: Vec<ColSpec> = col_specs(features);
-    eprintln!("Columns for fgb file: {:?}", col_specs);
     let cols_vec = if col_specs.is_empty() {
         None
     } else {
@@ -184,7 +183,6 @@ pub fn write<'a>(
         ..Default::default()
     };
 
-    dbg!(geometry_type(features));
     let header = flatgeobuf::Header::create(&mut bldr, &args);
     bldr.finish_size_prefixed(header, None);
     (bldr, col_specs)

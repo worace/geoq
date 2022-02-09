@@ -66,14 +66,6 @@ pub fn build_flattened_tree(
                 if prev_idx > prev_level.len() {
                     break;
                 }
-                // eprintln!(
-                //     "populate data from index {:?} in prev level into index {:?} in current",
-                //     prev_idx, node_index,
-                // );
-                // eprintln!(
-                //     "expand current bbox: {:?} from {:?}",
-                //     bbox, &flattened_tree[prev_idx].bbox
-                // );
                 if let Some(ref mut bb) = bbox {
                     bb.expand(&flattened_tree[prev_idx].bbox)
                 } else {
@@ -97,10 +89,6 @@ pub fn serialize(flattened_tree: Vec<IndexNode>) -> Vec<u8> {
     let size = flattened_tree.len() * NODE_STORAGE_BYTES;
     let mut buf: Vec<u8> = Vec::with_capacity(size);
     for node in flattened_tree {
-        eprintln!(
-            "(Geoq) Write Node {:?}, {:?}, {:?}, {:?}, {:?}",
-            node.bbox.min_x, node.bbox.min_y, node.bbox.max_x, node.bbox.max_y, node.offset,
-        );
         buf.extend(node.bbox.min_x.to_le_bytes());
         buf.extend(node.bbox.min_y.to_le_bytes());
         buf.extend(node.bbox.max_x.to_le_bytes());
