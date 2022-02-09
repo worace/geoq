@@ -26,6 +26,7 @@ pub enum Error {
     NoInputGiven,
     ShapefileReaderError(String),
     ProgramError(String),
+    InvalidInput(String),
 }
 
 impl From<io::Error> for Error {

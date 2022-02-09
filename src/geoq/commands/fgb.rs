@@ -40,11 +40,30 @@ use flatgeobuf::*;
 use geozero::geojson::GeoJsonWriter;
 use geozero::ToJson;
 
-fn read(path: &str) -> Result<(), Error> {
+fn read(path: &str, bbox: Option<&str>) -> Result<(), Error> {
     let mut file = BufReader::new(File::open(path)?);
     let mut fgb = FgbReader::open(&mut file)?;
+
     eprintln!("{:?}", fgb.header());
-    fgb.select_all()?;
+
+    if let Some(bbox) = bbox {
+        let parts: Vec<f64> = bbox
+            .split(",")
+            .map(|num| {
+                num.parse::<f64>()
+                    .expect("Invalid bbox format -- should be 4 comma-sepparated numbers")
+            })
+            .collect();
+        if parts.len() != 4 {
+            let e = Error::InvalidInput(format!("Invalid bounding box format: {}. Should be 4 comma-separated numbers: minX,minY,maxX,maxY.", bbox));
+            return Err(e);
+        }
+
+        let (min_x, min_y, max_x, max_y) = (parts[0], parts[1], parts[2], parts[3]);
+        let _count = fgb.select_bbox(min_x, min_y, max_x, max_y).unwrap();
+    } else {
+        let _count = fgb.select_all()?;
+    }
 
     let mut json_data: Vec<u8> = Vec::new();
     let mut json = GeoJsonWriter::new(&mut json_data);
@@ -61,7 +80,8 @@ pub fn run(m: &ArgMatches) -> Result<(), Error> {
         }
         ("read", Some(args)) => {
             let path: &str = args.value_of("path").unwrap();
-            read(path)
+            let bbox: Option<&str> = args.value_of("bbox");
+            read(path, bbox)
         }
         _ => Err(Error::UnknownCommand),
     }

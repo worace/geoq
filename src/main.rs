@@ -228,6 +228,13 @@ fn main() {
                         .help("input path to .fgb file")
                         .required(true)
                         .index(1),
+                )
+                .arg(
+                    Arg::with_name("bbox")
+                        .long("bbox")
+                        .required(false)
+                        .takes_value(true)
+                        .help("Comma-separated bounding box: minLon,minLat,maxLon,maxLat"),
                 ),
         );
 
