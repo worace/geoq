@@ -8,17 +8,27 @@ pub const NODE_SIZE: u16 = 16;
 // 4 doubles for bbox + 1 u64 for byte offset
 pub const NODE_STORAGE_BYTES: usize = 40;
 
+#[derive(Debug)]
+pub struct RTreeIndexMeta {
+    pub num_features: usize,
+    pub num_nodes: usize,
+    pub num_nodes_per_level: Vec<usize>,
+    pub level_bounds: Vec<Range<usize>>,
+}
+
 pub fn build_flattened_tree(
     hilbert_sorted_features: Vec<IndexNode>,
     _extent: &BBox,
+    node_size: u16,
 ) -> (RTreeIndexMeta, Vec<IndexNode>) {
+    eprintln!("geoq bounds {:?}", _extent);
     // 1. determine level bounds based on num features
     // 2. allocate buffer for nodes
     // 3. fill in intermediate nodes
     //    - allocate nodes
     //    - populate bboxes (???)
     // 4. fill in leaf nodes
-    let tree_structure = calculate_level_bounds(hilbert_sorted_features.len());
+    let tree_structure = calculate_level_bounds(hilbert_sorted_features.len(), node_size);
     let placeholder_node = IndexNode {
         bbox: BBox::empty(),
         offset: 0,
@@ -44,24 +54,33 @@ pub fn build_flattened_tree(
     // iterate non-leaf levels from bottom up
     // iterate this level's nodes, for each one,
     // consider the sub-slice of the previous-level's nodes which are covered by it
-    // (0..NODE_SIZE)
+    // (0..node_size)
     // and expand this nodes bbox by that ones
     // L0: 0..1
     // L1: 1..13
     // L2: 13..192
     for (level_index, level_bounds) in tree_structure.level_bounds.iter().enumerate().rev().skip(1)
     {
-        eprintln!(
-            "iterate non-leaf level: {:?} - {:?}",
-            level_index, level_bounds
-        );
         let prev_level = tree_structure.level_bounds[level_index + 1].clone();
+        eprintln!(
+            "iterate non-leaf level: {:?} - {:?}, covers prev level {:?}",
+            level_index, level_bounds, prev_level
+        );
 
-        for node_index in level_bounds.clone() {
+        for (level_node_index, node_index) in level_bounds.clone().enumerate() {
             let mut bbox: Option<BBox> = None;
-            let prev_level_slice_start = prev_level.start + node_index * NODE_SIZE as usize;
-            let prev_level_slice_end = prev_level.start + (node_index + 1) * NODE_SIZE as usize;
+            let prev_level_slice_start = prev_level.start + level_node_index * node_size as usize;
+            let prev_level_slice_end =
+                prev_level.start + (level_node_index + 1) * node_size as usize;
 
+            eprintln!(
+                "level {:?} node {:?} consider child-level {:?} children {}-{}",
+                level_index,
+                node_index,
+                level_index + 1,
+                prev_level_slice_start,
+                prev_level_slice_end,
+            );
             for prev_idx in prev_level_slice_start..prev_level_slice_end {
                 if prev_idx > prev_level.len() {
                     break;
@@ -98,31 +117,23 @@ pub fn serialize(flattened_tree: Vec<IndexNode>) -> Vec<u8> {
     buf
 }
 
-#[derive(Debug)]
-pub struct RTreeIndexMeta {
-    num_features: usize,
-    num_nodes: usize,
-    num_nodes_per_level: Vec<usize>,
-    level_bounds: Vec<Range<usize>>,
-}
-
 // Statically calculate the structure of the tree required
 // to hold the specified number of nodes.
 // The total number of nodes will be the number of features
 // plus however many upper-level nodes are needed to
 // represent the required amount of nesting
-fn calculate_level_bounds(num_features: usize) -> RTreeIndexMeta {
-    let node_size = NODE_SIZE as usize;
+pub fn calculate_level_bounds(num_features: usize, node_size: u16) -> RTreeIndexMeta {
+    let ns64 = node_size as usize;
 
     let mut nodes_per_level: Vec<usize> = vec![];
     let mut current_level_size = num_features;
     loop {
         nodes_per_level.push(current_level_size);
 
-        let next_level_size = if current_level_size % node_size == 0 {
-            current_level_size / node_size
+        let next_level_size = if current_level_size % ns64 == 0 {
+            current_level_size / ns64
         } else {
-            current_level_size / node_size + 1
+            current_level_size / ns64 + 1
         };
 
         if next_level_size == 1 {
@@ -150,19 +161,19 @@ fn calculate_level_bounds(num_features: usize) -> RTreeIndexMeta {
 
 #[test]
 fn test_level_bounds() {
-    let a = calculate_level_bounds(179);
+    let a = calculate_level_bounds(179, NODE_SIZE);
     assert_eq!(a.num_features, 179);
     assert_eq!(a.num_nodes, 192);
     assert_eq!(a.num_nodes_per_level, vec![1, 12, 179]);
     assert_eq!(a.level_bounds, vec![0..1, 1..13, 13..192]);
 
-    let b = calculate_level_bounds(15);
+    let b = calculate_level_bounds(15, NODE_SIZE);
     assert_eq!(b.num_features, 15);
     assert_eq!(b.num_nodes, 16);
     assert_eq!(b.num_nodes_per_level, vec![1, 15]);
     assert_eq!(b.level_bounds, vec![0..1, 1..16]);
 
-    let c = calculate_level_bounds(100000);
+    let c = calculate_level_bounds(100000, NODE_SIZE);
     assert_eq!(c.num_features, 100000);
     assert_eq!(c.num_nodes, 106669);
     assert_eq!(c.num_nodes_per_level, vec![1, 2, 25, 391, 6250, 100000]);
@@ -200,7 +211,7 @@ fn test_building_index() {
         max_x: 32.0,
         max_y: -16.0,
     };
-    let idx = build_flattened_tree(nodes.clone(), &extent);
+    let idx = build_flattened_tree(nodes.clone(), &extent, NODE_SIZE);
 
     assert_eq!(&extent, &idx.1[0].bbox);
     assert_eq!(&nodes[0].bbox, &idx.1[1].bbox);
