@@ -231,6 +231,7 @@ fn main() {
                 )
                 .arg(
                     Arg::with_name("bbox")
+                        .allow_hyphen_values(true)
                         .long("bbox")
                         .required(false)
                         .takes_value(true)
