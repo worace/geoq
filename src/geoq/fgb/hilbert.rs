@@ -187,10 +187,7 @@ impl BBox {
 }
 
 fn feat_coord(f: &geojson::Feature) -> (f64, f64) {
-    f.geometry
-        .as_ref()
-        .map(|geom| coord(&geom.value))
-        .unwrap_or((0.0, 0.0))
+    f.geometry.as_ref().map(|geom| coord(&geom.value)).unwrap()
 }
 fn coord(geom: &Value) -> (f64, f64) {
     let o = match geom {
@@ -206,16 +203,13 @@ fn coord(geom: &Value) -> (f64, f64) {
             .and_then(|rings| rings.first().and_then(|r| r.first().map(|c| (c[0], c[1])))),
         Value::GeometryCollection(geoms) => geoms.first().map(|geom| coord(&geom.value)),
     };
-    o.unwrap_or((0.0, 0.0))
+    o.unwrap()
 }
 
 const HILBERT_MAX: f64 = ((1 << 16u32) - 1) as f64;
 
 pub fn sort_with_extent(features: Vec<geojson::Feature>) -> (Vec<BoundedFeature>, BBox) {
-    let (start_x, start_y) = features
-        .first()
-        .map(|f| feat_coord(f))
-        .unwrap_or((0.0, 0.0));
+    let (start_x, start_y) = features.first().map(|f| feat_coord(f)).unwrap();
     let mut extent = BBox::new(start_x, start_y);
     let mut bounded_feats: Vec<BoundedFeature> = features
         .into_iter()
