@@ -67,10 +67,10 @@ impl BBox {
 
     pub fn empty() -> BBox {
         BBox {
-            min_x: 0.0,
-            min_y: 0.0,
-            max_x: 0.0,
-            max_y: 0.0,
+            min_x: f64::INFINITY,
+            min_y: f64::INFINITY,
+            max_x: f64::NEG_INFINITY,
+            max_y: f64::NEG_INFINITY,
         }
     }
 
