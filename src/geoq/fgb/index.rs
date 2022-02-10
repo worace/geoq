@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{cmp::min, ops::Range};
 
 use super::hilbert::BBox;
 use super::hilbert::BoundedFeature;
@@ -70,8 +70,10 @@ pub fn build_flattened_tree(
         for (level_node_index, node_index) in level_bounds.clone().enumerate() {
             let mut bbox: Option<BBox> = None;
             let prev_level_slice_start = prev_level.start + level_node_index * node_size as usize;
-            let prev_level_slice_end =
-                prev_level.start + (level_node_index + 1) * node_size as usize;
+            let prev_level_slice_end = std::cmp::min(
+                prev_level.start + (level_node_index + 1) * node_size as usize,
+                prev_level.end,
+            );
 
             eprintln!(
                 "level {:?} node {:?} consider child-level {:?} children {}-{}",
