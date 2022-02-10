@@ -86,14 +86,14 @@ pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
 mod tests {
     use crate::geoq::{
         fgb::{
-            hilbert::IndexNode,
+            hilbert::{self, IndexNode},
             index::{self, RTreeIndexMeta},
             write,
         },
         reader::Reader,
     };
-    use flatgeobuf::FgbReader;
-    use flatgeobuf::*;
+    use flatgeobuf::packed_r_tree::hilbert_sort;
+    use flatgeobuf::{packed_r_tree::NodeItem, FgbReader};
     use geojson::GeoJson;
     use std::io::{Cursor, Read, Seek};
 
@@ -371,6 +371,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_index_comps() {
         use flatgeobuf::*;
         use geozero::geojson::GeoJsonReader;
@@ -406,13 +407,13 @@ mod tests {
 
         ////////////////
         // Write GeoZero
-        // eprintln!("write geozero");
-        // let mut fgb = FgbWriter::create("alabama", GeometryType::Polygon, |_, _| {}).unwrap();
-        // let mut fin = BufReader::new(File::open(source_path).unwrap());
-        // let mut reader = GeoJsonReader(&mut fin);
-        // reader.process(&mut fgb).unwrap();
-        // let mut fout = BufWriter::new(File::create(geozero_output_path).unwrap());
-        // fgb.write(&mut fout).unwrap();
+        eprintln!("write geozero");
+        let mut fgb = FgbWriter::create("alabama", GeometryType::Polygon, |_, _| {}).unwrap();
+        let mut fin = BufReader::new(File::open(source_path).unwrap());
+        let mut reader = GeoJsonReader(&mut fin);
+        reader.process(&mut fgb).unwrap();
+        let mut fout = BufWriter::new(File::create(geozero_output_path).unwrap());
+        fgb.write(&mut fout).unwrap();
         //////////////////
 
         ///////////////
@@ -435,7 +436,7 @@ mod tests {
         dbg!(&gq_tree);
         dbg!(&gz_tree);
 
-        for i in (0..5) {
+        for i in (0..20) {
             let gq_node = IndexNode::from_bytes(&geoq_tree_bytes[i * 40..(i + 1) * 40]).unwrap();
             let gz_node = IndexNode::from_bytes(&gz_tree_bytes[i * 40..(i + 1) * 40]).unwrap();
             eprintln!("gq: {:?}", gq_node);
@@ -461,6 +462,61 @@ mod tests {
                 tree_meta,
                 bytes[tree_start..tree_start + tree_size].to_vec(),
             )
+        }
+    }
+
+    #[test]
+    fn test_hilbert_sort_comp() {
+        use flatgeobuf::*;
+        use geozero::geojson::GeoJsonReader;
+        use geozero::GeozeroDatasource;
+        use std::fs::File;
+        use std::io::{BufReader, BufWriter};
+
+        let source_path = "/Users/horace/data/geojson_samples/alabama500.geojson";
+
+        let input_file = File::open(source_path).unwrap();
+        let mut input_buffer = BufReader::new(input_file);
+        let mut features: Vec<geojson::Feature> = vec![];
+        let reader = Reader::new(&mut input_buffer);
+
+        for e_res in reader {
+            if let Ok(entity) = e_res {
+                features.push(entity.geojson_feature())
+            }
+        }
+        assert_eq!(500, features.len());
+
+        let gz_feats = features.clone();
+
+        let (sorted, extent) = hilbert::sort_with_extent(features);
+
+        eprintln!("{:?}", extent);
+        let mut gz_nodes: Vec<NodeItem> = sorted
+            .iter()
+            .enumerate()
+            .map(|(idx, f)| NodeItem {
+                min_x: f.bbox.min_x,
+                min_y: f.bbox.min_y,
+                max_x: f.bbox.max_x,
+                max_y: f.bbox.max_y,
+                offset: idx as u64,
+            })
+            .collect();
+        let gz_extent = NodeItem {
+            min_x: extent.min_x,
+            min_y: extent.min_y,
+            max_x: extent.max_x,
+            max_y: extent.max_y,
+            offset: 0,
+        };
+        hilbert_sort(&mut gz_nodes, &gz_extent);
+
+        assert_eq!(sorted.len(), gz_nodes.len());
+
+        // TODO - this hilbert sort is not the same!!!
+        for i in 0..20 {
+            eprintln!("gq {:?} gz {:?}", i, gz_nodes[i].offset);
         }
     }
 }
