@@ -74,7 +74,8 @@ pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
         let builder = feature::write(&col_specs, &f.feature);
         features_temp_buffer.extend(builder.finished_data());
     }
-    let (_layout, flattened_tree) = index::build_flattened_tree(offsets_for_index, &dataset_bounds);
+    let (_layout, flattened_tree) =
+        index::build_flattened_tree(offsets_for_index, &dataset_bounds, index::NODE_SIZE);
     let index_bytes = index::serialize(flattened_tree);
     buffer.extend(index_bytes);
     buffer.extend(features_temp_buffer);
@@ -83,11 +84,18 @@ pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
 
 #[cfg(test)]
 mod tests {
-    use crate::geoq::{fgb::write, reader::Reader};
+    use crate::geoq::{
+        fgb::{
+            hilbert::IndexNode,
+            index::{self, RTreeIndexMeta},
+            write,
+        },
+        reader::Reader,
+    };
     use flatgeobuf::FgbReader;
     use flatgeobuf::*;
     use geojson::GeoJson;
-    use std::io::{Cursor, Seek};
+    use std::io::{Cursor, Read, Seek};
 
     fn fvec(gj: &str) -> Vec<geojson::Feature> {
         use serde_json::json;
@@ -311,4 +319,168 @@ mod tests {
 
         // read using geozero
     }
+
+    #[test]
+    #[ignore]
+    fn test_reading_large_data() {
+        use geozero::ProcessToJson;
+
+        let path = "/Users/horace/data/fgb_samples/alabama.fgb";
+
+        // let mut comp_file = output_file.reopen().unwrap();
+        let mut comp_file = File::open(path).unwrap();
+        let mut ref_impl = FgbReader::open(&mut comp_file).unwrap();
+
+        ref_impl
+            .select_bbox(-86.286733, 32.367310, -86.276207, 32.373978)
+            .unwrap();
+
+        let mut output_features: Vec<geojson::Feature> = vec![];
+        let deserialized_geojson: String = ref_impl.to_json().unwrap();
+        output_features = fvec(&deserialized_geojson);
+
+        // actual: 79 -- matches JS-based impl and rust-based readers
+        // so index is probably messed up somehow
+        // assert_eq!(output_features.len(), 389);
+        // for f in output_features {
+        //     eprintln!("{:?}", f.properties);
+        // }
+        // dbg!(output_features);
+
+        // read using geozero
+    }
+
+    #[test]
+    #[ignore]
+    fn test_writing_with_geozero() {
+        use flatgeobuf::*;
+        use geozero::geojson::GeoJsonReader;
+        use geozero::GeozeroDatasource;
+        use std::fs::File;
+        use std::io::{BufReader, BufWriter};
+
+        let mut fgb = FgbWriter::create("alabama", GeometryType::Polygon, |_, _| {}).unwrap();
+        let mut fin =
+            BufReader::new(File::open("/Users/horace/Downloads/Alabama.geojson").unwrap());
+        let mut reader = GeoJsonReader(&mut fin);
+        reader.process(&mut fgb).unwrap();
+        let mut fout = BufWriter::new(
+            File::create("/Users/horace/data/fgb_samples/geozero_alabama.fgb").unwrap(),
+        );
+        fgb.write(&mut fout).unwrap();
+    }
+
+    #[test]
+    fn test_index_comps() {
+        use flatgeobuf::*;
+        use geozero::geojson::GeoJsonReader;
+        use geozero::GeozeroDatasource;
+        use std::fs::File;
+        use std::io::{BufReader, BufWriter};
+
+        let source_path = "/Users/horace/data/geojson_samples/alabama500.geojson";
+        let geoq_output_path = "/tmp/alabama20k_geoq.fgb";
+        let geozero_output_path = "/tmp/alabama20k_geozero.fgb";
+        ////////////////
+        // Write geoq
+        eprintln!("write geoq");
+        let input_file = File::open(source_path).unwrap();
+        let mut input_buffer = BufReader::new(input_file);
+
+        let mut features: Vec<geojson::Feature> = vec![];
+        let reader = Reader::new(&mut input_buffer);
+
+        for e_res in reader {
+            if let Ok(entity) = e_res {
+                features.push(entity.geojson_feature())
+            }
+        }
+        assert_eq!(500, features.len());
+
+        let buffer = write(features);
+        // let mut output_file = NamedTempFile::new().unwrap();
+        let mut output_file = File::create(geoq_output_path).unwrap();
+        dbg!(&output_file);
+        output_file.write(&buffer).unwrap();
+        ///////////////
+
+        ////////////////
+        // Write GeoZero
+        // eprintln!("write geozero");
+        // let mut fgb = FgbWriter::create("alabama", GeometryType::Polygon, |_, _| {}).unwrap();
+        // let mut fin = BufReader::new(File::open(source_path).unwrap());
+        // let mut reader = GeoJsonReader(&mut fin);
+        // reader.process(&mut fgb).unwrap();
+        // let mut fout = BufWriter::new(File::create(geozero_output_path).unwrap());
+        // fgb.write(&mut fout).unwrap();
+        //////////////////
+
+        ///////////////
+        // Open and compare index nodes
+        let mut geoq_file = File::open(geoq_output_path).unwrap();
+        let mut ref_impl = FgbReader::open(&mut geoq_file).unwrap();
+        let geoq_bytes: Vec<u8> = std::fs::read(geoq_output_path).unwrap();
+        let geozero_bytes = std::fs::read(geozero_output_path).unwrap();
+
+        eprintln!(
+            "geoq bytes {}, geozero bytes {}",
+            geoq_bytes.len(),
+            geozero_bytes.len(),
+        );
+
+        let (geoq_header, gq_tree, geoq_tree_bytes) = header_and_index_nodes(&geoq_bytes);
+        let (gz_header, gz_tree, gz_tree_bytes) = header_and_index_nodes(&geozero_bytes);
+        dbg!(&geoq_header);
+        dbg!(&gz_header);
+        dbg!(&gq_tree);
+        dbg!(&gz_tree);
+
+        for i in (0..5) {
+            let gq_node = IndexNode::from_bytes(&geoq_tree_bytes[i * 40..(i + 1) * 40]).unwrap();
+            let gz_node = IndexNode::from_bytes(&gz_tree_bytes[i * 40..(i + 1) * 40]).unwrap();
+            eprintln!("gq: {:?}", gq_node);
+            eprintln!("gz: {:?}", gz_node);
+        }
+
+        eprintln!("Done...");
+        // flatgeobuf::Header, u8
+        fn header_and_index_nodes(bytes: &Vec<u8>) -> (Header, RTreeIndexMeta, Vec<u8>) {
+            let num_features = 500;
+            let header_size: u8 = bytes[8]; // assuming these fit in 1 byte
+            eprintln!("leading 8: {:?}", bytes[0..8].to_vec());
+            eprintln!("header size: {:?}", header_size);
+            let header_bytes = &bytes[13..];
+            let header = flatgeobuf::size_prefixed_root_as_header(header_bytes).unwrap();
+            let node_size = header.index_node_size();
+            let tree_meta = index::calculate_level_bounds(num_features, node_size);
+            let tree_start: usize = 8 + 4 + header_size as usize;
+            let tree_size: usize = tree_meta.num_nodes * 5;
+
+            (
+                header,
+                tree_meta,
+                bytes[tree_start..tree_start + tree_size].to_vec(),
+            )
+        }
+    }
 }
+
+// bbox
+//   -85.0316047668457,
+//   32.45169343044352
+// ],
+// [
+//   -84.99555587768553,
+//   32.45169343044352
+// ],
+// [
+//   -84.99555587768553,
+//   32.48037024365968
+// ],
+// [
+//   -85.0316047668457,
+//   32.48037024365968
+// ],
+// [
+//   -85.0316047668457,
+//   32.45169343044352
