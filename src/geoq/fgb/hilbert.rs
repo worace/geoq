@@ -180,8 +180,8 @@ impl BBox {
     fn hilbert_bbox(&self, extent: &BBox) -> u32 {
         // calculate bbox center and scale to hilbert_max
         let (mid_x, mid_y) = self.center();
-        let x = (HILBERT_MAX * mid_x / extent.width()).floor() as u32;
-        let y = (HILBERT_MAX * mid_y / extent.height()).floor() as u32;
+        let x = (HILBERT_MAX * (mid_x - extent.min_x) / extent.width()).floor() as u32;
+        let y = (HILBERT_MAX * (mid_y - extent.min_y) / extent.height()).floor() as u32;
         hilbert(x, y)
     }
 }
