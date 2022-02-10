@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use geo::coords_iter;
 use geojson::{Feature, Value};
 
@@ -19,6 +21,38 @@ pub struct BoundedFeature {
 pub struct IndexNode {
     pub offset: usize,
     pub bbox: BBox,
+}
+
+fn f64_from_bytes(bytes: &[u8]) -> Result<f64, &str> {
+    let arr: [u8; 8] = bytes.try_into().map_err(|_| "Expected 8 bytes for f64.")?;
+
+    Ok(f64::from_le_bytes(arr))
+}
+fn u64_from_bytes(bytes: &[u8]) -> Result<u64, &str> {
+    let arr: [u8; 8] = bytes.try_into().map_err(|_| "Expected 8 bytes for u64.")?;
+
+    Ok(u64::from_le_bytes(arr))
+}
+
+impl IndexNode {
+    pub fn from_bytes(bytes: &[u8]) -> Result<IndexNode, &str> {
+        if bytes.len() < 40 {
+            return Err("Not enough bytes for IndexNode");
+        }
+        let min_x = f64_from_bytes(&bytes[0..8])?;
+        let min_y = f64_from_bytes(&bytes[8..16])?;
+        let max_x = f64_from_bytes(&bytes[16..24])?;
+        let max_y = f64_from_bytes(&bytes[24..32])?;
+        let offset = u64_from_bytes(&bytes[32..40])? as usize;
+        let bbox = BBox {
+            min_x,
+            min_y,
+            max_x,
+            max_y,
+        };
+
+        Ok(IndexNode { bbox, offset })
+    }
 }
 
 impl BBox {
