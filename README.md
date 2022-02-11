@@ -109,6 +109,9 @@ See the built-in command help using `geoq --help` or `geoq <subcommand> --help` 
 * `simplify` - Simplify geometries, either with fixed threshold or iteratively toward target coord-count
 * `whereami` - Output IP geolocation-based current lat/lon as GeoJSON
 * `wkt` - Output geometries as WKT
+* `fgb` - Working with [flatgeobuf](http://flatgeobuf.org)
+  * `write` - write flatgeobuf files from GeoJSON lines to STDIN
+  * `read` - read flatgeobuf files to GeoJSON with optional bbox filter
 
 See the [Manual](https://github.com/worace/geoq/blob/master/manual.md) for more examples and available commands.
 

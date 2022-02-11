@@ -199,3 +199,24 @@ Currently only polygons are supported for querying, but hopefully more geometrie
 print "34.70,-118.44\n35.06,-117.87\n" | geoq filter intersects 9q5
 34.70,-118.44
 ```
+
+### Flatgeobuf - `geoq fgb`
+
+#### Writing Flatgeobuf Files
+
+`geoq fgb write <FILE>` takes newline-delimited GeoJSON input from STDIN and writes a flatgeobuf in the specified output file
+
+```
+echo '{"coordinates":[-123.1874,48.7902],"type":"Point"}' | \
+geoq fgb write /tmp/point.fgb
+```
+
+#### Reading Flatgeobuf
+
+`geoq fgb read <FILE>` reads flatgeobuf files and prints rows as GeoJSON to STDOUT.
+
+Accepts optional `--bbox` arg for filtering a bounding box using the fgb index. BBox should be specified as `min_x,min_y,max_x,max_y` e.g. `--bbox -123.2,48.8,-123.1,48.7`
+
+```
+geoq fgb read /tmp/point.fgb
+```
