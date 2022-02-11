@@ -165,11 +165,7 @@ pub fn write<'a>(
     // let desc = bldr.create_string("");
 
     let col_specs: Vec<ColSpec> = col_specs(features);
-    let cols_vec = if col_specs.is_empty() {
-        None
-    } else {
-        Some(columns::build(&mut bldr, &col_specs))
-    };
+    let cols_vec = Some(columns::build(&mut bldr, &col_specs));
 
     let bounds_vec = bldr.create_vector(&bounds.to_vec());
 

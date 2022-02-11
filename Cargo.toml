@@ -25,12 +25,11 @@ num_cpus = "1.0"
 reqwest = "0.9.19"
 shapefile = { version = "0.3.0", features=["geo-types"]}
 dbase = "0.2.0"
-# flatgeobuf = "0.6.2"
+flatgeobuf = "0.6.2"
 # flatgeobuf = { git = "https://github.com/worace/flatgeobuf", branch = "worace/debug" }
-flatgeobuf = { path = "../flatgeobuf/src/rust" }
+# flatgeobuf = { path = "../flatgeobuf/src/rust" }
 flatbuffers = "2.0.0"
-geozero = "0.8.0" # fgb master
-# geozero = "0.7.7" # fgb worace/debug
+geozero = "0.7.7"
 
 [dev-dependencies]
 assert_cli = "0.6.2"
