@@ -21,7 +21,6 @@ pub fn build_flattened_tree(
     _extent: &BBox,
     node_size: u16,
 ) -> (RTreeIndexMeta, Vec<IndexNode>) {
-    eprintln!("geoq bounds {:?}", _extent);
     // 1. determine level bounds based on num features
     // 2. allocate buffer for nodes
     // 3. fill in intermediate nodes
@@ -34,9 +33,7 @@ pub fn build_flattened_tree(
         offset: 0,
     };
     let mut flattened_tree: Vec<IndexNode> = vec![placeholder_node; tree_structure.num_nodes];
-    eprintln!("Allocated len for index nodes: {:?}", flattened_tree.len());
 
-    eprintln!("tree: {:?}", tree_structure);
     let bottom = tree_structure
         .level_bounds
         .last()
@@ -46,7 +43,6 @@ pub fn build_flattened_tree(
     // of the flattened index buffer. The index nodes here contain byte offsets
     // into the features section of the tree, and the node positions are index offsets
     // based on the calculated level hierarchy layout
-    eprintln!("iter bottom tree level - {:?}", bottom);
     for (feature_index, node_index) in bottom.clone().enumerate() {
         flattened_tree[node_index] = hilbert_sorted_features[feature_index].clone();
     }
@@ -62,10 +58,6 @@ pub fn build_flattened_tree(
     for (level_index, level_bounds) in tree_structure.level_bounds.iter().enumerate().rev().skip(1)
     {
         let prev_level = tree_structure.level_bounds[level_index + 1].clone();
-        eprintln!(
-            "iterate non-leaf level: {:?} - {:?}, covers prev level {:?}",
-            level_index, level_bounds, prev_level
-        );
 
         for (level_node_index, node_index) in level_bounds.clone().enumerate() {
             let mut bbox: Option<BBox> = None;
@@ -75,14 +67,6 @@ pub fn build_flattened_tree(
                 prev_level.end,
             );
 
-            eprintln!(
-                "level {:?} node {:?} consider child-level {:?} children {}-{}",
-                level_index,
-                node_index,
-                level_index + 1,
-                prev_level_slice_start,
-                prev_level_slice_end,
-            );
             for prev_idx in prev_level_slice_start..prev_level_slice_end {
                 if prev_idx > prev_level.len() {
                     break;

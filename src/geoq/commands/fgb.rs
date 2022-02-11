@@ -44,8 +44,6 @@ fn read(path: &str, bbox: Option<&str>) -> Result<(), Error> {
     let mut file = BufReader::new(File::open(path)?);
     let mut fgb = FgbReader::open(&mut file)?;
 
-    eprintln!("{:?}", fgb.header());
-
     if let Some(bbox) = bbox {
         let parts: Vec<f64> = bbox
             .split(",")

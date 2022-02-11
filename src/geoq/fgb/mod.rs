@@ -46,12 +46,6 @@ pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
 
     let (header_builder, col_specs) = header::write(&bounded_sorted_features, &dataset_bounds);
     buffer.extend(header_builder.finished_data());
-    eprintln!("header data:");
-    eprintln!("{:02X?}", header_builder.finished_data());
-    eprintln!(
-        "Writing {:?} bytes of header data",
-        header_builder.finished_data().len()
-    );
 
     // Writing:
     // Buffer A (Main, could be file):
@@ -166,12 +160,6 @@ mod tests {
         let deserialized_geojson: String = de.to_json().unwrap();
         output_features = fvec(&deserialized_geojson);
 
-        // while let Some(feature) = de.next().expect("read next feature") {
-        //     let props = feature.properties();
-        //     dbg!(props.unwrap());
-        //     dbg!(&feature.to_json());
-        //     output_features.extend(fvec(&feature.to_json().expect("fgb feature to geojson")));
-        // }
         (input_features, output_features)
     }
 
@@ -258,7 +246,6 @@ mod tests {
             .expect("Header should have an envelope populated")
             .iter()
             .collect();
-        dbg!(&bounds);
         assert_eq!(bounds, vec![-118.0, 34.0, -118.0, 34.0]);
     }
 
@@ -335,7 +322,6 @@ mod tests {
 
         let (sorted, extent) = hilbert::sort_with_extent(features);
 
-        eprintln!("{:?}", extent);
         let mut gz_nodes: Vec<NodeItem> = sorted
             .iter()
             .enumerate()
