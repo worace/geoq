@@ -23,6 +23,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("measure", Some(m)) => commands::measure::run(m),
         ("bbox", Some(m)) => commands::bbox::run(m),
         ("shp", Some(m)) => commands::shp::run(m),
+        ("fgb", Some(m)) => commands::fgb::run(m),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -202,9 +203,40 @@ fn main() {
         .about("Read a shapefile and convert to GeoJSON")
         .arg(
             Arg::with_name("path")
-                .help("path to the .shp file -- expects .dbf file to be adjacent.")
+                .help("output file, e.g. data.fgb")
                 .required(true)
                 .index(1),
+        );
+
+    let fgb = SubCommand::with_name("fgb")
+        .about("Reading and Writing FlatGeoBuf")
+        .subcommand(
+            SubCommand::with_name("write")
+                .about("Write GeoJSON data to a binary flatgeobuf file")
+                .arg(
+                    Arg::with_name("path")
+                        .help("output path")
+                        .required(true)
+                        .index(1),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("read")
+                .about("Read a binary flatgeobuf file to GeoJSON")
+                .arg(
+                    Arg::with_name("path")
+                        .help("input path to .fgb file")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("bbox")
+                        .allow_hyphen_values(true)
+                        .long("bbox")
+                        .required(false)
+                        .takes_value(true)
+                        .help("Comma-separated bounding box: minLon,minLat,maxLon,maxLat"),
+                ),
         );
 
     let matches = App::new("geoq")
@@ -225,6 +257,7 @@ fn main() {
         .subcommand(simplify)
         .subcommand(bbox)
         .subcommand(shp)
+        .subcommand(fgb)
         .get_matches();
 
     if let Err(e) = run(matches) {

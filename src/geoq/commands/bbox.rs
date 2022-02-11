@@ -36,7 +36,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), Error> {
 
             if embed {
                 let mut feat = e.geojson_feature();
-                let gj_bbox = vec![bbox.min.x, bbox.min.y, bbox.max.x, bbox.max.y];
+                let gj_bbox = vec![bbox.min().x, bbox.min().y, bbox.max().x, bbox.max().y];
                 feat.bbox = Some(gj_bbox);
                 Ok(vec![format!("{}", serde_json::to_string(&feat).unwrap())])
             } else {

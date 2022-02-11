@@ -4,7 +4,7 @@ use geojson::GeoJson;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde_json;
-use std::{convert::TryInto, fmt};
+use std::{convert::TryFrom, convert::TryInto, fmt};
 use wkt::ToWkt;
 
 static LATLON_SPLIT: Lazy<Regex> = Lazy::new(|| Regex::new(",|\t").unwrap());
@@ -39,8 +39,8 @@ fn latlon_geom(raw: &String) -> geo_types::Geometry<f64> {
 
 fn geohash_geom(raw: &String) -> geo_types::Geometry<f64> {
     let rect = geohash::decode_bbox(raw).expect("Invalid geohash");
-    let bl = rect.min;
-    let tr = rect.max;
+    let bl = rect.min();
+    let tr = rect.max();
     let outer = LineString(vec![
         Coordinate::from((bl.x, bl.y)),
         Coordinate::from((tr.x, bl.y)),
@@ -52,13 +52,13 @@ fn geohash_geom(raw: &String) -> geo_types::Geometry<f64> {
 }
 
 fn wkt_entities(raw: &String) -> Result<Vec<Entity>, Error> {
-    let wkt_res: Result<wkt::Wkt, &str> = wkt::Wkt::from_str(&raw);
+    let wkt_res: Result<wkt::Wkt<f64>, &str> = wkt::Wkt::from_str(&raw);
     let mut entities = Vec::new();
     match wkt_res {
         Ok(wkts) => {
             for wkt_geom in wkts.items {
                 let wkt_raw = wkt_geom.to_string();
-                let geom = wkt::conversion::try_into_geometry(&wkt_geom).unwrap();
+                let geom: Geometry<f64> = wkt_geom.try_into().unwrap();
                 entities.push(Entity::Wkt(wkt_raw, geom))
             }
         }
@@ -98,7 +98,16 @@ impl Entity {
             Entity::LatLon(ref raw) => latlon_geom(raw),
             Entity::Geohash(ref raw) => geohash_geom(raw),
             Entity::Wkt(_, ref geom) => geom.clone(),
-            Entity::GeoJsonGeometry(_, gj_geom) => gj_geom.value.clone().try_into().unwrap(),
+            Entity::GeoJsonGeometry(_, gj_geom) => match gj_geom.value.clone() {
+                geojson::Value::GeometryCollection(gj_geoms) => {
+                    let geoms: Vec<geo_types::Geometry<f64>> = gj_geoms
+                        .iter()
+                        .map(|g| g.value.clone().try_into().unwrap())
+                        .collect();
+                    geo_types::Geometry::GeometryCollection(geo_types::GeometryCollection(geoms))
+                }
+                coord_vec => coord_vec.try_into().unwrap(),
+            },
             Entity::GeoJsonFeature(_, gj_feature) => gj_feature
                 .clone()
                 .geometry
@@ -109,7 +118,7 @@ impl Entity {
         }
     }
 
-    pub fn wkt(&self) -> wkt::Geometry {
+    pub fn wkt(&self) -> wkt::Geometry<f64> {
         let geom = self.geom();
         let mut wkt = geom.to_wkt();
         wkt.items.pop().unwrap()

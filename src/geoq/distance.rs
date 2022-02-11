@@ -54,6 +54,8 @@ fn closest_point(a: &Point<f64>, b: &Geometry<f64>) -> geo::Closest<f64> {
         Geometry::Line(ref g) => g.closest_point(a),
         Geometry::LineString(ref g) => g.closest_point(a),
         Geometry::Polygon(ref g) => closest_point_to_poly(a, g),
+        Geometry::Triangle(ref g) => closest_point_to_poly(a, &g.to_polygon()),
+        Geometry::Rect(ref g) => closest_point_to_poly(a, &g.to_polygon()),
         Geometry::MultiPoint(ref g) => g.closest_point(a),
         Geometry::MultiLineString(ref g) => g.closest_point(a),
         Geometry::MultiPolygon(ref g) => closest_point_to_multipoly(a, g),

@@ -29,13 +29,14 @@ fn read_query_geoms(matches: &ArgMatches) -> Result<Vec<Geometry<f64>>, Error> {
 }
 
 fn intersects(matches: &ArgMatches, negate: bool) -> Result<(), Error> {
+    use geo::algorithm::intersects::Intersects;
     let query_geoms = read_query_geoms(matches)?;
     par::for_stdin_entity(move |entity| {
         let output = entity.raw();
         let geom = entity.geom();
         let is_match: bool = query_geoms
             .iter()
-            .any(|ref query_geom| geoq::intersection::intersects(query_geom, &geom));
+            .any(|ref query_geom| query_geom.intersects(&geom));
         if is_match ^ negate {
             Ok(vec![output])
         } else {

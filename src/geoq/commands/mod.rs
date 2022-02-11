@@ -1,5 +1,6 @@
 pub mod bbox;
 pub mod centroid;
+pub mod fgb;
 pub mod filter;
 pub mod geohash;
 pub mod geojson_cmd;
