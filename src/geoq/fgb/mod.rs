@@ -1,4 +1,8 @@
-use crate::geoq::fgb::hilbert::IndexNode;
+use std::collections::HashMap;
+
+use tempfile::NamedTempFile;
+
+use crate::geoq::{error::Error, fgb::hilbert::IndexNode};
 
 pub(crate) mod columns;
 pub(crate) mod feature;
@@ -34,6 +38,31 @@ pub(crate) mod properties;
 // H: Header (variable size flatbuffer) (written as its own standalone flatbuffer)
 // I (optional): Static packed Hilbert R-tree index (static size custom buffer)
 // DATA: Features (each written as its own standalone flatbuffer?)
+
+fn buffer_feature_partitions<'a>(
+    features: impl Iterator<Item = Result<geojson::Feature, Error>> + 'a,
+) -> Vec<NamedTempFile> {
+    let chunk_size = 1_000_000_000; // 1gb
+    let mut chunks: Vec<NamedTempFile> = vec![];
+
+    let mut current_chunk = NamedTempFile::new();
+
+    // get feature bbox
+    // convert feature to flatbuffer format
+    // write feature to pending buffer
+    // Q: how to save bbox for use in the merge + index-build
+    //    step?
+    //    - write a full fgb file including index with its own index nodes with bbox?
+    //    - re-compute the bboxes from fgb features when merging?
+    for f in features {
+        if let Ok(f) = f {
+        } else {
+            panic!("bad!");
+        }
+    }
+    vec![]
+}
+
 pub fn write(features: Vec<geojson::Feature>) -> Vec<u8> {
     // collect features into vector
     // read features to get header schema (Columns "table")

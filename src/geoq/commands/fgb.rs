@@ -1,9 +1,19 @@
 use crate::geoq::{error::Error, fgb, reader::Reader};
 use clap::ArgMatches;
 use flatgeobuf::FgbReader;
-use std::fs::File;
 use std::io::{self, BufReader};
 use std::path::Path;
+use std::{fs::File, io::StdinLock};
+
+fn stream_geojson<'a>(
+    stdin_reader: &'a mut StdinLock,
+) -> impl Iterator<Item = Result<geojson::Feature, Error>> + 'a {
+    // let stdin = io::stdin();
+    // let mut stdin_reader = stdin.lock();
+    let reader = Reader::new(stdin_reader);
+
+    reader.map(|e| e.map(|e| e.geojson_feature()))
+}
 
 fn stdin_features() -> Result<Vec<geojson::Feature>, Error> {
     let mut input_features: Vec<geojson::Feature> = Vec::new();
