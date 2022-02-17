@@ -12,6 +12,7 @@ pub mod entity;
 pub mod error;
 pub mod fgb;
 pub mod geohash;
+mod geojson;
 pub mod input;
 pub mod par;
 pub mod reader;

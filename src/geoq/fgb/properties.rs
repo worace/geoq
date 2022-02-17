@@ -1,7 +1,7 @@
 use super::header::ColSpec;
 use flatgeobuf::ColumnType;
 use serde_json::Map;
-use std::convert::TryInto;
+use std::{any::Any, convert::TryInto};
 
 trait ToBytesWithIndex {
     fn write(&self, idx: u16, vec: &mut Vec<u8>) -> () {
@@ -33,7 +33,7 @@ pub fn feature_props(f: &geojson::Feature, specs: &Vec<ColSpec>) -> Option<Vec<u
     for col in specs {
         let k = &col.name;
         let val_o = props.get(k);
-        if val_o.is_none() {
+        if val_o.is_none() || val_o.filter(|v| v.is_null()).is_some() {
             idx += 1;
             continue;
         }

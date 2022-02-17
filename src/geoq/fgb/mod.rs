@@ -84,6 +84,7 @@ mod tests {
             index::{self, RTreeIndexMeta},
             write,
         },
+        geojson::fvec,
         reader::Reader,
     };
     use flatgeobuf::packed_r_tree::hilbert_sort;
@@ -91,23 +92,6 @@ mod tests {
     use geojson::GeoJson;
     use std::io::{Cursor, Read, Seek};
 
-    fn fvec(gj: &str) -> Vec<geojson::Feature> {
-        use serde_json::json;
-        let j: serde_json::Value = gj.parse().expect("couldn't parse json");
-        let feat: GeoJson = gj.parse().expect("invalid geojson");
-
-        match feat {
-            GeoJson::Geometry(geom) => vec![geojson::Feature {
-                geometry: Some(geom),
-                bbox: None,
-                foreign_members: None,
-                id: None,
-                properties: Some(serde_json::Map::new()),
-            }],
-            GeoJson::Feature(f) => vec![f],
-            GeoJson::FeatureCollection(fc) => fc.features,
-        }
-    }
     const POINT: &str = r#"
      {"type": "Point", "coordinates": [-118, 34]}
     "#;
@@ -156,11 +140,9 @@ mod tests {
         let mut de = FgbReader::open(&mut buf).expect("Round trip...");
         de.select_all().expect("read all features...");
 
-        let mut output_features: Vec<geojson::Feature> = vec![];
         let deserialized_geojson: String = de.to_json().unwrap();
-        output_features = fvec(&deserialized_geojson);
 
-        (input_features, output_features)
+        (input_features, fvec(&deserialized_geojson))
     }
 
     #[test]
@@ -231,6 +213,31 @@ mod tests {
     fn test_multi_schema() {
         let (input, output) = roundtrip(MULTI_SCHEMA);
         assert_eq!(input, output);
+    }
+
+    #[test]
+    fn test_json_null() {
+        let json_null_in = r#"
+          {"type": "FeatureCollection", "features":[
+            {"type":"Feature","properties": {"name": "pizza"},"geometry": {"type": "Point", "coordinates": [0,0]}},
+            {"type":"Feature","properties": {"name": null},"geometry": {"type": "Point", "coordinates": [1,1]}}
+           ]}
+        "#;
+        let json_null_out = r#"
+          {"type": "FeatureCollection", "features":[
+            {"type":"Feature","properties": {"name": "pizza"},"geometry": {"type": "Point", "coordinates": [0,0]}},
+            {"type":"Feature","properties": {},"geometry": {"type": "Point", "coordinates": [1,1]}}
+           ]}
+        "#;
+        // Not clear the best way to handle this...FGB properties
+        // doesn't seem to have a way to represent an explicit 'null'
+        // as distinct from the property simply being omitted.
+        // This could either omit the property or cast the column to
+        // JSON in order to encode the JSON 'null' value.
+        // Currently omitting the field, as this seems to play nicer with other impls,
+        // but would like to be able to support it via the json type
+        let (_, output) = roundtrip(json_null_in);
+        assert_eq!(output, fvec(json_null_out));
     }
 
     #[test]
@@ -318,7 +325,7 @@ mod tests {
         }
         assert_eq!(500, features.len());
 
-        let gz_feats = features.clone();
+        let _gz_feats = features.clone();
 
         let (sorted, extent) = hilbert::sort_with_extent(features);
 

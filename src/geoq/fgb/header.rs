@@ -1,4 +1,4 @@
-use crate::geoq::fgb::index;
+use crate::geoq::{fgb::index, geojson::fvec};
 
 use super::columns;
 use super::hilbert::BBox;
@@ -59,7 +59,7 @@ pub struct ColSpec {
     pub type_: ColumnType,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum PropType {
     Boolean,
     String,
@@ -69,10 +69,9 @@ enum PropType {
 }
 // impl Eq for PropType {}
 
-fn schema(features: &Vec<BoundedFeature>) -> HashMap<String, PropType> {
+fn schema<'a>(features: impl Iterator<Item = &'a geojson::Feature>) -> HashMap<String, PropType> {
     let mut schema = HashMap::<String, PropType>::new();
-    for bf in features {
-        let f = &bf.feature;
+    for f in features {
         if f.properties.is_none() {
             continue;
         }
@@ -111,20 +110,16 @@ fn schema(features: &Vec<BoundedFeature>) -> HashMap<String, PropType> {
                     // number: from Long -> Double
                     // any other (e.g. string vs array, string vs JSON):
                     // -> JsonVal
-                    match jsont {
-                        PropType::Long => {
-                            if *current == PropType::Double {
-                                // leave as is to "widen" from Long to double
-                                continue;
-                            }
-                        }
-                        _ => {
-                            if *current == PropType::JsonVal {
-                                continue;
-                            } else {
-                                schema.insert(k.to_string(), PropType::JsonVal);
-                            }
-                        }
+                    if *current == PropType::JsonVal {
+                        // Already using Json, most generic schema type, so leave as is
+                        continue;
+                    } else if jsont == PropType::Long && *current == PropType::Double {
+                        // Already have Double and found a Long. Leave schema as is
+                        // to "widen" from Long to double
+                        continue;
+                    } else {
+                        // Widen from current specific type to more generic Json type
+                        schema.insert(k.to_string(), PropType::JsonVal);
                     }
                 }
             }
@@ -144,7 +139,7 @@ fn col_type(prop_type: &PropType) -> ColumnType {
 }
 
 fn col_specs(features: &Vec<BoundedFeature>) -> Vec<ColSpec> {
-    let schema = schema(features);
+    let schema = schema(features.iter().map(|f| &f.feature));
     schema
         .iter()
         .map(|(k, v)| ColSpec {
@@ -182,4 +177,32 @@ pub fn write<'a>(
     let header = flatgeobuf::Header::create(&mut bldr, &args);
     bldr.finish_size_prefixed(header, None);
     (bldr, col_specs)
+}
+
+#[test]
+fn test_schema_inference() {
+    let gj = r#"{"type":"Feature","properties": {"name": "pizza", "age": 123},"geometry": {"type": "Point", "coordinates": [-118, 34]}}"#;
+    let feats = fvec(gj);
+    let sch = schema(feats.iter());
+    assert_eq!(2, sch.len());
+    assert_eq!(Some(&PropType::Long), sch.get("age"));
+    assert_eq!(Some(&PropType::String), sch.get("name"));
+}
+
+#[test]
+fn test_schema_inference_mixed() {
+    let gj = r#"
+      {"type": "FeatureCollection", "features": [
+        {"type":"Feature","properties": {"name": "pizza", "n": "null"},"geometry": {"type": "Point", "coordinates": [-118, 34]}},
+        {"type":"Feature","properties": {"foo": ["pizza"], "n": 123},"geometry": {"type": "Point", "coordinates": [-118, 34]}},
+        {"type":"Feature","properties": {"foo": {"a":"b"}},"geometry": {"type": "Point", "coordinates": [-118, 34]}},
+        {"type":"Feature","properties": {"name": 1.0},"geometry": {"type": "Point", "coordinates": [-118, 34]}},
+        {"type":"Feature","properties": {"name": 1},"geometry": {"type": "Point", "coordinates": [-118, 34]}}
+       ]}"#;
+    let feats = fvec(gj);
+    let sch = schema(feats.iter());
+    assert_eq!(3, sch.len());
+    assert_eq!(Some(&PropType::JsonVal), sch.get("name"));
+    assert_eq!(Some(&PropType::JsonVal), sch.get("foo"));
+    assert_eq!(Some(&PropType::JsonVal), sch.get("n"));
 }
