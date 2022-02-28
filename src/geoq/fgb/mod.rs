@@ -1,5 +1,16 @@
+use std::collections::HashMap;
+
+use flatbuffers::FlatBufferBuilder;
+use flatgeobuf::ColumnType;
+use tempfile::NamedTempFile;
+
 use crate::geoq::fgb::hilbert::IndexNode;
 
+use self::bbox::BBox;
+
+use super::{error::Error, reader::Reader};
+
+pub(crate) mod bbox;
 pub(crate) mod columns;
 pub(crate) mod feature;
 pub(crate) mod geometry;
@@ -7,6 +18,29 @@ pub(crate) mod header;
 pub(crate) mod hilbert;
 pub(crate) mod index;
 pub(crate) mod properties;
+
+pub struct BoundedFlatBufFeature<'a> {
+    bbox: BBox,
+    bldr: FlatBufferBuilder<'a>,
+}
+
+pub type Schema = HashMap<String, PropType>;
+
+#[derive(Clone, Debug)]
+pub struct ColSpec {
+    pub name: String,
+    pub type_: ColumnType,
+}
+
+#[derive(PartialEq, Debug)]
+pub enum PropType {
+    Boolean,
+    String,
+    Long,
+    Double,
+    JsonVal,
+    Null,
+}
 
 // TODO
 // * [x] Add envelope generation and record in header field
@@ -28,6 +62,14 @@ pub(crate) mod properties;
 //   - record byte offset
 //   - use (bbox, byte_offset) pairs for building index
 // 5.
+
+pub fn write_ext(reader: Reader, dest_path: &str) -> Result<u64, Error> {
+    let part = NamedTempFile::new();
+    for e_res in reader {
+        let e = e_res?;
+    }
+    Ok(0)
+}
 
 // Binary Layout
 // MB: Magic bytes (0x6667620366676201)

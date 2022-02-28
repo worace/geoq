@@ -2,7 +2,7 @@ use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatgeobuf::Column;
 use flatgeobuf::ColumnBuilder;
 
-use super::header::ColSpec;
+use super::ColSpec;
 
 pub fn build<'a: 'b, 'b>(
     bldr: &'b mut FlatBufferBuilder<'a>,

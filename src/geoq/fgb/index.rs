@@ -1,8 +1,8 @@
 use std::{cmp::min, ops::Range};
 
-use super::hilbert::BBox;
 use super::hilbert::BoundedFeature;
 use super::hilbert::IndexNode;
+use super::BBox;
 
 pub const NODE_SIZE: u16 = 16;
 // 4 doubles for bbox + 1 u64 for byte offset

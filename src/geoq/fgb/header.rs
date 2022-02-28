@@ -1,8 +1,8 @@
 use crate::geoq::{fgb::index, geojson::fvec};
 
-use super::columns;
-use super::hilbert::BBox;
-use super::hilbert::BoundedFeature;
+use super::{columns, PropType};
+use super::{hilbert::BoundedFeature, properties::col_type};
+use super::{BBox, ColSpec};
 use flatbuffers::FlatBufferBuilder;
 use flatgeobuf::{ColumnType, GeometryType, HeaderArgs, HeaderBuilder};
 use serde_json::Value;
@@ -52,22 +52,6 @@ fn geometry_type(features: &Vec<BoundedFeature>) -> GeometryType {
         GeometryType::Unknown
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct ColSpec {
-    pub name: String,
-    pub type_: ColumnType,
-}
-
-#[derive(PartialEq, Debug)]
-enum PropType {
-    Boolean,
-    String,
-    Long,
-    Double,
-    JsonVal,
-}
-// impl Eq for PropType {}
 
 fn schema<'a>(features: impl Iterator<Item = &'a geojson::Feature>) -> HashMap<String, PropType> {
     let mut schema = HashMap::<String, PropType>::new();
@@ -126,16 +110,6 @@ fn schema<'a>(features: impl Iterator<Item = &'a geojson::Feature>) -> HashMap<S
         }
     }
     schema
-}
-
-fn col_type(prop_type: &PropType) -> ColumnType {
-    match *prop_type {
-        PropType::Boolean => ColumnType::Bool,
-        PropType::Long => ColumnType::Long,
-        PropType::Double => ColumnType::Double,
-        PropType::String => ColumnType::String,
-        PropType::JsonVal => ColumnType::Json,
-    }
 }
 
 fn col_specs(features: &Vec<BoundedFeature>) -> Vec<ColSpec> {

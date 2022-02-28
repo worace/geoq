@@ -1,7 +1,7 @@
-use super::header::ColSpec;
+use super::{ColSpec, PropType};
 use flatgeobuf::ColumnType;
-use serde_json::Map;
-use std::{any::Any, convert::TryInto};
+use serde_json::{Map, Value};
+use std::{any::Any, collections::HashMap, convert::TryInto};
 
 trait ToBytesWithIndex {
     fn write(&self, idx: u16, vec: &mut Vec<u8>) -> () {
@@ -19,6 +19,65 @@ impl ToBytesWithIndex for bool {
             vec.push(1);
         }
     }
+}
+
+pub fn col_type(prop_type: &PropType) -> ColumnType {
+    match *prop_type {
+        PropType::Boolean => ColumnType::Bool,
+        PropType::Long => ColumnType::Long,
+        PropType::Double => ColumnType::Double,
+        PropType::String => ColumnType::String,
+        PropType::JsonVal => ColumnType::Json,
+        PropType::Null => ColumnType::Json,
+    }
+}
+
+pub fn col_specs(schema: &HashMap<String, PropType>) -> Vec<ColSpec> {
+    let mut keys: Vec<String> = vec![];
+    for k in schema.keys() {
+        keys.push(k.clone());
+    }
+    keys.sort();
+
+    keys.iter()
+        .map(|k| {
+            let v = schema.get(k).unwrap();
+            ColSpec {
+                name: k.to_string(),
+                type_: col_type(v),
+            }
+        })
+        .collect()
+}
+
+pub fn feature_schema(feature: &geojson::Feature) -> HashMap<String, PropType> {
+    let mut schema = HashMap::<String, PropType>::new();
+    if feature.properties.is_none() {
+        return schema;
+    }
+    for (k, v) in feature.properties.as_ref().unwrap() {
+        let jsont = match v {
+            Value::Bool(_) => PropType::Boolean,
+            Value::String(_) => PropType::String,
+            Value::Number(num) => {
+                if num.is_f64() {
+                    PropType::Double
+                } else if num.is_i64() {
+                    PropType::Long
+                } else {
+                    panic!(
+                        "Expected JSON Number to be coercible to either i64 or f64. Found: {:?}",
+                        num
+                    );
+                }
+            }
+            Value::Array(_) => PropType::JsonVal,
+            Value::Object(_) => PropType::JsonVal,
+            Value::Null => PropType::Null,
+        };
+        schema.insert(k.to_string(), jsont);
+    }
+    schema
 }
 
 pub fn feature_props(f: &geojson::Feature, specs: &Vec<ColSpec>) -> Option<Vec<u8>> {

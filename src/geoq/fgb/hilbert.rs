@@ -3,13 +3,7 @@ use std::convert::TryInto;
 use geo::coords_iter;
 use geojson::{Feature, Value};
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct BBox {
-    pub min_x: f64,
-    pub min_y: f64,
-    pub max_x: f64,
-    pub max_y: f64,
-}
+use super::bbox::BBox;
 
 #[derive(Debug)]
 pub struct BoundedFeature {
@@ -55,137 +49,6 @@ impl IndexNode {
     }
 }
 
-impl BBox {
-    pub fn new(x: f64, y: f64) -> BBox {
-        BBox {
-            min_x: x,
-            min_y: y,
-            max_x: x,
-            max_y: y,
-        }
-    }
-
-    pub fn empty() -> BBox {
-        BBox {
-            min_x: f64::INFINITY,
-            min_y: f64::INFINITY,
-            max_x: f64::NEG_INFINITY,
-            max_y: f64::NEG_INFINITY,
-        }
-    }
-
-    pub fn expand(&mut self, other: &BBox) {
-        if other.min_x < self.min_x {
-            self.min_x = other.min_x;
-        }
-        if other.min_y < self.min_y {
-            self.min_y = other.min_y;
-        }
-        if other.max_x > self.max_x {
-            self.max_x = other.max_x;
-        }
-        if other.max_y > self.max_y {
-            self.max_y = other.max_y;
-        }
-    }
-
-    fn expand_xy(&mut self, x: f64, y: f64) {
-        if x < self.min_x {
-            self.min_x = x;
-        }
-        if y < self.min_y {
-            self.min_y = y;
-        }
-        if x > self.max_x {
-            self.max_x = x;
-        }
-        if y > self.max_y {
-            self.max_y = y;
-        }
-    }
-
-    fn expand_vec(&mut self, coords: &Vec<f64>) {
-        self.expand_xy(coords[0], coords[1]);
-    }
-
-    fn expand_vec_vec(&mut self, coords: &Vec<Vec<f64>>) {
-        for coord in coords {
-            self.expand_vec(coord);
-        }
-    }
-
-    fn expand_vec_vec_vec(&mut self, rings: &Vec<Vec<Vec<f64>>>) {
-        for ring in rings {
-            self.expand_vec_vec(ring);
-        }
-    }
-
-    fn expand_vec_vec_vec_vec(&mut self, polys: &Vec<Vec<Vec<Vec<f64>>>>) {
-        for poly in polys {
-            self.expand_vec_vec_vec(poly);
-        }
-    }
-
-    fn expand_geom(&mut self, geom: &Value) {
-        match geom {
-            Value::Point(coords) => self.expand_vec(&coords),
-            Value::MultiPoint(coords) => self.expand_vec_vec(&coords),
-            Value::LineString(coords) => self.expand_vec_vec(&coords),
-            Value::MultiLineString(coords) => self.expand_vec_vec_vec(&coords),
-            Value::Polygon(coords) => self.expand_vec_vec_vec(&coords),
-            Value::MultiPolygon(coords) => self.expand_vec_vec_vec_vec(&coords),
-            Value::GeometryCollection(geoms) => {
-                for geom in geoms {
-                    self.expand_geom(&geom.value)
-                }
-            }
-        }
-    }
-
-    pub fn expand_feature(&mut self, feat: &geojson::Feature) {
-        if feat.geometry.is_none() {
-            return;
-        }
-
-        let g = &feat.geometry.as_ref().unwrap().value;
-        self.expand_geom(g);
-    }
-
-    pub fn for_feature(feat: &geojson::Feature) -> BBox {
-        let (x, y) = feat_coord(feat);
-        let mut bb = BBox::new(x, y);
-        bb.expand_feature(feat);
-        bb
-    }
-
-    pub fn to_vec(&self) -> Vec<f64> {
-        vec![self.min_x, self.min_y, self.max_x, self.max_y]
-    }
-
-    fn center(&self) -> (f64, f64) {
-        (
-            (self.min_x + self.max_x) / 2.0,
-            (self.min_y + self.max_y) / 2.0,
-        )
-    }
-
-    fn width(&self) -> f64 {
-        self.max_x - self.min_x
-    }
-
-    fn height(&self) -> f64 {
-        self.max_y - self.min_y
-    }
-
-    fn hilbert_bbox(&self, extent: &BBox) -> u32 {
-        // calculate bbox center and scale to hilbert_max
-        let (mid_x, mid_y) = self.center();
-        let x = (HILBERT_MAX * (mid_x - extent.min_x) / extent.width()).floor() as u32;
-        let y = (HILBERT_MAX * (mid_y - extent.min_y) / extent.height()).floor() as u32;
-        hilbert(x, y)
-    }
-}
-
 fn feat_coord(f: &geojson::Feature) -> (f64, f64) {
     f.geometry.as_ref().map(|geom| coord(&geom.value)).unwrap()
 }
@@ -223,9 +86,11 @@ pub fn sort_with_extent(features: Vec<geojson::Feature>) -> (Vec<BoundedFeature>
         })
         .collect();
     bounded_feats.sort_by(|a, b| {
-        a.bbox
-            .hilbert_bbox(&extent)
-            .partial_cmp(&b.bbox.hilbert_bbox(&extent))
+        let hilbert_a = hilbert_bbox(&a.bbox, &extent);
+        let hilbert_b = hilbert_bbox(&b.bbox, &extent);
+
+        hilbert_a
+            .partial_cmp(&hilbert_b)
             .unwrap_or(std::cmp::Ordering::Equal)
     });
 
@@ -288,4 +153,12 @@ fn hilbert(x: u32, y: u32) -> u32 {
     let value = (i1 << 1) | i0;
 
     value
+}
+
+pub fn hilbert_bbox(bbox: &BBox, extent: &BBox) -> u32 {
+    // calculate bbox center and scale to hilbert_max
+    let (mid_x, mid_y) = bbox.center();
+    let x = (HILBERT_MAX * (mid_x - extent.min_x) / extent.width()).floor() as u32;
+    let y = (HILBERT_MAX * (mid_y - extent.min_y) / extent.height()).floor() as u32;
+    hilbert(x, y)
 }
