@@ -26,18 +26,17 @@ See the [Manual](https://github.com/worace/geoq/blob/master/manual.md) for more 
 
 ## Install
 
-Currently installation is done through [crates.io](http://crates.io/), the Rust package repository.
+Geoq is installed via `cargo`, the Rust package manager, and requires `nightly` rust.
 
-If you have Rust installed, simply:
-
-```
-cargo install geoq
-```
+If you have all this set up, you can just run `cargo install geoq`.
 
 To [install Rust](https://www.rust-lang.org/en-US/install.html) and the Cargo toolchain:
 
 ```
 curl https://sh.rustup.rs -sSf | sh
+rustup toolchain install nightly
+rustup default nightly
+cargo install geoq
 ```
 
 You'll also need to add Cargo's `bin` directory to your path:
