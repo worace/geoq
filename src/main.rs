@@ -276,7 +276,7 @@ fn main() {
         .get_matches();
 
     if let Err(e) = run(matches) {
-        eprintln!("Application error: {:?}", e);
+        eprintln!("geoq exited with error: {:?}", e);
         process::exit(1);
     }
 }
