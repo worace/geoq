@@ -24,6 +24,7 @@ fn run(matches: ArgMatches) -> Result<(), Error> {
         ("bbox", Some(m)) => commands::bbox::run(m),
         ("shp", Some(m)) => commands::shp::run(m),
         ("fgb", Some(m)) => commands::fgb::run(m),
+        ("h3", Some(m)) => commands::h3::run(m),
         _ => Err(Error::UnknownCommand),
     }
 }
@@ -239,6 +240,19 @@ fn main() {
                 ),
         );
 
+    let h3 = SubCommand::with_name("h3")
+        .about("Work with H3")
+        .subcommand(
+        SubCommand::with_name("point")
+            .about("Output hexadecimal encoded Cell ID for a given Lat,Lon at requested resolution")
+            .arg(
+                Arg::with_name("resolution")
+                    .help("H3 cell resolution (0-15)")
+                    .required(true)
+                    .index(1),
+            ),
+    );
+
     let matches = App::new("geoq")
         .version(VERSION)
         .setting(AppSettings::SubcommandRequiredElseHelp)
@@ -258,6 +272,7 @@ fn main() {
         .subcommand(bbox)
         .subcommand(shp)
         .subcommand(fgb)
+        .subcommand(h3)
         .get_matches();
 
     if let Err(e) = run(matches) {

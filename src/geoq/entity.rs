@@ -1,6 +1,8 @@
 use crate::geoq::{bbox, error::Error, input::Input};
 use geo_types::{Coordinate, Geometry, LineString, Point, Polygon};
 use geojson::GeoJson;
+use h3ron::ToPolygon;
+use h3ron::{H3Cell, Index};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde_json;
@@ -16,6 +18,7 @@ pub enum Entity {
     Wkt(String, geo_types::Geometry<f64>),
     GeoJsonFeature(String, geojson::Feature),
     GeoJsonGeometry(String, geojson::Geometry),
+    H3(H3Cell),
 }
 
 impl fmt::Display for Entity {
@@ -26,6 +29,12 @@ impl fmt::Display for Entity {
             Entity::Wkt(ref raw, _) => write!(f, "WKT: {}", raw),
             Entity::GeoJsonFeature(ref raw, _) => write!(f, "GeoJSON Feature: {}", raw),
             Entity::GeoJsonGeometry(ref raw, _) => write!(f, "GeoJSON Geometry: {}", raw),
+            Entity::H3(ref raw) => write!(
+                f,
+                "H3 Cell: {} at resolution {}",
+                raw.to_string(),
+                raw.resolution()
+            ),
         }
     }
 }
@@ -49,6 +58,11 @@ fn geohash_geom(raw: &String) -> geo_types::Geometry<f64> {
         Coordinate::from((bl.x, bl.y)),
     ]);
     Geometry::Polygon(Polygon::new(outer, Vec::new()))
+}
+
+fn h3_geom(raw: &H3Cell) -> geo_types::Geometry<f64> {
+    // TODO: does this ever fail?
+    geo_types::Geometry::Polygon(raw.to_polygon().unwrap())
 }
 
 fn wkt_entities(raw: &String) -> Result<Vec<Entity>, Error> {
@@ -97,6 +111,7 @@ impl Entity {
         match self {
             Entity::LatLon(ref raw) => latlon_geom(raw),
             Entity::Geohash(ref raw) => geohash_geom(raw),
+            Entity::H3(ref cell) => h3_geom(cell),
             Entity::Wkt(_, ref geom) => geom.clone(),
             Entity::GeoJsonGeometry(_, gj_geom) => match gj_geom.value.clone() {
                 geojson::Value::GeometryCollection(gj_geoms) => {
@@ -166,16 +181,25 @@ impl Entity {
             Entity::Wkt(ref raw, _) => raw.clone(),
             Entity::GeoJsonGeometry(ref raw, _) => raw.clone(),
             Entity::GeoJsonFeature(ref raw, _) => raw.clone(),
+            Entity::H3(ref cell) => cell.to_string(),
         }
     }
 }
 
+use std::str::FromStr;
 pub fn from_input(i: Input) -> Result<Vec<Entity>, Error> {
     match i {
         Input::LatLon(raw) => Ok(vec![Entity::LatLon(raw)]),
         Input::Geohash(raw) => Ok(vec![Entity::Geohash(raw)]),
         Input::WKT(raw) => wkt_entities(&raw),
         Input::GeoJSON(raw) => geojson_entities(raw),
+        Input::H3(raw) => match H3Cell::from_str(&raw) {
+            Ok(cell) => Ok(vec![Entity::H3(cell)]),
+            Err(e) => Err(Error::InvalidInput(format!(
+                "Unable to parse String as H3 Cell: {} - {}",
+                raw, e
+            ))),
+        },
     }
 }
 
