@@ -158,6 +158,13 @@ impl Entity {
                     serde_json::Map::new()
                 }
             }
+            Entity::H3(cell) => {
+                let mut props = serde_json::Map::new();
+                props.insert("resolution".to_string(), cell.resolution().into());
+                props.insert("id".to_string(), cell.to_string().into());
+                props.insert("index".to_string(), cell.h3index().into());
+                props
+            }
             _ => serde_json::Map::new(),
         }
     }

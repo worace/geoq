@@ -1,20 +1,17 @@
 use crate::geoq::{self, entity::Entity, error::Error, par};
 use clap::ArgMatches;
-use geo::Point;
-use h3ron::{FromH3Index, H3Cell, Index};
+use geo::{
+    prelude::{Centroid, Contains, Intersects},
+    Geometry, Point, Polygon,
+};
+use h3ron::{collections::indexvec::IndexVec, FromH3Index, H3Cell, Index, ToCoordinate, ToPolygon};
 use std::{
+    collections::VecDeque,
     io::{self, prelude::*},
     str::FromStr,
 };
 
-fn read_resolution(matches: &ArgMatches) -> Result<u8, Error> {
-    let resolution_arg = matches.value_of("resolution");
-    if resolution_arg.is_none() {
-        return Err(Error::MissingArgument);
-    }
-
-    let resolution_str = resolution_arg.unwrap();
-
+fn parse_resolution(resolution_str: &str) -> Result<u8, Error> {
     let resolution_parsed = resolution_str.parse::<u8>();
     if resolution_parsed.is_err() {
         return Err(Error::InvalidNumberFormat(format!(
@@ -30,6 +27,16 @@ fn read_resolution(matches: &ArgMatches) -> Result<u8, Error> {
         )));
     }
     Ok(resolution)
+}
+
+fn read_resolution(matches: &ArgMatches) -> Result<u8, Error> {
+    let resolution_arg = matches.value_of("resolution");
+    if resolution_arg.is_none() {
+        return Err(Error::MissingArgument);
+    }
+
+    let resolution_str = resolution_arg.unwrap();
+    parse_resolution(resolution_str)
 }
 
 fn point(matches: &ArgMatches) -> Result<(), Error> {
@@ -66,6 +73,41 @@ fn cell_children(cell: H3Cell, _res: Option<u8>) -> Result<Vec<String>, Error> {
             ))
         })
         .map(|cells| cells.iter().map(|c| c.to_string()).collect())
+}
+
+fn parent(matches: &ArgMatches) -> Result<(), Error> {
+    let resolution = match read_resolution(matches) {
+        Ok(res) => Some(res),
+        Err(Error::MissingArgument) => None,
+        err => return err.map(|_| ()),
+    };
+
+    par::for_stdin_entity(move |e| match e {
+        Entity::H3(cell) => {
+            let cell_res = cell.resolution();
+            let parent_res = resolution.unwrap_or(cell_res - 1);
+            if parent_res >= cell_res {
+                Err(Error::InvalidInput(format!(
+                    "Parent resolution must be less than or equal to cell resolution. Can't get parent at res {} for cell {} at res {}.",
+                    parent_res, cell.to_string(), cell_res
+                )))
+            } else if parent_res < 0 {
+                Err(Error::InvalidInput(format!(
+                    "Can't get parent or ancestor for cell {} at res {} -- Can't go below res 0.",
+                    cell.to_string(),
+                    cell_res
+                )))
+            } else {
+                cell.get_parent(parent_res)
+                    .map_err(|e| Error::ProgramError(format!("H3 error: {}", e)))
+                    .map(|p| vec![p.to_string()])
+            }
+        }
+        _ => Err(Error::InvalidInput(format!(
+            "Input for 'geoq h3 children' should be a hexadecimal h3 cell. Got: {}",
+            e
+        ))),
+    })
 }
 
 fn children(matches: &ArgMatches) -> Result<(), Error> {
@@ -207,25 +249,230 @@ fn grid_disk(matches: &ArgMatches) -> Result<(), Error> {
     })
 }
 
+fn polyfill_res(matches: &ArgMatches) -> Result<(u8, u8), Error> {
+    let min: &str = matches.value_of("min-res").unwrap_or("0");
+    let max = matches.value_of("max-res").unwrap_or("15");
+
+    let min_parsed = parse_resolution(min)?;
+    let max_parsed = parse_resolution(max)?;
+
+    if (min_parsed <= max_parsed) {
+        Ok((min_parsed, max_parsed))
+    } else {
+        Err(Error::InvalidInput(format!(
+            "Min resolution must be less than or equal to max resolution. Got min: {}, max: {}",
+            min_parsed, max_parsed
+        )))
+    }
+}
+
+fn start_cells(geom: &Geometry<f64>, max_res: u8) -> Result<(Vec<H3Cell>, u8), Error> {
+    // Attempt to find a starting h3 cell which fully covers the provided geometry
+    // This should only fail if the geometry is so large that there is no single cell at
+    // any resolution which fully covers it. If this is the case, our starting set
+    // will simply be the full set of res 0 cells (assuming a ~continent-sized geometry)
+    let startingRes: Option<H3Cell> = match geom.centroid() {
+        Some(cen) => {
+            let cells: Result<Vec<H3Cell>, Error> = (max_res..=0)
+                .map(|res| {
+                    H3Cell::from_point(cen, res)
+                        .map_err(|e| Error::ProgramError(format!("H3 Error: {}", e)))
+                })
+                .collect();
+
+            cells.map(|cells| {
+                cells.into_iter().find(|cell| match cell.to_polygon() {
+                    Ok(poly) => geoq::contains::contains(&poly, geom),
+                    _ => false,
+                })
+            })
+        }
+        None => Err(Error::ProgramError(
+            "Unable to take centroid of geometry".to_string(),
+        )),
+    }?;
+
+    Ok(startingRes
+        .map(|c| (vec![c], c.resolution()))
+        .unwrap_or_else(|| (h3ron::res0_cells().iter().collect::<Vec<H3Cell>>(), 0)))
+}
+
+struct CellGroup {
+    cells: Vec<H3Cell>,
+    res: u8,
+    parent: Option<H3Cell>,
+}
+
+// How does this cell relate to the query geometry to be covered
+// cached to avoid recomputing these relationships throughout the function
+struct CellRelation {
+    cell: H3Cell,
+    is_contained: bool,
+    intersects: bool,
+    centroid_contained: bool,
+}
+
+fn group_relations(group: &CellGroup, geometry: &Geometry<f64>) -> Vec<CellRelation> {
+    group
+        .cells
+        .iter()
+        .map(|cell| match (cell.to_polygon(), cell.to_coordinate()) {
+            (Ok(poly), Ok(center)) => {
+                let geom = Geometry::Polygon(poly);
+                CellRelation {
+                    cell: cell.clone(),
+                    is_contained: geoq::contains::contains_any(geometry, &geom),
+                    intersects: geom.intersects(geometry),
+                    centroid_contained: geoq::contains::contains_any(
+                        geometry,
+                        &Geometry::Point(Point::new(center.x, center.y)),
+                    ),
+                }
+            }
+            _ => CellRelation {
+                cell: cell.clone(),
+                is_contained: false,
+                intersects: false,
+                centroid_contained: false,
+            },
+        })
+        .collect()
+}
+
+fn top_down_covering_cells(
+    geom: &Geometry<f64>,
+    min_res: u8,
+    max_res: u8,
+) -> Result<Vec<H3Cell>, Error> {
+    let (start, start_res) = start_cells(geom, max_res)?;
+    let mut queue = VecDeque::<CellGroup>::new();
+    let start_group = CellGroup {
+        cells: start,
+        res: start_res,
+        parent: None,
+    };
+    queue.push_back(start_group);
+    let mut cells = Vec::<H3Cell>::new();
+    while let Some(candidate) = queue.pop_front() {
+        let rels = group_relations(&candidate, geom);
+        if candidate.res > min_res
+            && rels.iter().all(|rel| rel.is_contained)
+            && candidate.parent.is_some()
+        {
+            cells.push(candidate.parent.unwrap())
+        } else {
+            rels.iter().filter(|r| r.intersects).for_each(|r| {
+                if candidate.res == max_res {
+                    if r.centroid_contained {
+                        cells.push(r.cell)
+                    }
+                } else if candidate.res < 15 {
+                    match r.cell.get_children(candidate.res + 1) {
+                        Ok(cells) => {
+                            let next_group = CellGroup {
+                                cells: cells.into(),
+                                res: candidate.res + 1,
+                                parent: Some(r.cell),
+                            };
+                            queue.push_back(next_group);
+                        }
+                        _ => (),
+                    }
+                }
+            })
+        }
+    }
+    Ok(cells)
+}
+
+fn polyfill(matches: &ArgMatches) -> Result<(), Error> {
+    let (min, max) = polyfill_res(matches)?;
+    let include_original = matches.is_present("original");
+
+    par::for_stdin_entity(move |e| {
+        let mut results = if include_original {
+            vec![e.raw()]
+        } else {
+            vec![]
+        };
+        match top_down_covering_cells(&e.geom(), min, max) {
+            Ok(cells) => cells.iter().for_each(|c| results.push(c.to_string())),
+            _ => (),
+        }
+        Ok(results)
+    })
+}
+
+// This function uses the built-in H3 impl (homogeneous polyfill at specific res)
+fn polygon_cells(entity: &Entity, poly: &Polygon<f64>, res: u8) -> Result<IndexVec<H3Cell>, Error> {
+    h3ron::to_h3::polygon_to_cells(poly, res).map_err(|e| {
+        Error::ProgramError(format!(
+            "Unable to calculate H3 polygon cells for polygon: {} -- {}",
+            entity.raw(),
+            e
+        ))
+    })
+}
+
+fn polyfill_h3(matches: &ArgMatches) -> Result<(), Error> {
+    let (min, max) = polyfill_res(matches)?;
+    let include_original = matches.is_present("original");
+
+    par::for_stdin_entity(move |e| {
+        let mut results = if include_original {
+            vec![e.raw()]
+        } else {
+            vec![]
+        };
+        let cells = match e.geom() {
+            geo_types::Geometry::Polygon(poly) => polygon_cells(&e, &poly, max),
+            geo_types::Geometry::MultiPolygon(_poly) => Ok(IndexVec::new()),
+            _ => Err(Error::InvalidInput(format!(
+                "geoq h3 polyfill requires Polygon or MultiPolygon geometries -- got {}",
+                e.raw()
+            ))),
+        };
+        match cells {
+            Ok(cells) => {
+                if min < max {
+                    let cells_vec: Vec<H3Cell> = cells.into();
+                    match h3ron::compact_cells(&cells_vec[0..cells_vec.len()]) {
+                        Ok(compacted) => compacted.iter().for_each(|c| results.push(c.to_string())),
+                        _ => (),
+                    }
+                } else {
+                    cells.iter().for_each(|c| results.push(c.to_string()));
+                }
+            }
+            _ => (),
+        }
+        Ok(results)
+    })
+}
+
 // H3 methods
 // [x] point
-// [ ] polyfill
+// [x] polyfill
 // [x] hierarchy -- print full hierarchy
 // [x] children
+// [x] parent
 // [x] disk (n)
 // [x] string to long
 // [x] long to string
-// [ ] H3 metadata in geojson representation
+// [x] H3 metadata in geojson representation
 // H3 add to entity parsing
 // - long or hex format? will it collide with geohash?
 pub fn run(matches: &ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("point", Some(m)) => point(m),
         ("children", Some(m)) => children(m),
+        ("parent", Some(m)) => parent(m),
         ("hierarchy", _) => hierarchy(),
         ("from-str", _) => from_str(),
         ("to-str", _) => to_str(),
         ("grid-disk", Some(m)) => grid_disk(m),
+        ("polyfill", Some(m)) => polyfill(m),
+        ("polyfill-h3", Some(m)) => polyfill_h3(m),
         _ => Err(Error::UnknownCommand),
     }
 }

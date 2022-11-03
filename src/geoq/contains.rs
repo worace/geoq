@@ -15,3 +15,18 @@ pub fn contains(outer: &Polygon<f64>, inner: &Geometry<f64>) -> bool {
         Geometry::GeometryCollection(ref gc) => gc.0.iter().all(|geom| contains(outer, geom)),
     }
 }
+
+pub fn contains_any(outer: &Geometry<f64>, inner: &Geometry<f64>) -> bool {
+    match *outer {
+        Geometry::Point(ref g) => false,
+        Geometry::Line(ref g) => false,
+        Geometry::LineString(ref g) => false,
+        Geometry::Polygon(ref g) => contains(g, inner),
+        Geometry::Rect(ref g) => contains(&g.to_polygon(), inner),
+        Geometry::Triangle(ref g) => contains(&g.to_polygon(), inner),
+        Geometry::MultiPoint(ref mp) => false,
+        Geometry::MultiLineString(ref mls) => false,
+        Geometry::MultiPolygon(ref mp) => mp.0.iter().any(|poly| contains(poly, inner)),
+        Geometry::GeometryCollection(ref gc) => gc.0.iter().any(|geom| contains_any(geom, inner)),
+    }
+}

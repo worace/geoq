@@ -177,3 +177,19 @@ pub const MEASURE_COORDS_GEOJSON_ARG_HELP: &str =
     "Give result as an embedded property in a GeoJSON feature, rather than as a single number.";
 
 pub const BBOX_AFTER_HELP: &str = "Generate bbox for a geometry";
+
+pub const H3_POLYFILL_HELP: &str = r"
+If min-res and max-res are different, this will be a 'compacted' set
+of cells, using the smallest number of cells required to cover the
+provided geometry at the requested ranges.
+
+This result is similar to using polygonToCells in the core H3 library:
+https://h3geo.org/docs/api/regions#polygontocells at the Min Resolution
+Followed by compacting (https://h3geo.org/docs/api/hierarchy/#compactcells)
+to the max resolution.
+
+Using the same min and max resolution gives a result similar to just calling
+polygonToCells in the core library.
+
+Min Res must be greater than Max Res.
+";
