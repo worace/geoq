@@ -243,15 +243,42 @@ fn main() {
     let h3 = SubCommand::with_name("h3")
         .about("Work with H3")
         .subcommand(
-        SubCommand::with_name("point")
-            .about("Output hexadecimal encoded Cell ID for a given Lat,Lon at requested resolution")
-            .arg(
-                Arg::with_name("resolution")
-                    .help("H3 cell resolution (0-15)")
-                    .required(true)
-                    .index(1),
-            ),
-    );
+            SubCommand::with_name("point")
+                .about("Output hexadecimal encoded Cell ID for a given Lat,Lon at requested resolution")
+                .arg(
+                    Arg::with_name("resolution")
+                        .help("H3 cell resolution (0-15)")
+                        .required(true)
+                        .index(1),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("hierarchy")
+                .about("Output all hexadecimal encoded Cells for a given Lat,Lon, from res 0 to 15")
+        )
+        .subcommand(
+            SubCommand::with_name("to-str")
+                .about("Convert an h3 numeric index (64-bit integer representation) to its hexadecimal string representation")
+        ).subcommand(
+            SubCommand::with_name("from-str")
+                .about("Convert an h3 string index (15-character hexadecimal representation) to its 64-bit integer numeric representation")
+        ).subcommand(
+            SubCommand::with_name("children")
+                .about("Get children for given cells at given resolution. If no resolution is given, the cell's resolution + 1 is used.")
+                .arg(
+                    Arg::with_name("resolution")
+                        .help("H3 cell resolution (0-15)")
+                        .index(1),
+                )
+        ).subcommand(
+            SubCommand::with_name("grid-disk")
+                .about("Get disk of given radius around given cells. Default radius is 1.")
+                .arg(
+                    Arg::with_name("radius")
+                        .help("https://h3geo.org/docs/api/traversal/#griddisk")
+                        .index(1),
+                )
+        );
 
     let matches = App::new("geoq")
         .version(VERSION)
