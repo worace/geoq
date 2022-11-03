@@ -215,6 +215,7 @@ fn grid_disk(matches: &ArgMatches) -> Result<(), Error> {
 // [x] disk (n)
 // [x] string to long
 // [x] long to string
+// [ ] H3 metadata in geojson representation
 // H3 add to entity parsing
 // - long or hex format? will it collide with geohash?
 pub fn run(matches: &ArgMatches) -> Result<(), Error> {
