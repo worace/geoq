@@ -2,11 +2,11 @@ use crate::geoq::{self, entity::Entity, error::Error, par};
 use clap::ArgMatches;
 use geo::{
     prelude::{Centroid, Contains, Intersects},
-    Geometry, Point, Polygon,
+    Geometry, MultiPolygon, Point, Polygon,
 };
 use h3ron::{collections::indexvec::IndexVec, FromH3Index, H3Cell, Index, ToCoordinate, ToPolygon};
 use std::{
-    collections::VecDeque,
+    collections::{HashSet, VecDeque},
     io::{self, prelude::*},
     str::FromStr,
 };
@@ -344,7 +344,9 @@ fn top_down_covering_cells(
     min_res: u8,
     max_res: u8,
 ) -> Result<Vec<H3Cell>, Error> {
+    eprintln!("top_down_covering");
     let (start, start_res) = start_cells(geom, max_res)?;
+    eprintln!("start_res: {}", start_res);
     let mut queue = VecDeque::<CellGroup>::new();
     let start_group = CellGroup {
         cells: start,
@@ -354,9 +356,17 @@ fn top_down_covering_cells(
     queue.push_back(start_group);
     let mut cells = Vec::<H3Cell>::new();
     while let Some(candidate) = queue.pop_front() {
+        eprintln!(
+            "check candidate group at res {}, under parent {}",
+            candidate.res,
+            candidate
+                .parent
+                .map(|p| p.to_string())
+                .unwrap_or("none".to_string())
+        );
         let rels = group_relations(&candidate, geom);
         if candidate.res > min_res
-            && rels.iter().all(|rel| rel.is_contained)
+            && rels.iter().all(|rel| rel.centroid_contained)
             && candidate.parent.is_some()
         {
             cells.push(candidate.parent.unwrap())
@@ -395,6 +405,7 @@ fn polyfill(matches: &ArgMatches) -> Result<(), Error> {
         } else {
             vec![]
         };
+        eprintln!("polyfill for entity");
         match top_down_covering_cells(&e.geom(), min, max) {
             Ok(cells) => cells.iter().for_each(|c| results.push(c.to_string())),
             _ => (),
@@ -404,14 +415,31 @@ fn polyfill(matches: &ArgMatches) -> Result<(), Error> {
 }
 
 // This function uses the built-in H3 impl (homogeneous polyfill at specific res)
-fn polygon_cells(entity: &Entity, poly: &Polygon<f64>, res: u8) -> Result<IndexVec<H3Cell>, Error> {
-    h3ron::to_h3::polygon_to_cells(poly, res).map_err(|e| {
-        Error::ProgramError(format!(
-            "Unable to calculate H3 polygon cells for polygon: {} -- {}",
-            entity.raw(),
-            e
-        ))
-    })
+fn polygon_cells(entity: &Entity, poly: &Polygon<f64>, res: u8) -> Result<Vec<H3Cell>, Error> {
+    h3ron::to_h3::polygon_to_cells(poly, res)
+        .map_err(|e| {
+            Error::ProgramError(format!(
+                "Unable to calculate H3 polygon cells for polygon: {} -- {}",
+                entity.raw(),
+                e
+            ))
+        })
+        .map(|iv| iv.into())
+}
+
+fn multi_polygon_cells(
+    entity: &Entity,
+    mp: &MultiPolygon<f64>,
+    res: u8,
+) -> Result<Vec<H3Cell>, Error> {
+    let mut cells = HashSet::<H3Cell>::new();
+    for poly in mp.0.iter() {
+        let poly_cells = polygon_cells(entity, &poly, res)?;
+        for cell in poly_cells.into_iter() {
+            cells.insert(cell);
+        }
+    }
+    Ok(cells.into_iter().collect())
 }
 
 fn polyfill_h3(matches: &ArgMatches) -> Result<(), Error> {
@@ -426,7 +454,7 @@ fn polyfill_h3(matches: &ArgMatches) -> Result<(), Error> {
         };
         let cells = match e.geom() {
             geo_types::Geometry::Polygon(poly) => polygon_cells(&e, &poly, max),
-            geo_types::Geometry::MultiPolygon(_poly) => Ok(IndexVec::new()),
+            geo_types::Geometry::MultiPolygon(mp) => multi_polygon_cells(&e, &mp, max),
             _ => Err(Error::InvalidInput(format!(
                 "geoq h3 polyfill requires Polygon or MultiPolygon geometries -- got {}",
                 e.raw()

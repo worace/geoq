@@ -35,3 +35,6 @@ h3ron = "0.16.0"
 [dev-dependencies]
 assert_cli = "0.6.2"
 tempfile = "3.3.0"
+
+[profile.release]
+debug = true
