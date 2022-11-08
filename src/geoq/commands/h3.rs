@@ -110,6 +110,16 @@ fn parent(matches: &ArgMatches) -> Result<(), Error> {
     })
 }
 
+fn resolution() -> Result<(), Error> {
+    par::for_stdin_entity(move |e| match e {
+        Entity::H3(cell) => Ok(vec![cell.resolution().to_string()]),
+        _ => Err(Error::InvalidInput(format!(
+            "Input for 'geoq h3 resolution' should be a hexadecimal h3 cell. Got: {}",
+            e
+        ))),
+    })
+}
+
 fn children(matches: &ArgMatches) -> Result<(), Error> {
     let resolution = match read_resolution(matches) {
         Ok(res) => Some(res),
@@ -501,6 +511,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), Error> {
         ("grid-disk", Some(m)) => grid_disk(m),
         ("polyfill", Some(m)) => polyfill(m),
         ("polyfill-h3", Some(m)) => polyfill_h3(m),
+        ("resolution", _) => resolution(),
         _ => Err(Error::UnknownCommand),
     }
 }

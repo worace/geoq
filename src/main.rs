@@ -278,7 +278,8 @@ fn main() {
                         .help("H3 cell resolution (0-15)")
                         .index(1),
                 )
-        ).subcommand(
+        ).subcommand(SubCommand::with_name("resolution").about("Get resolution for an H3 cell"))
+        .subcommand(
             SubCommand::with_name("grid-disk")
                 .about("Get disk of given radius around given cells. Default radius is 1.")
                 .arg(
