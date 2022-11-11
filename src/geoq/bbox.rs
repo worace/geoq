@@ -71,17 +71,17 @@ pub fn bbox(geom: &Geometry<f64>) -> geo::Rect<f64> {
 }
 
 pub trait BBoxToPoly {
-    fn to_polygon(&self) -> geo_types::Polygon<f64>;
+    fn to_polygon_geoq(&self) -> geo_types::Polygon<f64>;
 }
 
 impl BBoxToPoly for geo::Rect<f64> {
-    fn to_polygon(&self) -> geo_types::Polygon<f64> {
+    fn to_polygon_geoq(&self) -> geo_types::Polygon<f64> {
         Polygon::new(
             LineString::from(vec![
                 self.max().x_y(),
-                (self.max().x, self.min().y),
-                (self.min().x, self.min().y),
                 (self.min().x, self.max().y),
+                (self.min().x, self.min().y),
+                (self.max().x, self.min().y),
                 self.max().x_y(),
             ]),
             vec![],
