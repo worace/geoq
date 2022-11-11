@@ -302,6 +302,18 @@ fn main() {
                      .short("o")
                      .help("Also print the query entity in the output.\nUseful for mapping a geometry along with its covering H3 Cells."))
         ).subcommand(
+            SubCommand::with_name("covering")
+                .about("Generate set of H3 cells covering a geometry.")
+                .arg(
+                    Arg::with_name("resolution")
+                        .help("H3 cell resolution (0-15)")
+                        .index(1),
+                )
+                .arg(Arg::with_name("original")
+                     .long("original")
+                     .short("o")
+                     .help("Also print the query entity in the output.\nUseful for mapping a geometry along with its covering H3 Cells."))
+        ).subcommand(
             SubCommand::with_name("polyfill-h3")
                 .about("Generate set of H3 cells covering a polygon or multipolygon.")
                 .help(text::H3_POLYFILL_HELP)

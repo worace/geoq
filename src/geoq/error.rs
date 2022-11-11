@@ -35,6 +35,12 @@ impl From<io::Error> for Error {
     }
 }
 
+impl From<h3ron::Error> for Error {
+    fn from(e: h3ron::Error) -> Self {
+        Error::ProgramError(format!("Error in H3 core: {}", e))
+    }
+}
+
 impl From<serde_json::Error> for Error {
     fn from(_: serde_json::Error) -> Self {
         Error::JSONParseError

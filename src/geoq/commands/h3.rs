@@ -1,8 +1,8 @@
-use crate::geoq::{self, entity::Entity, error::Error, par};
+use crate::geoq::{self, bbox::BBoxToPoly, entity::Entity, error::Error, par};
 use clap::ArgMatches;
 use geo::{
     prelude::{Centroid, Contains, Intersects},
-    Geometry, MultiPolygon, Point, Polygon,
+    Coordinate, Geometry, MultiPolygon, Point, Polygon,
 };
 use h3ron::{collections::indexvec::IndexVec, FromH3Index, H3Cell, Index, ToCoordinate, ToPolygon};
 use std::{
@@ -147,6 +147,15 @@ fn cell_at_res(p: Point<f64>, res: u8) -> Result<H3Cell, Error> {
     })
 }
 
+fn coord_cell(c: Coordinate<f64>, res: u8) -> Result<H3Cell, Error> {
+    H3Cell::from_coordinate(c, res).map_err(|e| {
+        Error::InvalidInput(format!(
+            "Unable to calculate h3 cell for point {},{} -- {}",
+            c.x, c.y, e
+        ))
+    })
+}
+
 fn hierarchy() -> Result<(), Error> {
     par::for_stdin_entity(move |e| match e.geom() {
         geo_types::Geometry::Point(p) => {
@@ -266,7 +275,7 @@ fn polyfill_res(matches: &ArgMatches) -> Result<(u8, u8), Error> {
     let min_parsed = parse_resolution(min)?;
     let max_parsed = parse_resolution(max)?;
 
-    if (min_parsed <= max_parsed) {
+    if min_parsed <= max_parsed {
         Ok((min_parsed, max_parsed))
     } else {
         Err(Error::InvalidInput(format!(
@@ -425,26 +434,21 @@ fn polyfill(matches: &ArgMatches) -> Result<(), Error> {
 }
 
 // This function uses the built-in H3 impl (homogeneous polyfill at specific res)
-fn polygon_cells(entity: &Entity, poly: &Polygon<f64>, res: u8) -> Result<Vec<H3Cell>, Error> {
+fn polygon_cells(poly: &Polygon<f64>, res: u8) -> Result<Vec<H3Cell>, Error> {
     h3ron::to_h3::polygon_to_cells(poly, res)
         .map_err(|e| {
             Error::ProgramError(format!(
-                "Unable to calculate H3 polygon cells for polygon: {} -- {}",
-                entity.raw(),
+                "Unable to calculate H3 polygon cells for polygon: {}",
                 e
             ))
         })
         .map(|iv| iv.into())
 }
 
-fn multi_polygon_cells(
-    entity: &Entity,
-    mp: &MultiPolygon<f64>,
-    res: u8,
-) -> Result<Vec<H3Cell>, Error> {
+fn multi_polygon_cells(mp: &MultiPolygon<f64>, res: u8) -> Result<Vec<H3Cell>, Error> {
     let mut cells = HashSet::<H3Cell>::new();
     for poly in mp.0.iter() {
-        let poly_cells = polygon_cells(entity, &poly, res)?;
+        let poly_cells = polygon_cells(&poly, res)?;
         for cell in poly_cells.into_iter() {
             cells.insert(cell);
         }
@@ -463,8 +467,8 @@ fn polyfill_h3(matches: &ArgMatches) -> Result<(), Error> {
             vec![]
         };
         let cells = match e.geom() {
-            geo_types::Geometry::Polygon(poly) => polygon_cells(&e, &poly, max),
-            geo_types::Geometry::MultiPolygon(mp) => multi_polygon_cells(&e, &mp, max),
+            geo_types::Geometry::Polygon(poly) => polygon_cells(&poly, max),
+            geo_types::Geometry::MultiPolygon(mp) => multi_polygon_cells(&mp, max),
             _ => Err(Error::InvalidInput(format!(
                 "geoq h3 polyfill requires Polygon or MultiPolygon geometries -- got {}",
                 e.raw()
@@ -473,6 +477,113 @@ fn polyfill_h3(matches: &ArgMatches) -> Result<(), Error> {
         match cells {
             Ok(cells) => {
                 if min < max {
+                    let cells_vec: Vec<H3Cell> = cells.into();
+                    match h3ron::compact_cells(&cells_vec[0..cells_vec.len()]) {
+                        Ok(compacted) => compacted.iter().for_each(|c| results.push(c.to_string())),
+                        _ => (),
+                    }
+                } else {
+                    cells.iter().for_each(|c| results.push(c.to_string()));
+                }
+            }
+            _ => (),
+        }
+        Ok(results)
+    })
+}
+
+fn linestring_cells(ls: &geo_types::LineString, res: u8) -> Result<Vec<H3Cell>, Error> {
+    if ls.0.is_empty() {
+        Ok(vec![])
+    } else {
+        let start = ls.0.first().unwrap();
+        let mut queue = VecDeque::<H3Cell>::new();
+        let mut matches = HashSet::<H3Cell>::new();
+        let mut seen = HashSet::<H3Cell>::new();
+        queue.push_back(coord_cell(*start, res)?);
+        while let Some(cell) = queue.pop_front() {
+            let poly = cell.to_polygon()?;
+            if poly.intersects(ls) {
+                matches.insert(cell);
+                let neighbors = cell.grid_disk(1)?;
+                for c in neighbors.iter() {
+                    if !seen.contains(&c) {
+                        queue.push_back(c);
+                        seen.insert(c);
+                    }
+                }
+            }
+        }
+        Ok(matches.into_iter().collect())
+    }
+}
+
+fn flatten_cell_results(r: Result<Vec<Vec<H3Cell>>, Error>) -> Result<Vec<H3Cell>, Error> {
+    let mut flattened = Vec::<H3Cell>::new();
+    for v in r? {
+        for cell in v {
+            flattened.push(cell);
+        }
+    }
+
+    Ok(flattened)
+}
+
+fn multi_linestring_cells(mls: &geo_types::MultiLineString, res: u8) -> Result<Vec<H3Cell>, Error> {
+    flatten_cell_results(mls.0.iter().map(|ls| linestring_cells(ls, res)).collect())
+}
+
+fn gc_cells(g: &geo_types::GeometryCollection<f64>, res: u8) -> Result<Vec<H3Cell>, Error> {
+    flatten_cell_results(g.0.iter().map(|g| geom_cells(g, res)).collect())
+}
+
+fn geom_cells(g: &geo_types::Geometry<f64>, res: u8) -> Result<Vec<H3Cell>, Error> {
+    match g {
+        geo_types::Geometry::Point(g) => cell_at_res(*g, res).map(|c| vec![c]),
+        geo_types::Geometry::MultiPoint(g) => g.0.iter().map(|p| cell_at_res(*p, res)).collect(),
+        geo_types::Geometry::Line(g) => {
+            linestring_cells(&geo_types::LineString::new(vec![g.start, g.end]), res)
+        }
+        geo_types::Geometry::LineString(g) => linestring_cells(&g, res),
+        geo_types::Geometry::MultiLineString(g) => multi_linestring_cells(&g, res),
+        geo_types::Geometry::Triangle(g) => polygon_cells(&g.to_polygon(), res),
+        geo_types::Geometry::Rect(g) => polygon_cells(&g.to_polygon(), res),
+        geo_types::Geometry::Polygon(poly) => polygon_cells(&poly, res),
+        geo_types::Geometry::MultiPolygon(mp) => multi_polygon_cells(&mp, res),
+        geo_types::Geometry::GeometryCollection(g) => gc_cells(&g, res),
+    }
+}
+
+fn covering(matches: &ArgMatches) -> Result<(), Error> {
+    let res = read_resolution(matches)?;
+    let include_original = matches.is_present("original");
+    let compact = matches.is_present("compact");
+
+    par::for_stdin_entity(move |e| {
+        let mut results = if include_original {
+            vec![e.raw()]
+        } else {
+            vec![]
+        };
+        let cells = match e.geom() {
+            geo_types::Geometry::Point(g) => cell_at_res(g, res).map(|c| vec![c]),
+            geo_types::Geometry::MultiPoint(g) => {
+                g.0.iter().map(|p| cell_at_res(*p, res)).collect()
+            }
+            geo_types::Geometry::LineString(g) => linestring_cells(&g, res),
+            geo_types::Geometry::MultiLineString(g) => multi_linestring_cells(&g, res),
+            geo_types::Geometry::Triangle(g) => polygon_cells(&g.to_polygon(), res),
+            geo_types::Geometry::Rect(g) => polygon_cells(&g.to_polygon(), res),
+            geo_types::Geometry::Polygon(poly) => polygon_cells(&poly, res),
+            geo_types::Geometry::MultiPolygon(mp) => multi_polygon_cells(&mp, res),
+            _ => Err(Error::InvalidInput(format!(
+                "geoq h3 polyfill requires Polygon or MultiPolygon geometries -- got {}",
+                e.raw()
+            ))),
+        };
+        match cells {
+            Ok(cells) => {
+                if compact {
                     let cells_vec: Vec<H3Cell> = cells.into();
                     match h3ron::compact_cells(&cells_vec[0..cells_vec.len()]) {
                         Ok(compacted) => compacted.iter().for_each(|c| results.push(c.to_string())),
@@ -512,6 +623,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), Error> {
         ("polyfill", Some(m)) => polyfill(m),
         ("polyfill-h3", Some(m)) => polyfill_h3(m),
         ("resolution", _) => resolution(),
+        ("covering", Some(m)) => covering(m),
         _ => Err(Error::UnknownCommand),
     }
 }
