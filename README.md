@@ -111,6 +111,16 @@ See the built-in command help using `geoq --help` or `geoq <subcommand> --help` 
 * `fgb` - Working with [flatgeobuf](http://flatgeobuf.org)
   * `write` - write flatgeobuf files from GeoJSON lines to STDIN
   * `read` - read flatgeobuf files to GeoJSON with optional bbox filter
+* `h3` - Working with [H3 spatial grid system](https://h3geo.org/)
+  * `children`- Get children for h3 cell(s)
+  * `covering` - Generate set of H3 cells covering a geometry.
+  * `from-str` - Convert h3 hexadecimal string IDs to 64-bit numeric ids
+  * `grid-disk` - Get disk of given radius around given cells
+  * `hierarchy` - Output all h3 cells for a given point, from res 0 to 15
+  * `parent` - Get parent (or ancestor) for cells
+  * `point` - Get H3 cell for a point
+  * `resolution` - Get resolution for an H3 cell
+  * `to-str` -  Convert 64-bit numeric h3 index its hexadecimal string representation
 
 See the [Manual](https://github.com/worace/geoq/blob/master/manual.md) for more examples and available commands.
 

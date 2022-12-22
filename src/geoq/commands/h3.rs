@@ -416,25 +416,6 @@ fn top_down_covering_cells(
     Ok(cells)
 }
 
-fn polyfill(matches: &ArgMatches) -> Result<(), Error> {
-    let (min, max) = polyfill_res(matches)?;
-    let include_original = matches.is_present("original");
-
-    par::for_stdin_entity(move |e| {
-        let mut results = if include_original {
-            vec![e.raw()]
-        } else {
-            vec![]
-        };
-        eprintln!("polyfill for entity");
-        match top_down_covering_cells(&e.geom(), min, max) {
-            Ok(cells) => cells.iter().for_each(|c| results.push(c.to_string())),
-            _ => (),
-        }
-        Ok(results)
-    })
-}
-
 // This function uses the built-in H3 impl (homogeneous polyfill at specific res)
 fn polygon_cells(poly: &Polygon<f64>, res: u8) -> Result<Vec<H3Cell>, Error> {
     h3ron::to_h3::polygon_to_cells(poly, res)
@@ -456,42 +437,6 @@ fn multi_polygon_cells(mp: &MultiPolygon<f64>, res: u8) -> Result<Vec<H3Cell>, E
         }
     }
     Ok(cells.into_iter().collect())
-}
-
-fn polyfill_h3(matches: &ArgMatches) -> Result<(), Error> {
-    let (min, max) = polyfill_res(matches)?;
-    let include_original = matches.is_present("original");
-
-    par::for_stdin_entity(move |e| {
-        let mut results = if include_original {
-            vec![e.raw()]
-        } else {
-            vec![]
-        };
-        let cells = match e.geom() {
-            geo_types::Geometry::Polygon(poly) => polygon_cells(&poly, max),
-            geo_types::Geometry::MultiPolygon(mp) => multi_polygon_cells(&mp, max),
-            _ => Err(Error::InvalidInput(format!(
-                "geoq h3 polyfill requires Polygon or MultiPolygon geometries -- got {}",
-                e.raw()
-            ))),
-        };
-        match cells {
-            Ok(cells) => {
-                if min < max {
-                    let cells_vec: Vec<H3Cell> = cells.into();
-                    match h3ron::compact_cells(&cells_vec[0..cells_vec.len()]) {
-                        Ok(compacted) => compacted.iter().for_each(|c| results.push(c.to_string())),
-                        _ => (),
-                    }
-                } else {
-                    cells.iter().for_each(|c| results.push(c.to_string()));
-                }
-            }
-            _ => (),
-        }
-        Ok(results)
-    })
 }
 
 fn linestring_cells(ls: &geo_types::LineString, res: u8) -> Result<Vec<H3Cell>, Error> {
@@ -601,18 +546,6 @@ fn covering(matches: &ArgMatches) -> Result<(), Error> {
     })
 }
 
-// H3 methods
-// [x] point
-// [x] polyfill
-// [x] hierarchy -- print full hierarchy
-// [x] children
-// [x] parent
-// [x] disk (n)
-// [x] string to long
-// [x] long to string
-// [x] H3 metadata in geojson representation
-// H3 add to entity parsing
-// - long or hex format? will it collide with geohash?
 pub fn run(matches: &ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("point", Some(m)) => point(m),
@@ -622,8 +555,6 @@ pub fn run(matches: &ArgMatches) -> Result<(), Error> {
         ("from-str", _) => from_str(),
         ("to-str", _) => to_str(),
         ("grid-disk", Some(m)) => grid_disk(m),
-        ("polyfill", Some(m)) => polyfill(m),
-        ("polyfill-h3", Some(m)) => polyfill_h3(m),
         ("resolution", _) => resolution(),
         ("covering", Some(m)) => covering(m),
         _ => Err(Error::UnknownCommand),

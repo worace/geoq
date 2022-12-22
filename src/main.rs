@@ -288,20 +288,6 @@ fn main() {
                         .index(1),
                 )
         ).subcommand(
-            SubCommand::with_name("polyfill")
-                .about("Generate set of H3 cells covering a polygon or multipolygon.")
-                .help(text::H3_POLYFILL_HELP)
-                .arg(Arg::with_name("min-res").long("min-res").help(
-                    "Minimum (coarsest) resolution for cell set (default: 0)",
-                ).takes_value(true))
-                .arg(Arg::with_name("max-res").long("max-res").help(
-                    "Maximum (finest) resolution for cell set (default: 15)",
-                ).takes_value(true))
-                .arg(Arg::with_name("original")
-                     .long("original")
-                     .short("o")
-                     .help("Also print the query entity in the output.\nUseful for mapping a geometry along with its covering H3 Cells."))
-        ).subcommand(
             SubCommand::with_name("covering")
                 .about("Generate set of H3 cells covering a geometry.")
                 .arg(
@@ -309,20 +295,6 @@ fn main() {
                         .help("H3 cell resolution (0-15)")
                         .index(1),
                 )
-                .arg(Arg::with_name("original")
-                     .long("original")
-                     .short("o")
-                     .help("Also print the query entity in the output.\nUseful for mapping a geometry along with its covering H3 Cells."))
-        ).subcommand(
-            SubCommand::with_name("polyfill-h3")
-                .about("Generate set of H3 cells covering a polygon or multipolygon.")
-                .help(text::H3_POLYFILL_HELP)
-                .arg(Arg::with_name("min-res").long("min-res").help(
-                    "Minimum (coarsest) resolution for cell set (default: 0)",
-                ).takes_value(true))
-                .arg(Arg::with_name("max-res").long("max-res").help(
-                    "Maximum (finest) resolution for cell set (default: 15)",
-                ).takes_value(true))
                 .arg(Arg::with_name("original")
                      .long("original")
                      .short("o")
