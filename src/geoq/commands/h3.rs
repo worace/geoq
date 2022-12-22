@@ -85,22 +85,24 @@ fn parent(matches: &ArgMatches) -> Result<(), Error> {
     par::for_stdin_entity(move |e| match e {
         Entity::H3(cell) => {
             let cell_res = cell.resolution();
-            let parent_res = resolution.unwrap_or(cell_res - 1);
-            if parent_res >= cell_res {
-                Err(Error::InvalidInput(format!(
-                    "Parent resolution must be less than or equal to cell resolution. Can't get parent at res {} for cell {} at res {}.",
-                    parent_res, cell.to_string(), cell_res
-                )))
-            } else if parent_res < 0 {
+            if resolution.is_none() && cell_res == 0 {
                 Err(Error::InvalidInput(format!(
                     "Can't get parent or ancestor for cell {} at res {} -- Can't go below res 0.",
                     cell.to_string(),
                     cell_res
                 )))
             } else {
-                cell.get_parent(parent_res)
-                    .map_err(|e| Error::ProgramError(format!("H3 error: {}", e)))
-                    .map(|p| vec![p.to_string()])
+                let parent_res = resolution.unwrap_or(cell_res - 1);
+                if parent_res >= cell_res {
+                    Err(Error::InvalidInput(format!(
+                        "Parent resolution must be less than or equal to cell resolution. Can't get parent at res {} for cell {} at res {}.",
+                        parent_res, cell.to_string(), cell_res
+                    )))
+                } else {
+                    cell.get_parent(parent_res)
+                        .map_err(|e| Error::ProgramError(format!("H3 error: {}", e)))
+                        .map(|p| vec![p.to_string()])
+                }
             }
         }
         _ => Err(Error::InvalidInput(format!(
@@ -246,7 +248,7 @@ fn read_radius(matches: &ArgMatches) -> Result<Option<u32>, Error> {
 fn cell_disk(cell: H3Cell, radius: u32) -> Result<Vec<String>, Error> {
     cell.grid_disk(radius)
         .map(|cells| cells.iter().map(|c| c.to_string()).collect())
-        .map_err(|e| {
+        .map_err(|_| {
             Error::ProgramError(format!(
                 "Unable to compute H3 grid disk for cell: {}, radius: {}.",
                 cell.to_string(),
@@ -290,7 +292,7 @@ fn start_cells(geom: &Geometry<f64>, max_res: u8) -> Result<(Vec<H3Cell>, u8), E
     // This should only fail if the geometry is so large that there is no single cell at
     // any resolution which fully covers it. If this is the case, our starting set
     // will simply be the full set of res 0 cells (assuming a ~continent-sized geometry)
-    let startingRes: Option<H3Cell> = match geom.centroid() {
+    let starting_res: Option<H3Cell> = match geom.centroid() {
         Some(cen) => {
             let cells: Result<Vec<H3Cell>, Error> = (max_res..=0)
                 .map(|res| {
@@ -311,7 +313,7 @@ fn start_cells(geom: &Geometry<f64>, max_res: u8) -> Result<(Vec<H3Cell>, u8), E
         )),
     }?;
 
-    Ok(startingRes
+    Ok(starting_res
         .map(|c| (vec![c], c.resolution()))
         .unwrap_or_else(|| (h3ron::res0_cells().iter().collect::<Vec<H3Cell>>(), 0)))
 }
