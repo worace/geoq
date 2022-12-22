@@ -2,8 +2,9 @@ use crate::geoq::{self, bbox::BBoxToPoly, entity::Entity, error::Error, par};
 use clap::ArgMatches;
 use geo::{
     prelude::{Centroid, Contains, Intersects},
-    Coordinate, Geometry, MultiPolygon, Point, Polygon,
+    Geometry, MultiPolygon, Point, Polygon,
 };
+use geo_types::Coord;
 use h3ron::{collections::indexvec::IndexVec, FromH3Index, H3Cell, Index, ToCoordinate, ToPolygon};
 use std::{
     collections::{HashSet, VecDeque},
@@ -149,7 +150,7 @@ fn cell_at_res(p: Point<f64>, res: u8) -> Result<H3Cell, Error> {
     })
 }
 
-fn coord_cell(c: Coordinate<f64>, res: u8) -> Result<H3Cell, Error> {
+fn coord_cell(c: Coord<f64>, res: u8) -> Result<H3Cell, Error> {
     H3Cell::from_coordinate(c, res).map_err(|e| {
         Error::InvalidInput(format!(
             "Unable to calculate h3 cell for point {},{} -- {}",

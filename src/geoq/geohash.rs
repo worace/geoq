@@ -1,5 +1,5 @@
 use crate::geoq::contains;
-use geo_types::{Coordinate, Geometry, LineString, Polygon};
+use geo_types::{Coord, Geometry, LineString, Polygon};
 use std::str;
 
 pub const BASE_32: [char; 32] = [
@@ -36,8 +36,8 @@ pub fn neighbors(gh: &String, include_self: bool) -> Vec<String> {
 
 pub fn bbox(gh: &str) -> Option<Polygon<f64>> {
     if gh == "" {
-        let min = Coordinate::<f64>::from((-180.0, -90.0));
-        let max = Coordinate::<f64>::from((180.0, 90.0));
+        let min = Coord::<f64>::from((-180.0, -90.0));
+        let max = Coord::<f64>::from((180.0, 90.0));
         return Some(geo_types::Rect::new(min, max).to_polygon());
     }
     match geohash::decode_bbox(gh) {
@@ -45,11 +45,11 @@ pub fn bbox(gh: &str) -> Option<Polygon<f64>> {
             let bl = rect.min();
             let tr = rect.max();
             let outer = LineString(vec![
-                Coordinate::from((bl.x, bl.y)),
-                Coordinate::from((tr.x, bl.y)),
-                Coordinate::from((tr.x, tr.y)),
-                Coordinate::from((bl.x, tr.y)),
-                Coordinate::from((bl.x, bl.y)),
+                Coord::from((bl.x, bl.y)),
+                Coord::from((tr.x, bl.y)),
+                Coord::from((tr.x, tr.y)),
+                Coord::from((bl.x, tr.y)),
+                Coord::from((bl.x, bl.y)),
             ]);
             Some(Polygon::new(outer, Vec::new()))
         }
