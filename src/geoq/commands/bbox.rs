@@ -24,7 +24,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), Error> {
         match bbox {
             None => Err(Error::NoInputGiven),
             Some(bbox) => {
-                let poly = bbox.to_polygon();
+                let poly = bbox.to_polygon_geoq();
                 let gj = geojson::Geometry::new(geojson::Value::from(&poly));
                 println!("{}", serde_json::to_string(&gj).unwrap());
                 Ok(())
@@ -40,7 +40,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), Error> {
                 feat.bbox = Some(gj_bbox);
                 Ok(vec![format!("{}", serde_json::to_string(&feat).unwrap())])
             } else {
-                let poly = bbox.to_polygon();
+                let poly = bbox.to_polygon_geoq();
                 let gj = geojson::Geometry::new(geojson::Value::from(&poly));
                 Ok(vec![format!("{}", serde_json::to_string(&gj).unwrap())])
             }

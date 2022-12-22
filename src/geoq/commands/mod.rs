@@ -4,6 +4,7 @@ pub mod fgb;
 pub mod filter;
 pub mod geohash;
 pub mod geojson_cmd;
+pub mod h3;
 pub mod json;
 pub mod map;
 pub mod measure;
