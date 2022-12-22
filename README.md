@@ -62,6 +62,7 @@ Geoq will detect the following GIS input formats automatically:
 * Geohashes (base 32): `9q5`
 * WKT: `POINT (-118.0, 34.0)`
 * GeoJSON: `{"type": "Point", "coordinates": [-118.0, 34.0]}`
+* H3 Cells in Hex String format: `8c274996e1683ff`
 
 ## One Feature Per Line, One Line Per Feature
 
