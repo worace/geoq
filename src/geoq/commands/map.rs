@@ -7,7 +7,6 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-const GEOJSON_IO_URL_LIMIT: usize = 27000;
 static GEOJSON_IO_HTML_P1: &'static [u8] = include_bytes!("../../../resources/geojsonio_p1.html");
 static GEOJSON_IO_HTML_P2: &'static [u8] = include_bytes!("../../../resources/geojsonio_p2.html");
 
@@ -35,27 +34,19 @@ pub fn run() -> Result<(), Error> {
 
     let fc = geojson::FeatureCollection {
         bbox: None,
-        features: features,
+        features,
         foreign_members: None,
     };
     let fc_json = GeoJson::from(fc).to_string();
 
-    if fc_json.len() < GEOJSON_IO_URL_LIMIT {
-        let encoded = utf8_percent_encode(&fc_json, DEFAULT_ENCODE_SET);
-        let url = format!("http://geojson.io#data=data:application/json,{}", encoded);
-        browser_open::open(url);
+    let tmpfile = format!("/tmp/geoq_map_{}.html", timestamp());
+    let mut file = File::create(tmpfile.clone())?;
+    eprintln!("Opening geojson.io map file: {}", tmpfile);
 
-        Ok(())
-    } else {
-        let tmpfile = format!("/tmp/geoq_map_{}.html", timestamp());
-        let mut file = File::create(tmpfile.clone())?;
-        eprintln!("Opening geojson.io map file: {}", tmpfile);
+    file.write_all(GEOJSON_IO_HTML_P1)?;
+    file.write_all(fc_json.as_bytes())?;
+    file.write_all(GEOJSON_IO_HTML_P2)?;
+    browser_open::open(tmpfile);
 
-        file.write_all(GEOJSON_IO_HTML_P1)?;
-        file.write_all(fc_json.as_bytes())?;
-        file.write_all(GEOJSON_IO_HTML_P2)?;
-        browser_open::open(tmpfile);
-
-        Ok(())
-    }
+    Ok(())
 }
