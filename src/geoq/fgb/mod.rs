@@ -32,7 +32,7 @@ pub struct ColSpec {
     pub type_: ColumnType,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum PropType {
     Boolean,
     String,
@@ -64,9 +64,32 @@ pub enum PropType {
 // 5.
 
 pub fn write_ext(reader: Reader, dest_path: &str) -> Result<u64, Error> {
-    let part = NamedTempFile::new();
+    let max_part_size = 4 * 100_000_000; // MB
+    let mut global_schema: HashMap<String, PropType> = HashMap::new();
+    let mut part_files: Vec<NamedTempFile> = vec![];
+
+    let mut part: Vec<BoundedFlatBufFeature> = vec![];
+    let mut part_size: usize = 0;
+
+    // let part = NamedTempFile::new();
     for e_res in reader {
         let e = e_res?;
+        let f = e.geojson_feature();
+        let (buf, schema) = feature::write_local(f);
+        part_size += buf.bldr.finished_data().len();
+        properties::widen(&mut global_schema, schema);
+        part.push(buf);
+
+        // Q: what about "extent" parameter of Hilbert encoding?
+        // Is it mandatory to know the global extent of the whole dataset
+        // in order to do local hilbert comps?
+        // If so, this may require 1 full pass before we do anything...
+        if (part_size > max_part_size) {
+            // sort features
+            // make tempfile
+            // write them to tempfile
+            // record tempfile
+        }
     }
     Ok(0)
 }

@@ -1,4 +1,4 @@
-use super::{ColSpec, PropType};
+use super::{ColSpec, PropType, Schema};
 use flatgeobuf::ColumnType;
 use serde_json::{Map, Value};
 use std::{any::Any, collections::HashMap, convert::TryInto};
@@ -32,7 +32,7 @@ pub fn col_type(prop_type: &PropType) -> ColumnType {
     }
 }
 
-pub fn col_specs(schema: &HashMap<String, PropType>) -> Vec<ColSpec> {
+pub fn col_specs(schema: &Schema) -> Vec<ColSpec> {
     let mut keys: Vec<String> = vec![];
     for k in schema.keys() {
         keys.push(k.clone());
@@ -50,7 +50,18 @@ pub fn col_specs(schema: &HashMap<String, PropType>) -> Vec<ColSpec> {
         .collect()
 }
 
-pub fn feature_schema(feature: &geojson::Feature) -> HashMap<String, PropType> {
+pub fn widen(global: &mut Schema, local: Schema) -> () {
+    for (k, v) in local.iter() {
+        // Q: What's the idiomatic way to copy from
+        // one hashmap to the other by consuming the keys
+        // since the value is owned at this point?
+        if !global.contains_key(k) {
+            global.insert(k.clone(), *v);
+        }
+    }
+}
+
+pub fn feature_schema(feature: &geojson::Feature) -> Schema {
     let mut schema = HashMap::<String, PropType>::new();
     if feature.properties.is_none() {
         return schema;
