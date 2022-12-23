@@ -34,7 +34,7 @@ pub fn run() -> Result<(), Error> {
 
     let fc = geojson::FeatureCollection {
         bbox: None,
-        features: features,
+        features,
         foreign_members: None,
     };
     let fc_json = GeoJson::from(fc).to_string();
