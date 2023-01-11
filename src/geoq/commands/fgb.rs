@@ -1,6 +1,7 @@
 use crate::geoq::{error::Error, fgb, reader::Reader};
 use clap::ArgMatches;
 use flatgeobuf::FgbReader;
+use geozero::GeozeroDatasource;
 use std::fs::File;
 use std::io::{self, BufReader};
 use std::path::Path;
@@ -42,9 +43,9 @@ use geozero::ToJson;
 
 fn read(path: &str, bbox: Option<&str>) -> Result<(), Error> {
     let mut file = BufReader::new(File::open(path)?);
-    let mut fgb = FgbReader::open(&mut file)?;
+    let fgb = FgbReader::open(&mut file)?;
 
-    if let Some(bbox) = bbox {
+    let mut fgb = if let Some(bbox) = bbox {
         let parts: Vec<f64> = bbox
             .split(",")
             .map(|num| {
@@ -58,14 +59,14 @@ fn read(path: &str, bbox: Option<&str>) -> Result<(), Error> {
         }
 
         let (min_x, min_y, max_x, max_y) = (parts[0], parts[1], parts[2], parts[3]);
-        let _count = fgb.select_bbox(min_x, min_y, max_x, max_y).unwrap();
+        fgb.select_bbox(min_x, min_y, max_x, max_y)?
     } else {
-        let _count = fgb.select_all()?;
-    }
+        fgb.select_all()?
+    };
 
     let mut json_data: Vec<u8> = Vec::new();
     let mut json = GeoJsonWriter::new(&mut json_data);
-    fgb.process_features(&mut json)?;
+    fgb.process(&mut json)?;
     println!("{}", std::str::from_utf8(&json_data)?);
     Ok(())
 }

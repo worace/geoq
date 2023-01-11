@@ -120,7 +120,7 @@ mod tests {
       {"type":"GeometryCollection","geometries":[{"type":"Point","coordinates":[40,10]},{"type":"LineString","coordinates":[[-118,34],[-119,35]]}]}
     "#;
     const POINT_PROPS: &str = r#"
-      {"type":"Feature","properties": {"name": "pizza"},"geometry": {"type": "Point", "coordinates": [-118, 34]}}
+      {"type":"Feature","properties": {"name": "\"pizza"},"geometry": {"type": "Point", "coordinates": [-118, 34]}}
     "#;
 
     const MULTI_SCHEMA: &str = r#"
@@ -137,8 +137,8 @@ mod tests {
         let input_features = fvec(gj);
         let ser = write(input_features.clone());
         let mut buf: Cursor<Vec<u8>> = Cursor::new(ser);
-        let mut de = FgbReader::open(&mut buf).expect("Round trip...");
-        de.select_all().expect("read all features...");
+        let de = FgbReader::open(&mut buf).expect("Round trip...");
+        let mut de = de.select_all().expect("read all features...");
 
         let deserialized_geojson: String = de.to_json().unwrap();
 
@@ -293,9 +293,9 @@ mod tests {
         output_file.write(&buffer).unwrap();
 
         let mut comp_file = output_file.reopen().unwrap();
-        let mut ref_impl = FgbReader::open(&mut comp_file).unwrap();
+        let ref_impl = FgbReader::open(&mut comp_file).unwrap();
 
-        ref_impl.select_bbox(8.8, 47.2, 9.5, 55.3).unwrap();
+        let mut ref_impl = ref_impl.select_bbox(8.8, 47.2, 9.5, 55.3).unwrap();
 
         let deserialized_geojson: String = ref_impl.to_json().unwrap();
         let output_features = fvec(&deserialized_geojson);
