@@ -778,7 +778,7 @@ dependencies = [
 
 [[package]]
 name = "geoq"
-version = "0.0.24"
+version = "0.0.25"
 dependencies = [
  "assert_cli",
  "clap",
