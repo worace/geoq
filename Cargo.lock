@@ -511,9 +511,9 @@ dependencies = [
 
 [[package]]
 name = "flatbuffers"
-version = "22.10.26"
+version = "23.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2ba319fc85cd1d8994d42c95b13cdf051786b35f9e401b1c03bff1c67efd899"
+checksum = "77f5399c2c9c50ae9418e522842ad362f61ee48b346ac106807bd355a8a7c619"
 dependencies = [
  "bitflags",
  "rustc_version 0.4.0",
@@ -533,9 +533,9 @@ dependencies = [
 
 [[package]]
 name = "flatgeobuf"
-version = "3.24.0"
+version = "3.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c770d37d303e9dbca45d260f0d7d6d3ee289a00afed1200736d1a2c4d96d9e21"
+checksum = "bdfb3ccbd16ddcc6bd93a59c984b6b519f0c95167be7f91b11af1dcc3b6a9d5f"
 dependencies = [
  "byteorder",
  "bytes 1.3.0",
@@ -805,9 +805,9 @@ dependencies = [
 
 [[package]]
 name = "geozero"
-version = "0.9.6"
+version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84338a65eb745115dedeb3474a13e025b536130486582bf9d202bf0366b6d3c4"
+checksum = "12672f1ee4aab5ca6cc5376a2b5f04f74b899b1cfadaf5af9ab63c5bf07bc2a5"
 dependencies = [
  "geo-types",
  "geojson 0.24.0",
