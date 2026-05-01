@@ -26,7 +26,7 @@ See the [Manual](https://github.com/worace/geoq/blob/master/manual.md) for more 
 
 ## Install
 
-Geoq is installed via `cargo`, the Rust package manager, and requires `nightly` rust.
+Geoq is installed via `cargo`, the Rust package manager.
 
 If you have all this set up, you can just run `cargo install geoq`.
 
@@ -34,8 +34,6 @@ To [install Rust](https://www.rust-lang.org/en-US/install.html) and the Cargo to
 
 ```
 curl https://sh.rustup.rs -sSf | sh
-rustup toolchain install nightly
-rustup default nightly
 cargo install geoq
 ```
 
