@@ -61,8 +61,7 @@ type Geom = Geometry<f64>;
 fn latlon_point(v: &Map<String, Value>) -> Option<(Geom, Vec<&'static str>)> {
     let lat = find_number(&v, &vec!["latitude", "lat"]);
     let lon = find_number(&v, &vec!["longitude", "lon", "lng"]);
-    let lat_lon: Option<_> = try { (lat?, lon?) };
-    lat_lon.map(|((lat_key, lat), (lon_key, lon))| {
+    lat.zip(lon).map(|((lat_key, lat), (lon_key, lon))| {
         (
             Geometry::Point(Point::new(lon, lat)),
             vec![lat_key, lon_key],
