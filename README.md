@@ -26,17 +26,17 @@ See the [Manual](https://github.com/worace/geoq/blob/master/manual.md) for more 
 
 ## Install
 
-Geoq is installed via `cargo`, the Rust package manager, and requires `nightly` rust.
+Geoq is installed via `cargo`, the Rust package manager.
 
-If you have all this set up, you can just run `cargo install geoq`.
+If you have all this set up, you can just run `cargo install --locked geoq`.
+
+Using `--locked` is important to make cargo honor the `Cargo.lock` published with the crate, so that you'll get the same set of deps that the package is tested with..
 
 To [install Rust](https://www.rust-lang.org/en-US/install.html) and the Cargo toolchain:
 
 ```
 curl https://sh.rustup.rs -sSf | sh
-rustup toolchain install nightly
-rustup default nightly
-cargo install geoq
+cargo install --locked geoq
 ```
 
 You'll also need to add Cargo's `bin` directory to your path:
@@ -51,7 +51,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 To pull and install a newer version from crates.io, run:
 
 ```
-cargo install geoq --force
+cargo install --locked geoq --force
 ```
 
 ## Supported Input Formats
